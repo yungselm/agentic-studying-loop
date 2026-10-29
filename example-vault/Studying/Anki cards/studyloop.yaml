@@ -1,0 +1,25 @@
+# Card home settings (agentic-studying-loop). Lives next to standards/ in your vault.
+
+# Bumped by one each time the standards change after a refresh. New cards record
+# it as `std: N`, so later reports can compare cards written under each version.
+standards_version: 1
+
+# Limits `asl lint` enforces (and the standards describe). Tune them with
+# `asl stats` + the refresh-standards skill, not by gut feeling.
+limits:
+  code:
+    typed_chars_target: 80
+    typed_chars_max: 120
+  concept:
+    answer_chars_target: 250
+    answer_chars_max: 300
+    bold_chars_target: 120
+    bold_chars_max: 150
+
+# When a refresh counts as due (shown by `asl stats` on a manual export).
+refresh:
+  mature_share: 0.5          # first refresh: half the cards at >= mature_ivl_days
+  step_share: 0.25           # later: another 25% of the deck newly mature
+  min_review_answers: 1000   # and at least this many new review answers
+  min_card_age_days: 30      # younger cards are left out of the size analysis
+  mature_ivl_days: 21

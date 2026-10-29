@@ -1,0 +1,13 @@
+# Deck settings for {{name}} (agentic-studying-loop).
+deck: "Study Loop::{{name}}"     # Anki deck this folder builds into
+pack: {{pack}}                   # language: checker, syntax highlighting, standards addendum
+prefix: {{prefix}}               # card ids: {{prefix}}-001, {{prefix}}-002, ...
+subdecks: false                  # both files study together in one deck
+files:
+  {{slug}}_ext.yaml:
+    check: false                 # third-party libraries: verbatim from the repo, not compiled
+retired_ids: []                  # deleted ids; never reused
+presets:
+  default:
+    new_per_day: 10
+    order: random

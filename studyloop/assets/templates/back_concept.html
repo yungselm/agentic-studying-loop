@@ -1,0 +1,15 @@
+<div class="instr">{{Question}}</div>
+<div class="answer">{{Answer}}</div>
+{{#Source}}<div class="source">Source: {{Source}}</div>{{/Source}}
+
+{{#Code}}
+<div class="label">Example</div>
+<div id="solution" class="codebox"></div>
+<div id="cm-data" style="display:none" data-lang="{{Lang}}" data-solution="{{Code}}"></div>
+<link rel="stylesheet" href="_codemirror.css">
+<script src="_codemirror.js"></script>
+<script src="_simple.js"></script>
+<script src="_modes.js"></script>
+<script src="_cards.js"></script>
+<script>ankiCodeShow();</script>
+{{/Code}}

@@ -1,0 +1,3 @@
+# {{name}}: cards checked by `asl check` (standard library only; stub the project's
+# types under a `stubs (real: <file>)` comment). Standards: ../standards/.
+[]

@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentic-studying-loop"
+version = "0.1.0"
+description = "Turn what you learn while coding into study notes and Anki cards, with an AI agent and standards tuned by your own review data."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = ["genanki>=0.13", "PyYAML>=6.0", "zstandard>=0.21"]
+
+[project.optional-dependencies]
+python = ["pytest>=7", "ruff>=0.4"]
+dev = ["pytest>=7", "ruff>=0.4"]
+
+[project.scripts]
+asl = "studyloop.cli:main"
+
+[tool.setuptools]
+packages = ["studyloop"]
+
+[tool.setuptools.package-data]
+studyloop = ["assets/templates/*", "assets/vendor/*"]
+
+[tool.ruff]
+line-length = 100
+extend-exclude = ["packs/*/mode.js", "examples", "example-vault"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "I", "UP", "SIM"]
+ignore = ["SIM108", "SIM905", "E501", "B905", "B007"]

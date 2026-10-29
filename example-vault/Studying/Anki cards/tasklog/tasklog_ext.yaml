@@ -1,0 +1,34 @@
+# Tasklog: cards that need third-party libraries (typer). Not compiled, so the code
+# is verbatim from the repo (context frame, location header); re-check it by hand.
+
+- id: tsk-005
+  std: 1
+  instruction: |
+    Make `list_tasks` a typer command that the user calls as `tasklog list`
+    (the function can't be named `list`, it would shadow the built-in).
+  starter: |
+    # src/tasklog/cli.py  (command line: typer app, one function per command)
+    app = typer.Typer()
+    # ...
+
+    def list_tasks(open_only: bool = False) -> None:
+        for i, t in enumerate(STORE.load(), start=1):
+            if open_only and t.done:
+                continue
+            typer.echo(f"{i:>3} [{'x' if t.done else ' '}] {t.title}")
+  solution: |
+    # src/tasklog/cli.py  (command line: typer app, one function per command)
+    app = typer.Typer()
+    # ...
+
+    @app.command("list")
+    def list_tasks(open_only: bool = False) -> None:
+        for i, t in enumerate(STORE.load(), start=1):
+            if open_only and t.done:
+                continue
+            typer.echo(f"{i:>3} [{'x' if t.done else ' '}] {t.title}")
+  notes: |
+    Without a name, typer uses the function name (`list-tasks`). The bool
+    parameter becomes a `--open-only` flag automatically.
+  source: "src/tasklog/cli.py → list_tasks"
+  tags: [tasklog, typer, cli]

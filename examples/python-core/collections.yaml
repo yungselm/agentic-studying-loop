@@ -1,0 +1,79 @@
+- id: py-001
+  std: 1
+  instruction: |
+    Write `count_words(text: str) -> dict[str, int]` that counts how often each
+    whitespace-separated word occurs, case-insensitively (keys are lower-case).
+  starter: |
+    from collections import Counter
+
+
+    def count_words(text: str) -> dict[str, int]:
+
+  solution: |
+    from collections import Counter
+
+
+    def count_words(text: str) -> dict[str, int]:
+        return dict(Counter(text.lower().split()))
+  notes: |
+    `Counter` is a `dict` subclass that counts an iterable in one pass;
+    `str.split()` with no argument splits on any whitespace run and drops empties.
+  source: "Python docs: collections.Counter"
+  tags: [python, collections]
+  tests: |
+    assert count_words("a b A") == {"a": 2, "b": 1}
+    assert count_words("") == {}
+
+- id: py-002
+  std: 1
+  instruction: |
+    Group the words by their first letter: `group_by_initial(words: list[str]) ->
+    dict[str, list[str]]`, keeping the input order inside each group.
+    Use one `setdefault` call in the loop.
+  starter: |
+    def group_by_initial(words: list[str]) -> dict[str, list[str]]:
+        groups: dict[str, list[str]] = {}
+        for word in words:
+
+        return groups
+  solution: |
+    def group_by_initial(words: list[str]) -> dict[str, list[str]]:
+        groups: dict[str, list[str]] = {}
+        for word in words:
+            groups.setdefault(word[0], []).append(word)
+        return groups
+  notes: |
+    `setdefault(key, default)` inserts `default` only if the key is missing and
+    returns the stored value either way. `collections.defaultdict(list)` is the
+    alternative when the whole dict should auto-create lists.
+  source: "Python docs: dict.setdefault"
+  tags: [python, collections]
+  tests: |
+    assert group_by_initial(["ant", "bee", "art"]) == {"a": ["ant", "art"], "b": ["bee"]}
+    assert group_by_initial([]) == {}
+
+- id: py-003
+  std: 1
+  type: concept
+  question: |
+    What does this print, and why?
+
+        def add(item, bucket=[]):
+            bucket.append(item)
+            return bucket
+
+        add(1)
+        print(add(2))
+  answer: |
+    **`[1, 2]`: the default list is created once, when `def` runs, and shared by every call.**
+    Use `bucket=None` and create the list inside the function.
+  code: |
+    def add(item, bucket=None):
+        if bucket is None:
+            bucket = []
+        bucket.append(item)
+        return bucket
+
+    assert add(1) == [1]
+    assert add(2) == [2]
+  tags: [python, gotchas]

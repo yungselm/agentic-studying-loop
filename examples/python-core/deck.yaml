@@ -1,0 +1,6 @@
+# Example base deck: general Python patterns (not tied to a project).
+deck: "Study Loop Examples::Python"
+pack: python
+prefix: py
+presets:
+  default: {new_per_day: 10, order: random}

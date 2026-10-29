@@ -1,0 +1,13 @@
+# Deck settings for Tasklog (agentic-studying-loop).
+deck: "Study Loop::Tasklog"     # Anki deck this folder builds into
+pack: python                   # language: checker, syntax highlighting, standards addendum
+prefix: tsk               # card ids: tsk-001, tsk-002, ...
+subdecks: false                  # both files study together in one deck
+files:
+  tasklog_ext.yaml:
+    check: false                 # third-party libraries: verbatim from the repo, not compiled
+retired_ids: []                  # deleted ids; never reused
+presets:
+  default:
+    new_per_day: 10
+    order: random

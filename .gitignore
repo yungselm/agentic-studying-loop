@@ -1,0 +1,9 @@
+__pycache__/
+*.egg-info/
+.venv/
+asl-output/
+.pytest_cache/
+.ruff_cache/
+# your own Anki exports and evidence stay out of git
+*.colpkg
+*.apkg

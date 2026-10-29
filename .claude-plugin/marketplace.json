@@ -1,0 +1,11 @@
+{
+  "name": "agentic-studying-loop",
+  "owner": { "name": "yungselm" },
+  "plugins": [
+    {
+      "name": "agentic-studying-loop",
+      "source": "./",
+      "description": "Study notes and Anki cards from what you learn while coding."
+    }
+  ]
+}

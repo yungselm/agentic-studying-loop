@@ -1,0 +1,101 @@
+# Example base deck: a few cards from rust-lang-kata (hashmaps + iterators).
+
+- id: rs-001
+  instruction: |
+    Write `char_counts(s: &str) -> HashMap<char, usize>` counting each character
+    using the `entry` API.
+  starter: |
+    use std::collections::HashMap;
+
+    fn char_counts(s: &str) -> HashMap<char, usize> {
+
+    }
+  solution: |
+    use std::collections::HashMap;
+
+    fn char_counts(s: &str) -> HashMap<char, usize> {
+        let mut m = HashMap::new();
+        for c in s.chars() {
+            *m.entry(c).or_insert(0) += 1;
+        }
+        m
+    }
+  notes: |
+    `entry(k).or_insert(0)` returns a `&mut V` to the existing or newly inserted
+    value — one lookup for the classic counter idiom.
+  source: "std HashMap::entry"
+  tags: [rust, hashmap, entry]
+  tests: |
+    let counts = char_counts("aab");
+    assert_eq!(counts.get(&'a'), Some(&2));
+    assert_eq!(counts.get(&'b'), Some(&1));
+    assert_eq!(counts.get(&'z'), None);
+
+- id: rs-002
+  instruction: |
+    Complete `group_by_len` so it groups the words by their length: one line
+    in the loop, using the `entry` API.
+  starter: |
+    use std::collections::HashMap;
+
+    fn group_by_len(words: &[&str]) -> HashMap<usize, Vec<String>> {
+        let mut m: HashMap<usize, Vec<String>> = HashMap::new();
+        for w in words {
+
+        }
+        m
+    }
+  solution: |
+    use std::collections::HashMap;
+
+    fn group_by_len(words: &[&str]) -> HashMap<usize, Vec<String>> {
+        let mut m: HashMap<usize, Vec<String>> = HashMap::new();
+        for w in words {
+            m.entry(w.len()).or_default().push(w.to_string());
+        }
+        m
+    }
+  notes: |
+    `or_default()` inserts an empty `Vec` when the key is new, then we push into
+    the returned `&mut Vec`. (clippy prefers `or_default()` over
+    `or_insert_with(Vec::new)`.)
+  source: "std Entry::or_default"
+  tags: [rust, hashmap, entry]
+  tests: |
+    let groups = group_by_len(&["a", "bb", "cc", "d"]);
+    let mut one = groups[&1].clone();
+    one.sort();
+    assert_eq!(one, vec!["a".to_string(), "d".to_string()]);
+    let mut two = groups[&2].clone();
+    two.sort();
+    assert_eq!(two, vec!["bb".to_string(), "cc".to_string()]);
+
+- id: rs-003
+  instruction: |
+    Write `add_to(m: &mut HashMap<String, i32>, key: &str, delta: i32)` adding
+    `delta` to an existing value (do nothing if absent). Use `get_mut`.
+  starter: |
+    use std::collections::HashMap;
+
+    fn add_to(m: &mut HashMap<String, i32>, key: &str, delta: i32) {
+
+    }
+  solution: |
+    use std::collections::HashMap;
+
+    fn add_to(m: &mut HashMap<String, i32>, key: &str, delta: i32) {
+        if let Some(v) = m.get_mut(key) {
+            *v += delta;
+        }
+    }
+  notes: |
+    `get_mut` returns `Option<&mut V>` to edit a value in place.
+  source: "std HashMap::get_mut"
+  tags: [rust, hashmap]
+  tests: |
+    let mut m = HashMap::new();
+    m.insert("a".to_string(), 10);
+    add_to(&mut m, "a", 5);
+    assert_eq!(m["a"], 15);
+    add_to(&mut m, "z", 5);
+    assert_eq!(m.get("z"), None);

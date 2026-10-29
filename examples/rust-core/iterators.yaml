@@ -1,0 +1,14 @@
+# Example: concept cards from rust-lang-kata.
+
+- id: rs-004
+  type: concept
+  question: |
+    Why does `collect()` often need a type annotation or turbofish?
+  answer: |
+    **Because `collect` is generic over its output type via `FromIterator`,
+    so the compiler can't always infer what you want without help.**
+
+    Specify it via the binding type (`let v: Vec<_> = ...`) or turbofish
+    (`.collect::<Vec<_>>()`).
+  source: "std Iterator::collect"
+  tags: [rust, iterators, concept]

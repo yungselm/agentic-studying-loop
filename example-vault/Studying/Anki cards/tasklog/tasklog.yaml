@@ -1,0 +1,152 @@
+# Tasklog: cards checked by `asl check` (standard library only; the project's
+# types are stubbed under a `stubs (real: <file>)` comment). Standards: ../standards/.
+
+- id: tsk-001
+  std: 1
+  instruction: |
+    In tasklog's `Store.save()`, the JSON is written to a temp file first. Replace
+    the real file with it in one atomic step, so a crash never leaves a half-written
+    task list.
+  starter: |
+    # src/tasklog/store.py  (persistence: load/save the task list as JSON)
+    import json
+    import os
+    import tempfile
+    from pathlib import Path
+
+
+    class Store:
+        def __init__(self, path: Path) -> None:
+            self.path = path
+
+        def save(self, data: list[dict]) -> None:
+            text = json.dumps(data, indent=2)
+            fd, tmp = tempfile.mkstemp(dir=self.path.parent, suffix=".tmp")
+            with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                fh.write(text)
+
+  solution: |
+    # src/tasklog/store.py  (persistence: load/save the task list as JSON)
+    import json
+    import os
+    import tempfile
+    from pathlib import Path
+
+
+    class Store:
+        def __init__(self, path: Path) -> None:
+            self.path = path
+
+        def save(self, data: list[dict]) -> None:
+            text = json.dumps(data, indent=2)
+            fd, tmp = tempfile.mkstemp(dir=self.path.parent, suffix=".tmp")
+            with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                fh.write(text)
+            os.replace(tmp, self.path)
+  notes: |
+    `os.replace` is atomic when source and target are on the same file system,
+    which is why the temp file is created in `self.path.parent`. It also
+    overwrites on Windows, unlike `os.rename`. (The real `save` takes
+    `list[Task]` and converts with `asdict`; simplified here.)
+  source: "src/tasklog/store.py → Store.save"
+  tags: [tasklog, files]
+  tests: |
+    import tempfile as _t
+    p = Path(_t.mkdtemp()) / "tasks.json"
+    Store(p).save([{"title": "a"}])
+    assert json.loads(p.read_text(encoding="utf-8")) == [{"title": "a"}]
+    assert list(p.parent.glob("*.tmp")) == []
+
+- id: tsk-002
+  std: 1
+  instruction: |
+    `Store.load()` reads a list of dicts from JSON. Turn each dict into a `Task`
+    by unpacking its keys as keyword arguments.
+  starter: |
+    # src/tasklog/store.py  (persistence: load/save the task list as JSON)
+    import json
+    from dataclasses import dataclass, field
+    from pathlib import Path
+
+
+    # stubs (real: src/tasklog/store.py)
+    @dataclass
+    class Task:
+        title: str
+        done: bool = False
+        tags: list[str] = field(default_factory=list)
+
+
+    def load(path: Path) -> list[Task]:
+        if not path.exists():
+            return []
+        raw = json.loads(path.read_text(encoding="utf-8"))
+
+  solution: |
+    # src/tasklog/store.py  (persistence: load/save the task list as JSON)
+    import json
+    from dataclasses import dataclass, field
+    from pathlib import Path
+
+
+    # stubs (real: src/tasklog/store.py)
+    @dataclass
+    class Task:
+        title: str
+        done: bool = False
+        tags: list[str] = field(default_factory=list)
+
+
+    def load(path: Path) -> list[Task]:
+        if not path.exists():
+            return []
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        return [Task(**item) for item in raw]
+  notes: |
+    `**item` passes `{"title": "a", "done": true}` as `Task(title="a", done=True)`.
+    An unknown key raises `TypeError`, which is a cheap schema check. (Real code:
+    the `Store.load` method; a function here to keep the frame small.)
+  source: "src/tasklog/store.py → Store.load"
+  tags: [tasklog, dataclasses]
+  tests: |
+    import tempfile as _t
+    p = Path(_t.mkdtemp()) / "t.json"
+    p.write_text('[{"title": "a", "done": true}]', encoding="utf-8")
+    assert load(p) == [Task("a", done=True)]
+    assert load(p.parent / "missing.json") == []
+
+- id: tsk-003
+  std: 1
+  type: concept
+  question: |
+    Why does `Task` declare its tags as `field(default_factory=list)` instead of
+    `tags: list[str] = []`?
+  answer: |
+    **A plain `[]` default would be one list shared by every `Task`; `default_factory` builds a new one per instance.**
+    Dataclasses refuse mutable defaults with a `ValueError` for exactly this reason.
+  code: |
+    from dataclasses import dataclass, field
+
+    @dataclass
+    class Task:
+        title: str
+        tags: list[str] = field(default_factory=list)
+
+    a, b = Task("a"), Task("b")
+    a.tags.append("x")
+    assert b.tags == []
+  source: "src/tasklog/store.py → Task"
+  tags: [tasklog, dataclasses]
+
+- id: tsk-004
+  std: 1
+  type: timeline
+  question: "Order what happens on disk when `Store.save()` runs:"
+  steps:
+    - "`json.dumps` builds the text in memory"
+    - "`tempfile.mkstemp` creates `xyz.tmp` next to `tasks.json`"
+    - "the text is written to `xyz.tmp` and the file is closed"
+    - "`os.replace` swaps `xyz.tmp` in as `tasks.json`"
+  detail: "A crash before the last step leaves the old tasks.json intact (plus a stray .tmp)."
+  source: "src/tasklog/store.py → Store.save"
+  tags: [tasklog, files]

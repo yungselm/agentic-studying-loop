@@ -1,0 +1,9 @@
+{
+  "name": "agentic-studying-loop",
+  "version": "0.1.0",
+  "description": "Study notes and Anki cards from what you learn while coding: skills to write notes and cards, check them, and tune card standards on your own review data.",
+  "author": { "name": "yungselm" },
+  "homepage": "https://github.com/yungselm/agentic-studying-loop",
+  "license": "MIT",
+  "keywords": ["anki", "spaced-repetition", "learning", "obsidian", "flashcards"]
+}

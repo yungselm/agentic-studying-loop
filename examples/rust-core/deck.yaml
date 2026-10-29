@@ -1,0 +1,4 @@
+# Example base deck: general Rust patterns (a sample of rust-lang-kata).
+deck: "Study Loop Examples::Rust"
+pack: rust
+prefix: rs

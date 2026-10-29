@@ -1,0 +1,36 @@
+<div class="instr">{{Instruction}}</div>
+<div id="status" class="status"></div>
+
+<div class="label">Your answer</div>
+<div id="editor" class="codebox"></div>
+
+<div class="label">Solution</div>
+<div id="solution" class="codebox"></div>
+
+{{#Walkthrough}}
+<div id="wt-idea" class="wt-idea"></div>
+<div id="wt-controls" class="wt-controls">
+  <button id="wt-prev" type="button">‹ Prev</button>
+  <span id="wt-label" class="wt-label"></span>
+  <button id="wt-next" type="button">Next ›</button>
+</div>
+<div id="wt-caption" class="wt-caption"></div>
+<div id="wt-viz" class="wt-viz"></div>
+{{/Walkthrough}}
+
+{{#Notes}}<div class="notes">{{Notes}}</div>{{/Notes}}
+{{#Source}}<div class="source">Source: {{Source}}</div>{{/Source}}
+
+<div id="cm-data" style="display:none"
+     data-lang="{{Lang}}"
+     data-solution="{{Solution}}"
+     data-walkthrough="{{Walkthrough}}"></div>
+
+<link rel="stylesheet" href="_codemirror.css">
+<script src="_codemirror.js"></script>
+<script src="_simple.js"></script>
+<script src="_modes.js"></script>
+<script src="_closebrackets.js"></script>
+<script src="_matchbrackets.js"></script>
+<script src="_cards.js"></script>
+<script>ankiCodeBack();</script>

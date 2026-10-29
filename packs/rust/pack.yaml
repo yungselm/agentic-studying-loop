@@ -1,0 +1,11 @@
+# Rust pack: CodeMirror mode, checker settings, lint patterns.
+name: rust
+codemirror_mode: rust
+mode_file: mode.js            # CodeMirror 5 mode, bundled into every .apkg
+edition: "2021"               # edition used by `asl check`
+standards: standards.md       # Rust addendum to standards/core.md
+lint:
+  comment: '//[^\n]*'
+  string: '"((?:[^"\\]|\\.)*)"'
+  # messages the learner isn't expected to reproduce from the prompt
+  ignore_messages: '(?:\.expect|panic!|unreachable!|unimplemented!|todo!)\s*\(\s*"(?:[^"\\]|\\.)*"\s*\)'

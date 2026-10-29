@@ -1,0 +1,3 @@
+# {{name}}: cards that need third-party libraries. Not compiled, so copy the code
+# verbatim from the repo (context frame, location header) and re-check it by hand.
+[]

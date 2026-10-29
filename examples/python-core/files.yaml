@@ -1,0 +1,43 @@
+- id: py-004
+  std: 1
+  instruction: |
+    Return the non-empty, stripped lines of the file at `path`, reading it as
+    UTF-8 and closing it even if an error occurs.
+  starter: |
+    from pathlib import Path
+
+
+    def read_lines(path: Path) -> list[str]:
+
+        return [line.strip() for line in lines if line.strip()]
+  solution: |
+    from pathlib import Path
+
+
+    def read_lines(path: Path) -> list[str]:
+        with path.open(encoding="utf-8") as fh:
+            lines = fh.readlines()
+        return [line.strip() for line in lines if line.strip()]
+  notes: |
+    The `with` block closes the file on exit, exceptions included. For small
+    files, `path.read_text(encoding="utf-8").splitlines()` does it in one call.
+  source: "Python docs: pathlib.Path.open"
+  tags: [python, files]
+  tests: |
+    import tempfile
+    p = Path(tempfile.mkdtemp()) / "x.txt"
+    p.write_text(" a \n\n b\n", encoding="utf-8")
+    assert read_lines(p) == ["a", "b"]
+
+- id: py-005
+  std: 1
+  type: timeline
+  question: "Order what happens when this runs: `with open(p) as fh: data = fh.read()`"
+  steps:
+    - "`open(p)` creates the file object"
+    - "`__enter__()` is called and its result is bound to `fh`"
+    - "the body runs: `fh.read()`"
+    - "`__exit__()` is called (also if the body raised)"
+    - "the file is closed; an exception, if any, propagates"
+  detail: "`__exit__` returning a truthy value would swallow the exception; file objects return False."
+  tags: [python, files, context-managers]

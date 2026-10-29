@@ -1,0 +1,194 @@
+/* ===== Card layout ===== */
+.card {
+  background: #252526;
+  color: #d4d4d4;
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  padding: 14px;
+  text-align: left;
+  max-width: 820px;
+  margin: 0 auto;
+}
+
+/* Instruction box on top */
+.instr {
+  background: #2d2d30;
+  border: 1px solid #3c3c3c;
+  border-left: 4px solid #569cd6;
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 15px;
+  line-height: 1.5;
+  margin-bottom: 12px;
+  white-space: pre-wrap;
+}
+
+.label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: #858585;
+  margin: 10px 2px 4px;
+}
+
+/* The square editor box */
+.codebox {
+  border: 1px solid #3c3c3c;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #1e1e1e;
+}
+
+/* Status line on the back */
+.status {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 4px 2px 10px;
+  padding: 6px 10px;
+  border-radius: 5px;
+  display: inline-block;
+}
+.status.ok  { background: rgba(35,134,54,0.25);  color: #4ec96a; border: 1px solid #2ea043; }
+.status.bad { background: rgba(248,81,73,0.18);  color: #f08a84; border: 1px solid #da4f47; }
+
+.notes {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #2d2d30;
+  border: 1px solid #3c3c3c;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* ===== CodeMirror sizing ===== */
+.CodeMirror,
+.cm-s-vscdark.CodeMirror {
+  height: auto;
+  min-height: 120px;
+  font-family: Consolas, "Cascadia Code", "Fira Code", "SF Mono", Menlo, monospace;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.CodeMirror-scroll { min-height: 120px; }
+
+/* ===== VS Code "Dark+" inspired theme ===== */
+.cm-s-vscdark.CodeMirror { background: #1e1e1e; color: #d4d4d4; }
+.cm-s-vscdark .CodeMirror-gutters { background: #1e1e1e; border-right: 1px solid #2b2b2b; }
+.cm-s-vscdark .CodeMirror-linenumber { color: #6e7681; }
+.cm-s-vscdark .CodeMirror-cursor { border-left: 1px solid #aeafad; }
+.cm-s-vscdark .CodeMirror-selected { background: #264f78 !important; }
+.cm-s-vscdark .CodeMirror-activeline-background { background: #2a2d2e; }
+
+.cm-s-vscdark .cm-comment   { color: #6a9955; font-style: italic; }
+.cm-s-vscdark .cm-string    { color: #ce9178; }
+.cm-s-vscdark .cm-string-2  { color: #ce9178; }
+.cm-s-vscdark .cm-number    { color: #b5cea8; }
+.cm-s-vscdark .cm-atom      { color: #569cd6; }      /* true / false / None */
+.cm-s-vscdark .cm-keyword   { color: #569cd6; }      /* fn let match if for ... */
+.cm-s-vscdark .cm-def       { color: #dcdcaa; }      /* function / binding names */
+.cm-s-vscdark .cm-variable  { color: #9cdcfe; }
+.cm-s-vscdark .cm-variable-2{ color: #9cdcfe; }
+.cm-s-vscdark .cm-variable-3,
+.cm-s-vscdark .cm-type      { color: #4ec9b0; }      /* types / structs / enums */
+.cm-s-vscdark .cm-property  { color: #dcdcaa; }
+.cm-s-vscdark .cm-operator  { color: #d4d4d4; }
+.cm-s-vscdark .cm-meta      { color: #dcdcaa; }      /* attributes / macros */
+.cm-s-vscdark .cm-builtin   { color: #4ec9b0; }
+.cm-s-vscdark .cm-bracket   { color: #d4d4d4; }
+.cm-s-vscdark .cm-tag       { color: #569cd6; }
+.cm-s-vscdark .cm-attribute { color: #9cdcfe; }
+.cm-s-vscdark .CodeMirror-matchingbracket { color: #d4d4d4 !important; background: #3a3d41; }
+
+/* Incorrect lines on the back: transparent red wash */
+.cm-s-vscdark .wrong-line { background: rgba(248, 81, 73, 0.18); }
+
+/* ===== Concept (Q/A) cards ===== */
+.hint {
+  color: #858585;
+  font-size: 13px;
+  font-style: italic;
+  margin: 8px 2px;
+}
+.answer {
+  background: #2d2d30;
+  border: 1px solid #3c3c3c;
+  border-left: 4px solid #4ec9b0;
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 15px;
+  line-height: 1.55;
+  margin: 6px 0 4px;
+  white-space: pre-wrap;
+}
+/* inline `code` inside instruction / answer / notes */
+.instr code, .answer code, .notes code {
+  font-family: Consolas, "Cascadia Code", "Fira Code", Menlo, monospace;
+  font-size: .92em;
+  background: #1e1e1e;
+  border: 1px solid #3c3c3c;
+  border-radius: 4px;
+  padding: 1px 5px;
+  color: #d7ba7d;
+}
+
+/* Provenance line */
+.source {
+  margin-top: 10px;
+  font-size: 12px;
+  font-style: italic;
+  color: #6e7681;
+}
+.source code {
+  font-family: Consolas, "Cascadia Code", Menlo, monospace;
+  color: #9d8458;
+}
+
+/* Code walkthrough stepper */
+.wt-controls { display: flex; align-items: center; gap: 10px; margin: 10px 2px 4px; }
+.wt-controls button {
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 13px;
+  padding: 3px 11px; border-radius: 5px; background: #2d2d30; color: #d4d4d4;
+  border: 1px solid #3c3c3c; cursor: pointer;
+}
+.wt-controls button:disabled { opacity: .4; cursor: default; }
+.wt-label { font-size: 12px; color: #858585; }
+.wt-caption { font-size: 14px; line-height: 1.5; color: #d4d4d4; margin: 2px 2px 0; white-space: pre-wrap; }
+.cm-s-vscdark .wt-line { background: rgba(86, 156, 214, 0.20); }
+
+/* Walkthrough data-structure viz */
+.wt-viz { margin: 6px 2px 0; }
+.vz { display: flex; flex-direction: column; gap: 6px; }
+.vz-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.vz-lab { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: #858585; }
+.vz-cell { font-family: Consolas, "Cascadia Code", Menlo, monospace; font-size: 13px; padding: 3px 8px;
+  background: #1e1e1e; border: 1px solid #3c3c3c; border-radius: 4px; color: #d4d4d4; }
+.vz-chip { font-family: Consolas, "Cascadia Code", Menlo, monospace; font-size: 13px; padding: 4px 9px;
+  background: #1e1e1e; border: 1px solid #3c3c3c; border-radius: 6px; color: #d4d4d4; }
+.vz-chip.win { border-color: #4ec96a; color: #d4d4d4; }
+.vz-bar { display: flex; align-items: center; gap: 8px; font-family: Consolas, "Cascadia Code", Menlo, monospace; font-size: 13px; color: #d4d4d4; }
+.vz-bar .vz-k { width: 14px; text-align: right; color: #858585; }
+.vz-bar i { height: 14px; background: #569cd6; border-radius: 3px; display: inline-block; }
+
+/* Walkthrough core-idea box */
+.wt-idea { margin: 8px 2px 2px; }
+.wt-idea-box { background: #2d2d30; border: 1px solid #3c3c3c; border-left: 4px solid #569cd6;
+  border-radius: 6px; padding: 10px 12px; }
+.wt-idea-box p { margin: 6px 0 8px; font-size: 14px; line-height: 1.55; color: #d4d4d4; }
+.vz-flow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.vz-step { font-size: 12px; padding: 4px 9px; background: #1e1e1e; border: 1px solid #3c3c3c;
+  border-radius: 6px; color: #d4d4d4; }
+.vz-step.win { border-color: #4ec96a; }
+.vz-arr { color: #858585; }
+
+/* Pointer / index walkthrough cells */
+.vz-str { display: flex; gap: 3px; flex-wrap: wrap; margin: 2px 0; }
+.vz-col { display: flex; flex-direction: column; align-items: center; }
+.vz-ptrs { height: 15px; font-size: 11px; line-height: 15px; font-weight: 700; }
+.vz-ch { font-family: Consolas, "Cascadia Code", Menlo, monospace; font-size: 13px; min-width: 20px;
+  height: 22px; line-height: 22px; text-align: center; padding: 0 3px; background: #1e1e1e;
+  border: 1px solid #3c3c3c; border-radius: 4px; color: #d4d4d4; }
+.vz-ch.take { background: #21381f; border-color: #4ec96a; color: #d7f0d2; }
+.vz-ch.hash { color: #ce9178; border-color: #6b4a3a; }
+.vz-ch.lenc { color: #569cd6; border-color: #38597a; }
+.vz-ix { font-size: 10px; color: #6a6a6a; margin-top: 1px; }
