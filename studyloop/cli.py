@@ -32,6 +32,7 @@ def main(argv=None) -> int:
     li = sub.add_parser("lint", help="ids, size limits, self-containment (no code is run)")
     li.add_argument("inputs", nargs="*")
     li.add_argument("-q", "--quiet", action="store_true", help="only print problems (!)")
+    li.add_argument("--skip", default="", help="comma-separated kinds to leave out, e.g. size,frame")
 
     i = sub.add_parser("ids", help="next free id and cards without one (read-only)")
     i.add_argument("inputs", nargs="*")
@@ -78,7 +79,8 @@ def main(argv=None) -> int:
         return check(config.resolve_inputs(a.inputs), {"fast": a.fast})
     if a.cmd == "lint":
         from .lint import lint
-        return lint(config.resolve_inputs(a.inputs), a.quiet)
+        return lint(config.resolve_inputs(a.inputs), a.quiet,
+                    frozenset(k.strip() for k in a.skip.split(",") if k.strip()))
     if a.cmd in ("ids", "fix"):
         from .ids import ids
         return ids(config.resolve_inputs(a.inputs), a.cmd == "fix" or a.fix)

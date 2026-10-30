@@ -44,19 +44,19 @@ You don't clone this repo to use it. There are three places, and you set each up
 
 ```
 ~/Vault/Studying/                     <- your notes vault (3)
-├── snake-rs/                         <- study notes for the project (the agent writes them)
+├── test-rs/                         <- study notes for the project (the agent writes them)
 └── Anki cards/                       <- the "card home"
     ├── studyloop.yaml                   limits, refresh thresholds, standards version
     ├── standards/                       core.md, rust.md, preferences.md: YOUR rules, they evolve
     ├── evidence/                        reports from `asl stats`
-    └── snake_rs/                        one deck folder per project
+    └── test_rs/                        one deck folder per project
         ├── deck.yaml                    deck name, pack, id prefix, repo path
-        ├── snake_rs.yaml                cards checked by `asl check` (std + stubs)
-        ├── snake_rs_ext.yaml            cards with third-party code (verbatim, not compiled)
+        ├── test_rs.yaml                cards checked by `asl check` (std + stubs)
+        ├── test_rs_ext.yaml            cards with third-party code (verbatim, not compiled)
         ├── profile.md                   file roles for the cards' location headers
         └── Overview.md                  card index
 
-~/code/snake-rs/                      <- your project: unchanged, except
+~/code/test-rs/                      <- your project: unchanged, except
 └── CLAUDE.md                            a study-loop block (mode + the paths above)
 ```
 

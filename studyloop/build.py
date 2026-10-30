@@ -280,14 +280,14 @@ def build(groups: list[tuple[Deck, list[Path]]], out: Path) -> int:
     for deck, files in groups:
         presets = deck.presets()
         group_defaults.append((deck.name, (conf_id(deck.name, "default", presets["default"]),
-                                           presets["default"], f"{deck.name} default")))
+                                           presets["default"], presets["default"].get("name") or f"{deck.name} default")))
         for f in files:
             name = deck_name(deck, f)
             if name not in anki_decks:
                 anki_decks[name] = genanki.Deck(deck_id(name), name)
                 pname = deck.file_opts(f).get("preset", "default")
                 p = presets.get(pname) or presets["default"]
-                deck_presets[name] = (conf_id(deck.name, pname, p), p, f"{deck.name} {pname}")
+                deck_presets[name] = (conf_id(deck.name, pname, p), p, p.get("name") or f"{deck.name} {pname}")
                 if p.get("order") == "sequential":
                     sequential.append(name)
             for card in C.load_file(f):

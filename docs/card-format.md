@@ -20,6 +20,7 @@ retired_ids: [tsk-007]        # deleted ids, never reused
 presets:                      # Anki deck options written into the package
   default: {new_per_day: 14, order: random}
   slow: {new_per_day: 1, order: sequential, learning_steps: [1, 10], leech_fails: 5}
+  # optional per preset: name (shown in Anki), conf_id (keep an existing options group)
 guid: id                      # id (default) | legacy-kata (front-text GUIDs, for migration)
 guid_namespace: asl-id        # GUID = hash(namespace, id): renaming decks/folders is safe; never reuse ids
 ```

@@ -10,7 +10,8 @@
 Project decks (profile.md or `repo:` in deck.yaml) also get [frame], [header],
 [excerpt], [index] and [std]; see project_lint.py.
 
-`!` = must fix (exit code 1), `~` = worth a look. `--quiet` prints only `!`.
+`!` = must fix (exit code 1), `~` = worth a look. `--quiet` prints only `!`;
+`--skip size,frame` leaves out whole kinds (e.g. for an older deck).
 """
 from __future__ import annotations
 
@@ -107,13 +108,16 @@ def _card_flags(card, lim, lint_cfg, prefix, seen, fname, fronts=None, retired=(
     return out
 
 
-def lint(groups: list[tuple[Deck, list[Path]]], quiet: bool = False) -> int:
+def lint(groups: list[tuple[Deck, list[Path]]], quiet: bool = False,
+         skip: frozenset[str] = frozenset()) -> int:
     hard = soft = 0
     seen: dict[str, str] = {}
     fronts: dict[str, str] = {}
 
     def report(sev, kind, where, msg):
         nonlocal hard, soft
+        if kind in skip:
+            return
         hard += sev == "!"
         soft += sev == "~"
         if sev == "!" or not quiet:
