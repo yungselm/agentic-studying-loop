@@ -13,6 +13,21 @@ Learn the code you write. While you work on a real project with an AI coding age
 what you learn becomes **study notes** in your notes vault and **Anki cards** that look like your
 repo. Then the card rules get **tuned on your own review data**.
 
+**What you need** (free, apart from a Claude plan and the optional iPhone app; click to download):
+
+[![Anki](https://img.shields.io/badge/Anki-flashcards-80C2EE?logo=anki&logoColor=white)](https://apps.ankiweb.net/)
+[![Obsidian](https://img.shields.io/badge/Obsidian-notes-7C3AED?logo=obsidian&logoColor=white)](https://obsidian.md/download)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-AI_agent-D97757?logo=claude&logoColor=white)](https://claude.com/claude-code)
+[![uv](https://img.shields.io/badge/uv-installs_asl-DE5FE9?logo=uv&logoColor=white)](https://docs.astral.sh/uv/getting-started/installation/)
+
+- **[Anki](https://apps.ankiweb.net/)**: the spaced-repetition app that shows you the cards.
+  Free on desktop and Android (AnkiDroid); the iPhone app is paid. AnkiWeb syncs them.
+- **[Obsidian](https://obsidian.md/download)**: where your study notes and card files live. Optional:
+  any folder of markdown files works, Obsidian just makes the notes pleasant to read and link.
+- **[Claude Code](https://claude.com/claude-code)**: the coding agent that writes notes and cards.
+- **[uv](https://docs.astral.sh/uv/getting-started/installation/)** (or pipx) to install the `asl`
+  tool; for Rust cards also a [Rust toolchain](https://rustup.rs/).
+
 ```mermaid
 flowchart TB
     code["<b>Your code</b><br/>work with Claude Code"]
