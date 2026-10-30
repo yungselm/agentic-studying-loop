@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=64"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,26 +7,30 @@ name = "agentic-studying-loop"
 version = "0.1.0"
 description = "Turn what you learn while coding into study notes and Anki cards, with an AI agent and standards tuned by your own review data."
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
 requires-python = ">=3.10"
-dependencies = ["genanki>=0.13", "PyYAML>=6.0", "zstandard>=0.21"]
+dependencies = ["genanki>=0.13", "PyYAML>=6.0", "zstandard>=0.21", "pytest>=7", "ruff>=0.4"]
 
 [project.optional-dependencies]
-python = ["pytest>=7", "ruff>=0.4"]
-dev = ["pytest>=7", "ruff>=0.4"]
+dev = ["build"]
 
 [project.scripts]
 asl = "studyloop.cli:main"
 
 [tool.setuptools]
-packages = ["studyloop"]
+packages = ["studyloop", "studyloop_skills"]
+
+[tool.setuptools.package-dir]
+studyloop = "studyloop"
+studyloop_skills = "skills"          # the plugin's skills/ folder, shipped with the tool
 
 [tool.setuptools.package-data]
-studyloop = ["assets/templates/*", "assets/vendor/*"]
+studyloop = ["anki/*/*", "packs/*/*", "standards/*", "modes/*", "templates/*/*"]
+studyloop_skills = ["*/SKILL.md"]
 
 [tool.ruff]
 line-length = 100
-extend-exclude = ["packs/*/mode.js", "examples", "example-vault"]
+extend-exclude = ["studyloop/packs/*/mode.js", "examples", "example-vault"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "B", "I", "UP", "SIM"]

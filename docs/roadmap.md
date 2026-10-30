@@ -10,7 +10,7 @@
 The loop is the same; the card types and measures differ.
 - **Sentence card** type: target sentence with a cloze or translation prompt, optional audio
   clip and screenshot.
-- **Subtitle miner** (`packs/lang-<code>/`): `.srt` (+ video via ffmpeg) → candidate sentences
+- **Subtitle miner** (a `lang-<code>` pack): `.srt` (+ video via ffmpeg) → candidate sentences
   ranked by unknown-word count (i+1), agent picks and annotates.
 - Measures for `asl stats`: sentence length, word frequency rank, number of unknown words, audio
   length; the report bins them like typed characters today.

@@ -8,13 +8,32 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: pip install -e ".[dev]"
-      - run: ruff check studyloop packs tests
+      - run: ruff check studyloop tests
       - run: pytest -q tests
-      - name: lint example decks
-        run: |
-          asl lint -q examples/python-core examples/rust-core "example-vault/Studying/Anki cards/tasklog"
-      - name: check example decks (ruff + pytest, clippy + cargo test)
+      - name: lint, check and build the example decks
         run: |
           rustup component add clippy
+          asl lint -q examples/python-core examples/rust-core "example-vault/Studying/Anki cards/tasklog"
           asl check examples/python-core examples/rust-core "example-vault/Studying/Anki cards/tasklog"
-      - run: asl build examples/python-core examples/rust-core "example-vault/Studying/Anki cards/tasklog" -o asl-output/examples.apkg
+          asl build examples/python-core examples/rust-core "example-vault/Studying/Anki cards/tasklog" -o asl-output/examples.apkg
+
+  # the way users install it: no clone, no editable install
+  install-as-user:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix: { os: [ubuntu-latest, windows-latest] }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: install from a built wheel, then use it outside the repo
+        shell: bash
+        run: |
+          pip install build && python -m build --wheel
+          pip install dist/*.whl
+          cd "$RUNNER_TEMP" && mkdir -p myproject
+          asl packs
+          asl init myproject --home "vault/Anki cards" --pack python --prefix myp
+          asl install-skills skills
+          test -f skills/write-cards/SKILL.md
+          asl lint -q "vault/Anki cards/myproject"

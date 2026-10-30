@@ -1,4 +1,4 @@
-"""Where things live: repo assets, packs, decks (deck.yaml) and the card home
+"""Where things live: shipped files (packs, standards, templates), decks (deck.yaml) and the card home
 (studyloop.yaml)."""
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ from pathlib import Path
 
 import yaml
 
-REPO = Path(__file__).resolve().parent.parent
-ASSETS = Path(__file__).resolve().parent / "assets"
+PKG = Path(__file__).resolve().parent      # everything the tool ships lives in the package
+ANKI = PKG / "anki"                         # note-type templates + vendored CodeMirror
 
 DEFAULT_LIMITS = {
     "code": {"typed_chars_target": 80, "typed_chars_max": 120},
@@ -29,7 +29,7 @@ def _read_yaml(p: Path) -> dict:
 
 def pack_dirs() -> list[Path]:
     dirs = [Path(d) for d in os.environ.get("ASL_PACKS", "").split(os.pathsep) if d]
-    return dirs + [REPO / "packs"]
+    return dirs + [PKG / "packs"]
 
 
 def find_pack(name: str) -> Path:

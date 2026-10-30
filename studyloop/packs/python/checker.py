@@ -5,6 +5,7 @@
                  so the asserts call the card's names directly; every concept
                  `code:` example is imported, so it has to run without errors.
 """
+import importlib.util
 import shutil
 import subprocess
 import sys
@@ -30,11 +31,15 @@ def run(items, workdir, opts):
     print(f"  modules: {pkg}")
 
     rc = 0
-    ruff = shutil.which("ruff")
+    # ruff ships with the tool (also inside `uv tool` / pipx environments, where it isn't on PATH)
+    if importlib.util.find_spec("ruff"):
+        ruff = [sys.executable, "-m", "ruff"]
+    else:
+        ruff = [shutil.which("ruff")] if shutil.which("ruff") else None
     if ruff and not opts.get("fast"):
         select = ",".join(opts.get("ruff_select", ["E", "F", "W", "B", "UP", "SIM"]))
         print(f"  => ruff check --select {select}")
-        rc |= subprocess.run([ruff, "check", "--quiet", "--no-cache", "--select", select,
+        rc |= subprocess.run([*ruff, "check", "--quiet", "--no-cache", "--select", select,
                               "--ignore", "E501", str(pkg)]).returncode
     elif not ruff:
         print("  [!] ruff not found (pip install ruff); skipping lints.")

@@ -1,8 +1,17 @@
+<p align="center">
+  <a href="https://github.com/yungselm/agentic-studying-loop">
+    <img
+      src="https://raw.githubusercontent.com/yungselm/multimoda-rs/main/media/banner.jpg"
+      alt="agentic-studying-loop logo"
+    >
+  </a>
+</p>
+
 # agentic-studying-loop
 
 Learn the code you write. While you work on a real project with an AI coding agent (Claude Code),
-what you learn becomes **study notes** in your vault and **Anki cards** that look like your repo,
-and the card rules get **tuned on your own review data**.
+what you learn becomes **study notes** in your notes vault and **Anki cards** that look like your
+repo. Then the card rules get **tuned on your own review data**.
 
 ```mermaid
 flowchart LR
@@ -15,74 +24,134 @@ Grown out of [rust-lang-kata](https://github.com/yungselm/rust-lang-kata), whose
 re-derived from 6.5k of the author's reviews (*typed characters, not lines, predict failure*;
 *every leech was a code card asking for a whole program*).
 
-## What's in the box
+## How it fits together
+
+You don't clone this repo to use it. There are three places, and you set each up once:
+
+| | What | Where it lives | Set up with |
+|---|---|---|---|
+| **1. The tool** | the `asl` command, language packs, default standards, modes, templates | installed like any CLI | `uv tool install …` |
+| **2. The agent's skills** | `study-note`, `write-cards`, `check-cards`, `refresh-standards` | Claude Code | `/plugin install …` or `asl install-skills` |
+| **3. Your data** | your standards, notes and cards | your notes vault (e.g. Obsidian), plus one block in each project's `CLAUDE.md` | `asl init` |
+
+```
+~/Vault/Studying/                     <- your notes vault (3)
+├── snake-rs/                         <- study notes for the project (the agent writes them)
+└── Anki cards/                       <- the "card home"
+    ├── studyloop.yaml                   limits, refresh thresholds, standards version
+    ├── standards/                       core.md, rust.md, preferences.md: YOUR rules, they evolve
+    ├── evidence/                        reports from `asl stats`
+    └── snake_rs/                        one deck folder per project
+        ├── deck.yaml                    deck name, pack, id prefix, repo path
+        ├── snake_rs.yaml                cards checked by `asl check` (std + stubs)
+        ├── snake_rs_ext.yaml            cards with third-party code (verbatim, not compiled)
+        ├── profile.md                   file roles for the cards' location headers
+        └── Overview.md                  card index
+
+~/code/snake-rs/                      <- your project: unchanged, except
+└── CLAUDE.md                            a study-loop block (mode + the paths above)
+```
+
+## 1. Install the tool
+
+```bash
+uv tool install git+https://github.com/yungselm/agentic-studying-loop
+# or: pipx install git+https://github.com/yungselm/agentic-studying-loop
+asl packs                       # shows the bundled packs: python, rust
+```
+
+Update later with `uv tool upgrade agentic-studying-loop`. The Python pack works out of the box
+(ruff and pytest come with the tool). The Rust pack needs a Rust toolchain
+(`rustup component add clippy`).
+
+## 2. Give the agent the skills
+
+In Claude Code, either install the plugin:
+
+```
+/plugin marketplace add yungselm/agentic-studying-loop
+/plugin install agentic-studying-loop@agentic-studying-loop
+```
+
+or copy the skills into `~/.claude/skills` with `asl install-skills`.
+
+## 3. Connect a project
+
+```bash
+asl init ~/code/snake-rs \
+    --home  "~/Vault/Studying/Anki cards" \
+    --notes "~/Vault/Studying/snake-rs" \
+    --pack rust --prefix snk --mode teacher
+```
+
+On Windows, the same command with `C:\...` paths works in PowerShell (use a backtick or one line
+instead of `\` line breaks). This creates the card home (only the first time), the deck folder,
+and the study-loop block in the project's `CLAUDE.md`. Fill in the file roles in `profile.md`
+when the first cards need them; the agent can do that too.
+
+## Day to day
+
+Work in the project with Claude Code as usual. Depending on the mode, the agent writes study notes
+and cards into your vault and verifies them with `asl`. You build and import:
+
+```bash
+asl build "~/Vault/Studying/Anki cards/snake_rs" -o snake-rs.apkg
+```
+
+In Anki: File → Import, tick **Update notetypes** and **Import any deck presets**. Changed cards
+update in place; nothing to delete by hand.
+
+The commands the agent runs (you can run them too):
 
 | | |
 |---|---|
-| **`asl` CLI** | YAML → `.apkg` (code cards with in-card editor + line diff, concept cards, timeline cards). `fix` does the bookkeeping, `lint`/`check` do the verifying, `stats` reads your reviews. |
-| **Packs** | Per language: highlighting, a checker that compiles/lints/tests every card, a standards addendum. **Rust** (clippy + cargo test), **Python** (ruff + pytest). |
-| **Standards** | Data-backed card rules (`standards/core.md`), copied into your vault where they evolve. |
-| **Modes** | How much the agent teaches: `teacher`, `mentor`, `coworker`, `on-demand`. |
-| **Skills** | `study-note`, `write-cards`, `check-cards`, `refresh-standards`. Plugin or plain files. |
-| **Examples** | `example-vault/` (notes, card home, project deck) + `examples/tasklog/` (its project). |
+| `asl fix <deck>` | add missing ids, standards version, `Overview.md` rows |
+| `asl lint -q <deck>` | sizes, self-containment, context frame, headers, verbatim excerpts, drift |
+| `asl check <deck>` | compile / lint / run every card's tests (clippy + cargo test, ruff + pytest) |
+| `asl mode <mode> <project>` | switch the mode in the project's `CLAUDE.md` |
 
-## Quickstart
-
-```bash
-git clone https://github.com/yungselm/agentic-studying-loop && cd agentic-studying-loop
-uv venv && uv pip install -e ".[python]"      # or: python -m venv .venv && pip install -e ".[python]"
-asl build examples/python-core "example-vault/Studying/Anki cards/tasklog"   # try it in Anki
-
-# connect your project: card home in the vault, a deck folder, a block in CLAUDE.md
-asl init ~/code/myproject --home "~/Vault/Studying/Anki cards" \
-         --pack python --prefix myp --mode mentor --notes "~/Vault/Studying/MyProject"
-```
-
-Give the agent the skills, as a plugin
-(`/plugin marketplace add yungselm/agentic-studying-loop`, then
-`/plugin install agentic-studying-loop@agentic-studying-loop`) or as files (`asl install-skills`).
-
-Day to day the agent runs these; you can too:
-
-```bash
-asl fix   <deck>    # add ids, std versions, Overview.md rows
-asl lint  <deck>    # sizes, self-containment, context frame, headers, verbatim excerpts, drift
-asl check <deck>    # compile / lint / run each card's tests
-asl build <deck> -o myproject.apkg   # import with "Update notetypes" + "Import any deck presets"
-```
-
-## Modes (`asl mode <name> <project>`)
+## Modes
 
 | mode | code | notes | cards |
 |---|---|---|---|
-| `teacher` | **you**; the agent never edits source | first | automatic, from confirmed code |
-| `mentor` | you drive; agent helps on request | offered | proposed at session end |
-| `coworker` | the agent | on request | one-line flags; on request |
+| `teacher` | **you**; the agent never edits source | first, before the code | automatic, from confirmed code |
+| `mentor` | you drive; the agent helps on request | offered | proposed at session end |
+| `coworker` | the agent | on request | one-line "card-worthy" flags; on request |
 | `on-demand` | the agent | on request | on request |
 
-## Your card home
+## Tuning the standards on your data
 
+Whenever you like (nothing nags you): in Anki, File → Export → *Anki Deck Package* with *Include
+scheduling information*, then ask the agent to *refresh my standards*, or run
+`asl stats export.apkg --home "<card home>"`. The report says whether a refresh is due (default:
+half the deck mature, then every further 25%), and shows fail rates by card size, leeches, hard
+decks, and whether the last rule change helped. The agent proposes edits to your standards; you
+approve them.
+
+## Examples
+
+This repo contains a complete worked example to browse: `examples/tasklog/` (a small project and
+its `CLAUDE.md`) and `example-vault/` (its notes, card home and deck). With a clone you can build
+it: `asl build examples/python-core "example-vault/Studying/Anki cards/tasklog"`.
+
+## Contributing
+
+Clone the repo and install it editable:
+
+```bash
+git clone https://github.com/yungselm/agentic-studying-loop && cd agentic-studying-loop
+uv venv && uv pip install -e ".[dev]"
 ```
-Studying/Anki cards/
-├── studyloop.yaml       limits, refresh thresholds, standards_version
-├── standards/           core.md, <pack>.md, preferences.md (yours, newest last, they win)
-├── evidence/            asl stats reports
-└── myproject/           deck.yaml, myproject.yaml (checked), myproject_ext.yaml (verbatim),
-                         profile.md (file roles), Overview.md (card index)
-```
 
-## Tuning on your data
-
-Whenever you like: Anki → File → Export → *Anki Deck Package* with *Include scheduling
-information*, then ask the agent to *refresh my standards*, or run
-`asl stats export.apkg --home "<card home>"`. The report says if a refresh is due (default: half
-the deck mature, then every further 25%), shows fail rates by card size, leeches, hard decks, and
-whether the last rule change helped. The agent proposes edits; you approve.
+Everything the tool ships lives in `studyloop/`: `packs/` (one folder per language), `standards/`,
+`modes/`, `templates/`, `anki/` (note-type templates). `skills/` and `.claude-plugin/` stay at the
+root, where Claude Code expects a plugin. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Docs
 
-[Card format](docs/card-format.md) · [Writing a pack](docs/writing-a-pack.md) ·
-[Migrating from rust-lang-kata](docs/migrating-from-rust-lang-kata.md) · [Roadmap](docs/roadmap.md)
+[Card format](docs/card-format.md) · [Writing a pack](docs/writing-a-pack.md) (also possible
+without cloning) · [Migrating from rust-lang-kata](docs/migrating-from-rust-lang-kata.md) ·
+[Roadmap](docs/roadmap.md)
 
-v0.1. Starter standards rest on one learner's data; packs, card types and anonymised `asl stats`
-tables are welcome (see CONTRIBUTING.md). MIT; vendors CodeMirror 5 (MIT).
+v0.1. The starter standards rest on one learner's data. Packs, card types and anonymised
+`asl stats` tables are welcome. MIT license; vendors CodeMirror 5 (MIT).

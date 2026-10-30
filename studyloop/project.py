@@ -15,11 +15,11 @@ import re
 import shutil
 from pathlib import Path
 
-from .config import REPO, find_pack, read_keep, write_keep
+from .config import PKG, find_pack, read_keep, write_keep
 
 BEGIN, MODE, END = "<!-- studyloop:begin -->", "<!-- studyloop:mode -->", "<!-- studyloop:end -->"
 MODES = ["teacher", "mentor", "coworker", "on-demand"]
-TEMPLATES = REPO / "templates"
+TEMPLATES = PKG / "templates"
 
 
 def _copy_new(src: Path, dst: Path) -> bool:
@@ -36,7 +36,7 @@ def init_home(home: Path, packs: list[str]) -> None:
     if _copy_new(TEMPLATES / "card-home" / "studyloop.yaml", home / "studyloop.yaml"):
         made.append("studyloop.yaml")
     for name in ("core.md",):
-        if _copy_new(REPO / "standards" / name, home / "standards" / name):
+        if _copy_new(PKG / "standards" / name, home / "standards" / name):
             made.append(f"standards/{name}")
     if _copy_new(TEMPLATES / "card-home" / "preferences.md", home / "standards" / "preferences.md"):
         made.append("standards/preferences.md")
@@ -86,7 +86,7 @@ def init_project(project: Path, home: Path, pack: str, prefix: str, mode: str,
 
 
 def _block(settings: str, mode: str) -> str:
-    body = (REPO / "modes" / f"{mode}.md").read_text(encoding="utf-8").strip()
+    body = (PKG / "modes" / f"{mode}.md").read_text(encoding="utf-8").strip()
     return "\n".join([
         BEGIN,
         "## Study loop ([agentic-studying-loop](https://github.com/yungselm/agentic-studying-loop))",
@@ -126,10 +126,17 @@ def set_mode(project: Path, mode: str) -> None:
     write_block(claude_md, settings, mode)
 
 
+def skills_dir() -> Path:
+    """skills/ sits at the repo root (where the Claude Code plugin expects it) and
+    is installed alongside the package as `studyloop_skills`."""
+    import studyloop_skills
+    return Path(studyloop_skills.__path__[0])
+
+
 def install_skills(target: Path) -> None:
     """Copy the skills into a .claude/skills folder (for use without the plugin)."""
     target = target.expanduser().resolve()
-    for skill in sorted((REPO / "skills").iterdir()):
+    for skill in sorted(skills_dir().iterdir()):
         if (skill / "SKILL.md").is_file():
             dst = target / skill.name
             if dst.exists():

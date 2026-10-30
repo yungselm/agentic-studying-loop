@@ -29,12 +29,12 @@ from pathlib import Path
 import genanki
 
 from . import cards as C
-from .config import ASSETS, Deck, all_packs, load_pack
+from .config import ANKI, Deck, all_packs, load_pack
 
 CODE_MODEL_ID = 1607392319       # same ids as rust-lang-kata, so its decks can migrate
 CONCEPT_MODEL_ID = 1607392321
-TPL = ASSETS / "templates"
-VENDOR = ASSETS / "vendor"
+TPL = ANKI / "templates"
+VENDOR = ANKI / "vendor"
 
 # media name in templates -> source file (modes are bundled from all packs)
 STATIC_MEDIA = {
