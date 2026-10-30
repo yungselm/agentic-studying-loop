@@ -26,6 +26,7 @@ import datetime as dt
 import html
 import json
 import re
+import shutil
 import sqlite3
 import statistics as st
 import tempfile
@@ -67,6 +68,24 @@ def open_collection(path: Path) -> tuple[sqlite3.Connection, Path]:
     db = tmp / "collection.sqlite"
     db.write_bytes(raw)
     return sqlite3.connect(db), tmp
+
+
+ASL_MODEL_NAMES = {"Code Editor Card": "code", "Concept Card": "concept",
+                   "Rust Concept Card": "concept"}
+
+
+def model_kinds(con) -> dict[int, str]:
+    """Notetype id -> card kind for the engine's (and rust-lang-kata's) note types,
+    matched by id or, if Anki renumbered them on import, by name."""
+    try:
+        names = dict(con.execute("select id, name from notetypes"))
+    except sqlite3.OperationalError:
+        models = json.loads(con.execute("select models from col").fetchone()[0])
+        names = {int(k): v["name"] for k, v in models.items()}
+    kinds = {mid: ASL_MODEL_NAMES[n] for mid, n in names.items() if n in ASL_MODEL_NAMES}
+    kinds.setdefault(CODE_MODEL_ID, "code")
+    kinds.setdefault(CONCEPT_MODEL_ID, "concept")
+    return kinds
 
 
 def deck_names(con) -> dict[int, str]:
@@ -132,6 +151,7 @@ class Card:
 
 def load_cards(con, deck_prefix: str | None) -> list[Card]:
     decks = deck_names(con)
+    kinds = model_kinds(con)
     notes = {nid: (mid, tags, flds.split("\x1f"))
              for nid, mid, tags, flds in con.execute("select id, mid, tags, flds from notes")}
     out: dict[int, Card] = {}
@@ -143,9 +163,9 @@ def load_cards(con, deck_prefix: str | None) -> list[Card]:
         mid, tags, f = notes[nid]
         tagl = tags.split()
         kind = next((t.split("::")[-1] for t in tagl if t.startswith("asl::type::")), None)
+        kind = kind or kinds.get(mid)
         if not kind:
-            kind = ("code" if mid == CODE_MODEL_ID or len(f) == 7 else
-                    "concept" if mid == CONCEPT_MODEL_ID or len(f) == 5 else "other")
+            continue                    # not one of our cards (other decks in a .colpkg)
         try:
             mem = json.loads(data) if data else {}
         except json.JSONDecodeError:
@@ -258,7 +278,8 @@ def suggest(stats, current_target, current_max, unit):
         else:
             break
     worse = next((lo for lo, hi, fr, _n, ts in ok
-                  if lo >= target and (fr >= 1.5 * ref or (ts or 0) >= 0.5)), None)
+                  if lo >= target and (fr >= max(1.5 * ref, ref + tol) or (ts or 0) >= 0.5)),
+                 None)
     t = min(target, 10**6)
     m = worse if worse is not None else current_max
     m = max(m, t)
@@ -268,10 +289,6 @@ def suggest(stats, current_target, current_max, unit):
 
 
 # ---- refresh state -------------------------------------------------------------
-
-def state_path(home: Home, out_dir: Path) -> Path:
-    return out_dir / "refresh-state.yaml"
-
 
 def read_state(p: Path) -> dict:
     return (yaml.safe_load(p.read_text(encoding="utf-8")) or {}) if p.is_file() else {}
@@ -411,24 +428,31 @@ def write_csv(cards: list[Card], p: Path):
 
 def stats(export: Path, deck: str | None, home_dir: Path | None, mark: bool) -> int:
     home = find_home(home_dir or Path.cwd())
-    con, _tmp = open_collection(export)
-    cards = load_cards(con, deck)
+    con, tmp = open_collection(export)
+    try:
+        cards = load_cards(con, deck)
+    finally:
+        con.close()
+        shutil.rmtree(tmp, ignore_errors=True)
     if not cards:
-        raise SystemExit("No cards matched" + (f" deck '{deck}'" if deck else "") + ".")
+        raise SystemExit("No study-loop cards matched" + (f" deck '{deck}'" if deck else "") + ".")
     out_dir = (home.path / "evidence") if home.path else Path.cwd()
     out_dir.mkdir(parents=True, exist_ok=True)
-    sp = state_path(home, out_dir)
+    sp = out_dir / "refresh-state.yaml"
     state = read_state(sp)
-    today = dt.date.today().isoformat()
-    rep = out_dir / f"{today}-report.md"
-    rep.write_text(report(cards, home, export, deck, state), encoding="utf-8")
-    write_csv(cards, out_dir / f"{today}-cards.csv")
-    due, why, snap = refresh_status(cards, home, state)
+    key = deck or "(all decks)"
+    sub = state.setdefault("decks", {}).setdefault(key, {})
+    slug = re.sub(r"[^a-z0-9]+", "-", (deck or "all").lower()).strip("-")
+    stem = f"{dt.date.today().isoformat()}-{slug}"
+    rep = out_dir / f"{stem}-report.md"
+    rep.write_text(report(cards, home, export, deck, sub), encoding="utf-8")
+    write_csv(cards, out_dir / f"{stem}-cards.csv")
+    due, why, snap = refresh_status(cards, home, sub)
     print(f"{'REFRESH DUE' if due else 'not due'}: {why}")
     print(f"Report: {rep}")
     if mark:
-        state["last"] = snap
-        state.setdefault("history", []).append(snap)
-        sp.write_text(yaml.safe_dump(state, sort_keys=False), encoding="utf-8")
-        print(f"Marked refreshed in {sp}.")
+        sub["last"] = snap
+        sub.setdefault("history", []).append(snap)
+        sp.write_text(yaml.safe_dump(state, sort_keys=False, allow_unicode=True), encoding="utf-8")
+        print(f"Marked refreshed for {key} in {sp}.")
     return 0

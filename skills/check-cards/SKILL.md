@@ -1,16 +1,13 @@
 ---
 name: check-cards
-description: Validate a deck folder of study cards (ids, size limits, self-containment, compile/lint/tests) and build the Anki package. Use when the user asks to check, validate, or build their cards.
+description: Validate a deck folder of study cards and build the Anki package. Use when the user asks to check, validate, or build their cards.
 ---
 # Check cards
 
-1. `asl lint "<deck folder>"`: ids, size limits from `studyloop.yaml`, self-containment.
-   Fix every `!`. For `~` (over target, under the hard max) say why it's acceptable or shorten it.
-2. `asl check "<deck folder>"`: runs the pack's checker (Rust: clippy + cargo test; Python: ruff +
-   pytest). Files with `check: false` are skipped; verify those by comparing with the repo source.
-3. Cards without ids: `asl ids "<deck folder>" --fix` (it also freezes old GUIDs when the deck
-   uses `guid: legacy-kata`, so no duplicates appear in Anki).
-4. Build when asked: `asl build "<deck folder>" -o "<file>.apkg"`. Import in Anki with
-   "Update notetypes" enabled; changed cards update in place.
+1. `asl fix <deck>`: missing ids, `std:`, Overview.md rows.
+2. `asl lint -q <deck>`: ids, size, self-containment, context frame, headers, verbatim excerpts,
+   index, drift. Fix every `!`; drop `-q` to also see `~` notes.
+3. `asl check <deck>`: compile, lint and run tests with the pack's checker.
+4. If asked: `asl build <deck> -o <name>.apkg`; import with "Update notetypes" and "Import any deck presets" ticked.
 
-Report: number of cards, flags fixed, anything left for the user to decide.
+Report: card count, what you fixed, what needs the user's decision.

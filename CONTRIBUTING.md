@@ -3,7 +3,7 @@
 ```bash
 pip install -e ".[dev]"
 ruff check studyloop packs tests && pytest -q tests
-asl lint examples/python-core examples/rust-core "example-vault/Studying/Anki cards/tasklog"
+asl lint -q examples/python-core examples/rust-core "example-vault/Studying/Anki cards/tasklog"
 asl check examples/python-core examples/rust-core "example-vault/Studying/Anki cards/tasklog"
 ```
 

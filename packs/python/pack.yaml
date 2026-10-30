@@ -5,6 +5,8 @@ mode_file: mode.js
 ruff_select: [E, F, W, B, UP, SIM]   # rules `asl check` runs (E501 line length is ignored)
 standards: standards.md
 lint:
+  comment_prefix: '#'
+  frame: '^\s*(async\s+def|def|class)\b'
   comment: '#[^\n]*'
   string: '(?:"((?:[^"\\\n]|\\.)*)"|''((?:[^''\\\n]|\\.)*)'')'
   ignore_messages: '(?:raise\s+\w+|assert\s+[^,\n]+,)\s*\(?\s*f?["''](?:[^"''\\]|\\.)*["'']\s*\)?'

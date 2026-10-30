@@ -21,28 +21,37 @@ ID_COMMENT = re.compile(r"^#\s*([A-Za-z][A-Za-z0-9]*-\d+)\s*$")
 LETTERS = "ABCDEFGHIJ"
 
 
+ITEM = re.compile(r"^-(\s|$)")
+
+
+def item_starts(lines: list[str]) -> list[int]:
+    """Line numbers of the top-level `- ` items of a card file."""
+    return [i for i, ln in enumerate(lines) if ITEM.match(ln)]
+
+
+def id_comment_line(lines: list[str], start: int) -> int | None:
+    """The `# abc-001` comment directly above an item (blank lines allowed in
+    between; any other comment line stops the search), or None."""
+    j = start - 1
+    while j >= 0 and not lines[j].strip():
+        j -= 1
+    if j >= 0 and ID_COMMENT.match(lines[j].strip()):
+        return j
+    return None
+
+
 def _comment_ids(text: str) -> list[str | None]:
-    """Id comment directly above each top-level `- ` item (None if absent)."""
     lines = text.splitlines()
-    ids: list[str | None] = []
-    for i, line in enumerate(lines):
-        if not line.startswith("- "):
-            continue
-        found = None
-        j = i - 1
-        while j >= 0 and (lines[j].startswith("#") or not lines[j].strip()):
-            m = ID_COMMENT.match(lines[j].strip())
-            if m:
-                found = m.group(1)
-                break
-            j -= 1
-        ids.append(found)
-    return ids
+    out = []
+    for start in item_starts(lines):
+        j = id_comment_line(lines, start)
+        out.append(ID_COMMENT.match(lines[j].strip()).group(1) if j is not None else None)
+    return out
 
 
 def load_file(path: str | Path) -> list[dict]:
     path = Path(path)
-    text = path.read_text(encoding="utf-8")
+    text = path.read_text(encoding="utf-8-sig")
     cards = yaml.safe_load(text) or []
     if not isinstance(cards, list):
         raise ValueError(f"{path}: a card file must be a YAML list")
@@ -107,9 +116,28 @@ def typed_chars(starter, solution) -> int:
     return sum(map(len, typed(starter, solution)))
 
 
+CODE_SPAN = re.compile(r"`([^`]+)`")
+
+
+def _split_code(s: str) -> list[tuple[bool, str]]:
+    """[(is_code, text)] so markup rules never apply inside `code`."""
+    out, pos = [], 0
+    for m in CODE_SPAN.finditer(s):
+        out += [(False, s[pos:m.start()]), (True, m.group(1))]
+        pos = m.end()
+    return out + [(False, s[pos:])]
+
+
+def plain(s: str | None) -> str:
+    """Text as rendered on the card: no backticks, no `**` outside code."""
+    return "".join(t if code else t.replace("**", "") for code, t in _split_code(s or "")).strip()
+
+
 def bold_lead(answer: str | None) -> str:
-    a = (answer or "").strip()
-    return a.split("**")[1] if a.count("**") >= 2 else ""
+    """The first **bold** run (code spans inside it allowed), as rendered."""
+    masked = "".join("\x00" * (len(t) + 2) if code else t for code, t in _split_code(answer or ""))
+    m = re.search(r"\*\*(.+?)\*\*", masked, re.S)
+    return plain((answer or "")[m.start(1):m.end(1)]) if m else ""
 
 
 def measures(card: dict) -> dict:
@@ -117,8 +145,8 @@ def measures(card: dict) -> dict:
     if card.get("type", "code") == "code":
         t = typed(card.get("starter"), card.get("solution"))
         return {"typed_chars": sum(map(len, t)), "typed_lines": len(t)}
-    a = (card.get("answer") or "").strip()
-    return {"answer_chars": len(a), "bold_chars": len(bold_lead(a))}
+    a = card.get("answer") or ""
+    return {"answer_chars": len(plain(a)), "bold_chars": len(bold_lead(a))}
 
 
 def label(card: dict) -> str:

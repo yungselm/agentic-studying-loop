@@ -1,7 +1,7 @@
 ---
 type: project-profile
 project: "{{name}}"
-repo: "{{project}}"
+repo: "{{repo}}"
 ---
 # {{name}}: project profile
 

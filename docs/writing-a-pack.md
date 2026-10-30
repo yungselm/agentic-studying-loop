@@ -18,7 +18,9 @@ name: go
 codemirror_mode: go            # the name the mode registers (CodeMirror.defineMode("go", ...))
 mode_file: mode.js
 standards: standards.md
-lint:                          # used by `asl lint` for the literal check
+lint:                          # used by `asl lint`
+  comment_prefix: '//'         # elisions, location headers, `uses:` hints
+  frame: '^\s*(func|type)\b'    # a line that counts as the context frame
   comment: '//[^\n]*'
   string: '"((?:[^"\\]|\\.)*)"'
   ignore_messages: 'panic\(\s*"(?:[^"\\]|\\.)*"\s*\)'

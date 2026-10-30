@@ -5,6 +5,8 @@ mode_file: mode.js            # CodeMirror 5 mode, bundled into every .apkg
 edition: "2021"               # edition used by `asl check`
 standards: standards.md       # Rust addendum to standards/core.md
 lint:
+  comment_prefix: '//'         # elisions `// ...`, location headers, `// uses:` hints
+  frame: '^\s*(pub(\([^)]*\))?\s+)?(async\s+|const\s+|unsafe\s+|extern\s+"[^"]*"\s+)*(fn|impl|struct|enum|trait|mod|macro_rules!)\b'
   comment: '//[^\n]*'
   string: '"((?:[^"\\]|\\.)*)"'
   # messages the learner isn't expected to reproduce from the prompt

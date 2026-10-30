@@ -11,3 +11,4 @@ presets:
   default:
     new_per_day: 10
     order: random
+repo: "../../../../examples/tasklog"   # project source, for excerpt + header checks

@@ -21,6 +21,7 @@ import re
 import shutil
 import sqlite3
 import tempfile
+import time
 import zipfile
 import zlib
 from pathlib import Path
@@ -53,11 +54,18 @@ def b64(s) -> str:
 
 
 def text(s) -> str:
-    """HTML-escape, then `code` -> <code> and **bold** -> <strong> (the bold lead
-    of a concept answer). Line breaks and indentation are kept by the CSS."""
-    s = html.escape(str(s or ""), quote=False)
-    s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
-    return re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", s)
+    """HTML-escape; `code` -> <code>, **bold** -> <strong> (never inside code).
+    Line breaks and indentation are kept by the CSS."""
+    spans, parts = [], []
+    for is_code, t in C._split_code(str(s or "")):
+        t = html.escape(t, quote=False)
+        if is_code:
+            parts.append(f"\x01{len(spans)}\x02")
+            spans.append(t)
+        else:
+            parts.append(t)
+    out = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", "".join(parts), flags=re.S)
+    return re.sub("\x01(\\d+)\x02", lambda m: f"<code>{spans[int(m.group(1))]}</code>", out)
 
 
 def titled(seg: str) -> str:
@@ -142,8 +150,9 @@ def guid(deck: Deck, f: Path, card: dict) -> str:
         key = f.stem if not deck.cfg.get("legacy_additional") else f"additional__{f.stem}"
         return genanki.guid_for(key, kind, front)
     if card.get("id"):
-        ns = deck.cfg.get("guid_namespace") or deck.name.split("::")[0]
-        return genanki.guid_for(ns, str(card["id"]))
+        # only the id (plus an optional namespace): renaming decks or folders never
+        # changes a GUID, so Anki keeps the review history
+        return genanki.guid_for(deck.cfg.get("guid_namespace") or "asl-id", str(card["id"]))
     return genanki.guid_for(deck.name, f.stem, kind, front)
 
 
@@ -181,7 +190,7 @@ def make_note(deck, f, card, code_model, concept_model) -> genanki.Note:
 
 def make_conf(cid: int, name: str, p: dict) -> dict:
     return {
-        "id": cid, "mod": 0, "name": name, "usn": -1, "maxTaken": 60,
+        "id": cid, "mod": int(time.time()), "name": name, "usn": -1, "maxTaken": 60,
         "autoplay": True, "timer": 0, "replayq": True, "dyn": False,
         "new": {"bury": False, "delays": p.get("learning_steps", [1.0, 10.0]),
                 "initialFactor": 2500, "ints": [1, 4, 7],
@@ -196,19 +205,22 @@ def make_conf(cid: int, name: str, p: dict) -> dict:
     }
 
 
-def conf_id(deck_root: str, preset: str, p: dict) -> int:
-    return int(p.get("conf_id") or 1000 + zlib.crc32(f"{deck_root}:{preset}".encode()) % 9000000)
+def conf_id(deck_name: str, preset: str, p: dict) -> int:
+    """One options group per deck folder and preset, so two projects' `default`
+    presets never overwrite each other."""
+    return int(p.get("conf_id") or 1000 + zlib.crc32(f"{deck_name}:{preset}".encode()) % 9000000)
 
 
 def _deck_obj(did, name, cid):
-    return {"id": did, "mod": 0, "name": name, "usn": -1, "lrnToday": [0, 0],
+    return {"id": did, "mod": int(time.time()), "name": name, "usn": -1, "lrnToday": [0, 0],
             "revToday": [0, 0], "newToday": [0, 0], "timeToday": [0, 0],
             "collapsed": False, "browserCollapsed": False, "desc": "", "dyn": 0,
             "conf": cid, "extendNew": 0, "extendRev": 0}
 
 
 def postprocess(apkg: Path, deck_presets: dict[str, tuple[int, dict, str]],
-                sequential_order: list[str]):
+                sequential_order: list[str],
+                group_defaults: list[tuple[str, tuple[int, dict, str]]] = ()):
     """deck_presets: anki deck name -> (conf id, preset dict, preset label).
     Adds the presets, creates missing parent decks, stamps sequential order."""
     tmp = Path(tempfile.mkdtemp())
@@ -220,16 +232,18 @@ def postprocess(apkg: Path, deck_presets: dict[str, tuple[int, dict, str]],
     cur = con.cursor()
     decks = json.loads(cur.execute("select decks from col").fetchone()[0])
     dconf = json.loads(cur.execute("select dconf from col").fetchone()[0])
-    for cid, preset, plabel in deck_presets.values():
+    for cid, preset, plabel in [*deck_presets.values(), *(c for _n, c in group_defaults)]:
         dconf[str(cid)] = make_conf(cid, plabel, preset)
 
     existing = {d["name"] for d in decks.values()}
     parents = sorted({"::".join(parts[:i]) for parts in (n.split("::") for n in existing)
                       for i in range(1, len(parts))} - existing)
-    first_conf = next(iter(deck_presets.values()))[0] if deck_presets else 1
     for pname in parents:
+        # a parent takes the `default` preset of the deck folder it belongs to
+        conf = next((c[0] for name, c in group_defaults
+                     if name == pname or name.startswith(pname + "::")), 1)
         pid = 1600000000 + zlib.crc32(pname.encode()) % 90000000
-        decks[str(pid)] = _deck_obj(pid, pname, first_conf)
+        decks[str(pid)] = _deck_obj(pid, pname, conf)
     for d in decks.values():
         if d.get("name") in deck_presets:
             d["conf"] = deck_presets[d["name"]][0]
@@ -261,17 +275,19 @@ def build(groups: list[tuple[Deck, list[Path]]], out: Path) -> int:
     anki_decks: dict[str, genanki.Deck] = {}
     deck_presets: dict[str, tuple[int, dict, str]] = {}
     sequential: list[str] = []
+    group_defaults = []
     total, no_id, guids = 0, 0, {}
     for deck, files in groups:
         presets = deck.presets()
-        root = deck.name.split("::")[0]
+        group_defaults.append((deck.name, (conf_id(deck.name, "default", presets["default"]),
+                                           presets["default"], f"{deck.name} default")))
         for f in files:
             name = deck_name(deck, f)
             if name not in anki_decks:
                 anki_decks[name] = genanki.Deck(deck_id(name), name)
                 pname = deck.file_opts(f).get("preset", "default")
                 p = presets.get(pname) or presets["default"]
-                deck_presets[name] = (conf_id(root, pname, p), p, f"{root} {pname}")
+                deck_presets[name] = (conf_id(deck.name, pname, p), p, f"{deck.name} {pname}")
                 if p.get("order") == "sequential":
                     sequential.append(name)
             for card in C.load_file(f):
@@ -290,10 +306,10 @@ def build(groups: list[tuple[Deck, list[Path]]], out: Path) -> int:
     pkg = genanki.Package(list(anki_decks.values()))
     pkg.media_files = media
     pkg.write_to_file(str(out))
-    postprocess(out, deck_presets, sequential)
+    postprocess(out, deck_presets, sequential, group_defaults)
     shutil.rmtree(tmp)
     print(f"Wrote {out}: {total} cards in {len(anki_decks)} deck(s).")
     if no_id:
         print(f"  [!] {no_id} card(s) without an id: their GUID follows the front text, "
-              "so editing the front will import a duplicate. Run `asl ids --fix`.")
+              "so editing the front will import a duplicate. Run `asl fix`.")
     return 0

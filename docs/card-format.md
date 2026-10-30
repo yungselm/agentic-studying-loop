@@ -9,6 +9,7 @@ Files starting with `_` are examples: checked and linted, but only built when pa
 deck: "Study Loop::Tasklog"   # Anki deck for this folder
 pack: python                  # default language (checker, highlighting, standards addendum)
 prefix: tsk                   # ids: tsk-001, tsk-002, ...
+repo: "../../code/tasklog"    # project source (makes it a project deck, see below)
 subdecks: true                # true: <file stem> becomes a subdeck (a__b.yaml nests A::B)
 check: true                   # default for all files
 files:                        # per-file overrides
@@ -20,6 +21,7 @@ presets:                      # Anki deck options written into the package
   default: {new_per_day: 14, order: random}
   slow: {new_per_day: 1, order: sequential, learning_steps: [1, 10], leech_fails: 5}
 guid: id                      # id (default) | legacy-kata (front-text GUIDs, for migration)
+guid_namespace: asl-id        # GUID = hash(namespace, id): renaming decks/folders is safe; never reuse ids
 ```
 
 ## Card types
@@ -61,6 +63,14 @@ id), labels them A–E and makes the order the answer.
   steps: [first, second, third, fourth]
   detail: "One line on threads / who calls what."
 ```
+
+## Project decks
+
+A deck with `repo:` or a `profile.md` gets extra `asl lint` checks: every code section starts
+with a location header whose path and role match `profile.md`; unchecked cards' code appears
+verbatim and in order in the repo file the header names (`...` elisions and `uses:` hints
+excepted); every card has an `Overview.md` row and a `std:`; `source: "<file> → <name>"` still
+exists in the repo. `asl fix` adds missing ids, `std:` and index rows.
 
 ## Text formatting
 

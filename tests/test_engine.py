@@ -116,3 +116,141 @@ def test_suggest_and_spearman():
 @pytest.mark.parametrize("deck", ["examples/python-core", "example-vault/Studying/Anki cards/tasklog"])
 def test_examples_lint_clean(deck):
     assert lint.lint(config.resolve_inputs([str(REPO / deck)])) == 0
+
+
+def _project_copy(tmp_path):
+    import shutil
+    src = REPO / "example-vault/Studying/Anki cards"
+    home = tmp_path / "home"
+    shutil.copytree(src, home)
+    deck = home / "tasklog"
+    cfg = (deck / "deck.yaml").read_text(encoding="utf-8")
+    cfg = cfg.replace('repo: "../../../../examples/tasklog"',
+                      f'repo: "{(REPO / "examples/tasklog").as_posix()}"')
+    (deck / "deck.yaml").write_text(cfg, encoding="utf-8")
+    return deck
+
+
+def _lint_out(deck, capsys):
+    rc = lint.lint(config.resolve_inputs([str(deck)]))
+    return rc, capsys.readouterr().out
+
+
+def test_project_deck_clean(tmp_path, capsys):
+    rc, out = _lint_out(_project_copy(tmp_path), capsys)
+    assert rc == 0, out
+
+
+def test_excerpt_drift_is_caught(tmp_path, capsys):
+    deck = _project_copy(tmp_path)
+    ext = deck / "tasklog_ext.yaml"
+    ext.write_text(ext.read_text(encoding="utf-8").replace(
+        "app = typer.Typer()", "app = typer.Typer(help='x')"), encoding="utf-8")
+    rc, out = _lint_out(deck, capsys)
+    assert rc == 1 and "[excerpt]" in out and "typer.Typer(help" in out
+
+
+def test_header_role_and_index(tmp_path, capsys):
+    deck = _project_copy(tmp_path)
+    f = deck / "tasklog.yaml"
+    f.write_text(f.read_text(encoding="utf-8").replace(
+        "(persistence: load/save the task list as JSON)", "(storage)", 2), encoding="utf-8")
+    ov = deck / "Overview.md"
+    ov.write_text(ov.read_text(encoding="utf-8").replace("| tsk-003 |", "| tsk-099 |"),
+                  encoding="utf-8")
+    rc, out = _lint_out(deck, capsys)
+    assert "[header]" in out and "role for src/tasklog/store.py" in out
+    assert "tsk-003 has no row" in out and "tsk-099 has no card" in out
+
+
+def test_fix_adds_id_std_index_and_keeps_crlf(tmp_path):
+    deck = _project_copy(tmp_path)
+    f = deck / "tasklog.yaml"
+    text = f.read_text(encoding="utf-8") + (
+        "\n- type: concept\n  question: Q?\n  answer: |\n    **A.**\n  source: \"x → y\"\n")
+    f.write_bytes(text.replace("\n", "\r\n").encode())
+    ids.ids(config.resolve_inputs([str(deck)]), fix=True)
+    raw = f.read_bytes().decode()
+    assert "\r\n- id: tsk-006\r\n  std: 1\r\n  type: concept" in raw
+    assert "| tsk-006 | draft | concept |" in (deck / "Overview.md").read_text(encoding="utf-8")
+
+
+# ---- regressions from review ---------------------------------------------------
+
+def _fix(d):
+    ids.ids(config.resolve_inputs([str(d)]), fix=True)
+    return [c.get("id") for c in C.load_file(d / "a.yaml")]
+
+
+def _concept(q):
+    return f"- type: concept\n  question: {q}\n  answer: |\n    **A.**\n"
+
+
+def test_fix_legacy_migration_keeps_every_id_and_guid(tmp_path):
+    body = "".join(f"# rlk-00{i}\n{_concept(f'Q{i}?')}\n" for i in range(1, 5))
+    d = make_deck(tmp_path, body, "deck: K\npack: python\nprefix: rlk\nguid: legacy-kata\n")
+    from studyloop.build import guid
+    deck = config.load_deck(d)
+    before = [guid(deck, d / "a.yaml", c) for c in C.load_file(d / "a.yaml")]
+    assert _fix(d) == ["rlk-001", "rlk-002", "rlk-003", "rlk-004"]
+    cards = C.load_file(d / "a.yaml")
+    assert [c["guid"] for c in cards] == before
+    assert "# rlk" not in (d / "a.yaml").read_text()
+
+
+def test_fix_new_card_above_comment_id(tmp_path):
+    d = make_deck(tmp_path, _concept("New?") + "\n# t-005\n" + _concept("Old?"))
+    assert _fix(d) == ["t-006", "t-005"]
+
+
+def test_fix_refuses_flow_style_and_keeps_file(tmp_path):
+    body = '- {type: concept, question: "Q?", answer: "**A.**"}\n'
+    d = make_deck(tmp_path, body)
+    _fix(d)
+    assert (d / "a.yaml").read_text() == body
+
+
+def test_fix_four_space_items_and_empty_id(tmp_path):
+    body = ("-   type: concept\n    question: Q1?\n    answer: '**A.**'\n"
+            "- id:\n  type: concept\n  question: Q2?\n  answer: '**B.**'\n")
+    d = make_deck(tmp_path, body)
+    assert _fix(d) == ["t-001", "t-002"]
+
+
+def test_fix_bom_file(tmp_path):
+    d = make_deck(tmp_path, "")
+    (d / "a.yaml").write_bytes(b"\xef\xbb\xbf" + _concept("Q?").encode())
+    assert _fix(d) == ["t-001"]
+    assert (d / "a.yaml").read_bytes().startswith(b"\xef\xbb\xbf- id: t-001")
+
+
+def test_retired_card_comment_is_not_inherited(tmp_path):
+    body = "# t-002\n# - question: old, retired card\n\n" + _concept("Brand new?")
+    d = make_deck(tmp_path, body)
+    assert C.load_file(d / "a.yaml")[0].get("id") is None
+
+
+def test_text_bold_never_inside_code():
+    from studyloop.build import text
+    assert text("`x ** 2` and `-(x ** 2)`") == "<code>x ** 2</code> and <code>-(x ** 2)</code>"
+    assert text("**`**kwargs` is a dict.**") == "<strong><code>**kwargs</code> is a dict.</strong>"
+
+
+def test_two_projects_get_separate_presets(tmp_path):
+    a = make_deck(tmp_path, _concept("A?").replace("- type", "- id: t-001\n  type"),
+                  "deck: Study Loop::A\npack: python\nprefix: t\npresets:\n  default: {new_per_day: 3}\n")
+    b = tmp_path / "b"
+    b.mkdir()
+    (b / "deck.yaml").write_text("deck: Study Loop::B\nprefix: u\npresets:\n  default: {new_per_day: 30}\n")
+    (b / "b.yaml").write_text(_concept("B?").replace("- type", "- id: u-001\n  type"))
+    out = tmp_path / "x.apkg"
+    build(config.resolve_inputs([str(a), str(b)]), out)
+    import json
+    with zipfile.ZipFile(out) as z:
+        (tmp_path / "c.db").write_bytes(z.read("collection.anki2"))
+    con = sqlite3.connect(tmp_path / "c.db")
+    decks = json.loads(con.execute("select decks from col").fetchone()[0])
+    dconf = json.loads(con.execute("select dconf from col").fetchone()[0])
+    per = {d["name"]: dconf[str(d["conf"])]["new"]["perDay"] for d in decks.values()
+           if d["name"] != "Default"}
+    assert per["Study Loop::A::A"] == 3 and per["Study Loop::B::B"] == 30

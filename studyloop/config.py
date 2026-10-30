@@ -145,3 +145,19 @@ def resolve_inputs(args: list[str]) -> list[tuple[Deck, list[Path]]]:
         entry = groups.setdefault(deck.path, (deck, []))
         entry[1].extend(f for f in files if f not in entry[1])
     return list(groups.values())
+
+
+def read_keep(p: Path) -> tuple[str, str]:
+    """Text with \\n line ends + a format tag (line ending, BOM), so rewriting a
+    file on Windows keeps CRLF/LF and a UTF-8 BOM exactly as they were."""
+    raw = p.read_bytes()
+    bom = raw.startswith(b"\xef\xbb\xbf")
+    text = raw.decode("utf-8-sig")
+    nl = "\r\n" if "\r\n" in text else "\n"
+    return text.replace("\r\n", "\n"), ("bom" if bom else "") + nl
+
+
+def write_keep(p: Path, text: str, fmt: str = "\n") -> None:
+    nl = fmt.replace("bom", "") or "\n"
+    data = text.replace("\r\n", "\n").replace("\n", nl).encode("utf-8")
+    p.write_bytes((b"\xef\xbb\xbf" if fmt.startswith("bom") else b"") + data)

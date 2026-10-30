@@ -2,13 +2,22 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
 import sys
 from pathlib import Path
 
 from . import config
 
 
+def _utf8_stdout() -> None:
+    """Windows consoles and pipes may default to cp1252; never crash on ✓ or →."""
+    for stream in (sys.stdout, sys.stderr):
+        with contextlib.suppress(AttributeError, ValueError):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
+
 def main(argv=None) -> int:
+    _utf8_stdout()
     ap = argparse.ArgumentParser(prog="asl", description=__doc__)
     sub = ap.add_subparsers(dest="cmd", required=True)
 
@@ -22,10 +31,14 @@ def main(argv=None) -> int:
 
     li = sub.add_parser("lint", help="ids, size limits, self-containment (no code is run)")
     li.add_argument("inputs", nargs="*")
+    li.add_argument("-q", "--quiet", action="store_true", help="only print problems (!)")
 
-    i = sub.add_parser("ids", help="next free id; --fix writes missing id fields")
+    i = sub.add_parser("ids", help="next free id and cards without one (read-only)")
     i.add_argument("inputs", nargs="*")
-    i.add_argument("--fix", action="store_true")
+    i.add_argument("--fix", action="store_true", help="same as `asl fix`")
+
+    fx = sub.add_parser("fix", help="write missing ids, std versions and Overview.md rows")
+    fx.add_argument("inputs", nargs="*")
 
     s = sub.add_parser("stats", help="analyse a manual Anki export (.apkg/.colpkg)")
     s.add_argument("export")
@@ -65,10 +78,10 @@ def main(argv=None) -> int:
         return check(config.resolve_inputs(a.inputs), {"fast": a.fast})
     if a.cmd == "lint":
         from .lint import lint
-        return lint(config.resolve_inputs(a.inputs))
-    if a.cmd == "ids":
+        return lint(config.resolve_inputs(a.inputs), a.quiet)
+    if a.cmd in ("ids", "fix"):
         from .ids import ids
-        return ids(config.resolve_inputs(a.inputs), a.fix)
+        return ids(config.resolve_inputs(a.inputs), a.cmd == "fix" or a.fix)
     if a.cmd == "stats":
         from .stats import stats
         return stats(Path(a.export), a.deck, a.home, a.mark_refreshed)

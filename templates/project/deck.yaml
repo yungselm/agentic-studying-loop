@@ -2,6 +2,7 @@
 deck: "Study Loop::{{name}}"     # Anki deck this folder builds into
 pack: {{pack}}                   # language: checker, syntax highlighting, standards addendum
 prefix: {{prefix}}               # card ids: {{prefix}}-001, {{prefix}}-002, ...
+repo: "{{repo}}"   # project source: `asl lint` checks headers and unchecked excerpts against it
 subdecks: false                  # both files study together in one deck
 files:
   {{slug}}_ext.yaml:

@@ -15,7 +15,7 @@ import re
 import shutil
 from pathlib import Path
 
-from .config import REPO, find_pack
+from .config import REPO, find_pack, read_keep, write_keep
 
 BEGIN, MODE, END = "<!-- studyloop:begin -->", "<!-- studyloop:mode -->", "<!-- studyloop:end -->"
 MODES = ["teacher", "mentor", "coworker", "on-demand"]
@@ -62,16 +62,18 @@ def init_project(project: Path, home: Path, pack: str, prefix: str, mode: str,
     name = name or project.name
     slug = re.sub(r"[^a-z0-9_]+", "_", name.lower()).strip("_")
     deck_dir = home / slug
+    notes_path = str(Path(notes).expanduser().resolve()) if notes else None
     kw = dict(name=name, slug=slug, pack=pack, prefix=prefix, project=project,
-              notes=notes or f"(not set: add the vault folder for {name}'s notes)")
+              repo=project.as_posix(),
+              notes=notes_path or f"(not set: add the vault folder for {name}'s notes)")
     for tpl, dst in (("deck.yaml", "deck.yaml"), ("Overview.md", "Overview.md"),
                      ("profile.md", "profile.md"), ("cards.yaml", f"{slug}.yaml"),
                      ("cards_ext.yaml", f"{slug}_ext.yaml")):
         out = deck_dir / dst
         if not out.exists():
             out.parent.mkdir(parents=True, exist_ok=True)
-            out.write_text(_render((TEMPLATES / "project" / tpl).read_text(encoding="utf-8"),
-                                   **kw), encoding="utf-8")
+            tpl_text = (TEMPLATES / "project" / tpl).read_text(encoding="utf-8")
+            write_keep(out, _render(tpl_text, **kw))
             print(f"  created {out}")
     settings = "\n".join([
         f"- **Card home** (standards, evidence): `{home}`",
@@ -80,6 +82,7 @@ def init_project(project: Path, home: Path, pack: str, prefix: str, mode: str,
         f"- **Study notes for this project:** `{kw['notes']}`",
     ])
     write_block(project / "CLAUDE.md", settings, mode)
+    print("Next: give the agent the skills (plugin, or `asl install-skills`), then work as usual.")
 
 
 def _block(settings: str, mode: str) -> str:
@@ -87,9 +90,8 @@ def _block(settings: str, mode: str) -> str:
     return "\n".join([
         BEGIN,
         "## Study loop ([agentic-studying-loop](https://github.com/yungselm/agentic-studying-loop))",
-        "Learning from this project goes into study notes and Anki cards. Procedures live in the "
-        "skills `study-note`, `write-cards`, `check-cards` and `refresh-standards`; follow the "
-        "card home's `standards/` files, which win over anything else.",
+        "What the user learns here becomes study notes and Anki cards, via the skills "
+        "`study-note`, `write-cards`, `check-cards`, `refresh-standards`.",
         "",
         settings.strip(),
         "",
@@ -102,7 +104,7 @@ def _block(settings: str, mode: str) -> str:
 def write_block(claude_md: Path, settings: str, mode: str) -> None:
     if mode not in MODES:
         raise SystemExit(f"Unknown mode '{mode}'. Choose one of: {', '.join(MODES)}")
-    text = claude_md.read_text(encoding="utf-8") if claude_md.exists() else ""
+    text, nl = read_keep(claude_md) if claude_md.exists() else ("", "\n")
     block = _block(settings, mode)
     if BEGIN in text and END in text:
         pre, rest = text.split(BEGIN, 1)
@@ -110,7 +112,7 @@ def write_block(claude_md: Path, settings: str, mode: str) -> None:
         text = pre + block + post
     else:
         text = (text.rstrip() + "\n\n" if text.strip() else "") + block + "\n"
-    claude_md.write_text(text, encoding="utf-8")
+    write_keep(claude_md, text, nl)
     print(f"  {claude_md}: study loop block written (mode: {mode})")
 
 
