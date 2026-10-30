@@ -7,3 +7,4 @@ asl-output/
 # your own Anki exports and evidence stay out of git
 *.colpkg
 *.apkg
+build/

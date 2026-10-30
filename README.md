@@ -1,7 +1,7 @@
 <p align="center">
   <a href="https://github.com/yungselm/agentic-studying-loop">
     <img
-      src="https://raw.githubusercontent.com/yungselm/multimoda-rs/main/media/banner.jpg"
+      src="https://raw.githubusercontent.com/yungselm/agentic-studying-loop/main/media/banner.jpg"
       alt="agentic-studying-loop logo"
     >
   </a>
@@ -14,14 +14,22 @@ what you learn becomes **study notes** in your notes vault and **Anki cards** th
 repo. Then the card rules get **tuned on your own review data**.
 
 ```mermaid
-flowchart LR
-    A[work with the agent] --> B[new pattern] --> C[study note] --> D[you write and<br/>confirm the code]
-    D --> E[cards from the<br/>confirmed code] --> F[review in Anki]
-    F -->|manual export| G[asl stats] -->|you approve| H[standards v+1] --> E
+flowchart TB
+    code["<b>Your code</b><br/>work with Claude Code"]
+    vault["<b>Notes vault</b><br/>study notes + card standards"]
+    yaml["<b>Cards as YAML</b><br/>checked by asl"]
+    anki["<b>Anki</b><br/>spaced repetition"]
+
+    code ~~~ anki
+    code -->|"new pattern → study note<br/>(rules in CLAUDE.md)"| vault
+    vault -->|"cards from the<br/>confirmed code"| yaml
+    yaml -->|"asl build"| anki
+    anki -->|"you write it<br/>yourself next time"| code
+    anki -.->|"asl stats tunes<br/>the standards"| vault
 ```
 
 Grown out of [rust-lang-kata](https://github.com/yungselm/rust-lang-kata), whose card rules were
-re-derived from 6.5k of the author's reviews (*typed characters, not lines, predict failure*;
+re-derived from 6.5k of my personal reviews (*typed characters, not lines, predict failure*;
 *every leech was a code card asking for a whole program*).
 
 ## How it fits together
@@ -78,10 +86,10 @@ or copy the skills into `~/.claude/skills` with `asl install-skills`.
 ## 3. Connect a project
 
 ```bash
-asl init ~/code/snake-rs \
+asl init ~/code/test-rs \
     --home  "~/Vault/Studying/Anki cards" \
-    --notes "~/Vault/Studying/snake-rs" \
-    --pack rust --prefix snk --mode teacher
+    --notes "~/Vault/Studying/test-rs" \
+    --pack rust --prefix snk --mode mentor
 ```
 
 On Windows, the same command with `C:\...` paths works in PowerShell (use a backtick or one line
@@ -95,7 +103,7 @@ Work in the project with Claude Code as usual. Depending on the mode, the agent 
 and cards into your vault and verifies them with `asl`. You build and import:
 
 ```bash
-asl build "~/Vault/Studying/Anki cards/snake_rs" -o snake-rs.apkg
+asl build "~/Vault/Studying/Anki cards/test_rs" -o test-rs.apkg
 ```
 
 In Anki: File → Import, tick **Update notetypes** and **Import any deck presets**. Changed cards
@@ -121,7 +129,7 @@ The commands the agent runs (you can run them too):
 
 ## Tuning the standards on your data
 
-Whenever you like (nothing nags you): in Anki, File → Export → *Anki Deck Package* with *Include
+Whenever you like: in Anki, File → Export → *Anki Deck Package* with *Include
 scheduling information*, then ask the agent to *refresh my standards*, or run
 `asl stats export.apkg --home "<card home>"`. The report says whether a refresh is due (default:
 half the deck mature, then every further 25%), and shows fail rates by card size, leeches, hard
@@ -155,3 +163,10 @@ without cloning) · [Migrating from rust-lang-kata](docs/migrating-from-rust-lan
 
 v0.1. The starter standards rest on one learner's data. Packs, card types and anonymised
 `asl stats` tables are welcome. MIT license; vendors CodeMirror 5 (MIT).
+
+## Words of Encouragement ⸜(｡˃ ᵕ ˂ )⸝♡
+The rest is up to you! Remember Anki only works if you do it everyday. Let's tackle outsourcing thinking and brainrot together. 
+Don't expect the results to be perfect, LLMs as always tend to be bloated. But compared to previous workflows these still save
+me countless hours, by just deleting cards I don't like and revising the other while reviewing.
+
+![Loop it!](https://raw.githubusercontent.com/yungselm/agentic-studying-loop/main/media/study_loop.jpg)
