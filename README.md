@@ -1,7 +1,7 @@
 <p align="center">
   <a href="https://github.com/yungselm/agentic-studying-loop">
     <img
-      src="https://raw.githubusercontent.com/yungselm/agentic-studying-loop/main/media/banner.jpg"
+      src="media/banner.jpg"
       alt="agentic-studying-loop logo"
     >
   </a>
@@ -169,4 +169,4 @@ The rest is up to you! Remember Anki only works if you do it everyday. Let's tac
 Don't expect the results to be perfect, LLMs as always tend to be bloated. But compared to previous workflows these still save
 me countless hours, by just deleting cards I don't like and revising the other while reviewing.
 
-![Loop it!](https://raw.githubusercontent.com/yungselm/agentic-studying-loop/main/media/study_loop.jpg)
+![Loop it!](media/study_loop.jpg)
