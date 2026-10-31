@@ -99,9 +99,18 @@ def check_card(deck: Deck, card: dict, lint_cfg: dict, checked: bool,
     if not (project and cp):
         return out
     secs = sections(sol, cp)
-    if not secs or secs[0][0] is None:
-        out.append(("!", "header", f"code doesn't start with `{cp} <path>  (<role>)`"))
     hr = header_re(cp)
+
+    def lead_ok(code: str) -> bool:
+        """Starts with a location header, or with a `stubs (real: ...)` block
+        followed by one (checked files put the header above the mirrored code)."""
+        first = next((ln.strip() for ln in (code or "").splitlines() if ln.strip()), "")
+        has_header = any(hr.match(ln) for ln in (code or "").splitlines())
+        return bool(hr.match(first)) or (first.startswith(f"{cp} stubs") and has_header)
+
+    if not lead_ok(sol):
+        out.append(("!", "header", f"code doesn't start with `{cp} <path>  (<role>)` "
+                    f"(or a `{cp} stubs (real: ...)` block followed by one)"))
     for ln in sol.splitlines():
         m = hr.match(ln)
         if not m:
@@ -113,9 +122,8 @@ def check_card(deck: Deck, card: dict, lint_cfg: dict, checked: bool,
             out.append(("!", "header", f"role for {path} should be ({roles[path]})"))
         if repo and not (repo / path).is_file():
             out.append(("!", "header", f"{path} doesn't exist in the repo ({repo})"))
-    start_first = next((ln for ln in (card.get("starter") or "").splitlines() if ln.strip()), "")
-    if secs and secs[0][0] and not hr.match(start_first):
-        out.append(("!", "header", "starter must start with the same location header"))
+    if lead_ok(sol) and not lead_ok(card.get("starter") or ""):
+        out.append(("!", "header", "starter must start like the solution (header or stubs block)"))
     if not checked:
         if repo is None:
             out.append(("~", "excerpt", "set `repo:` in deck.yaml to verify excerpts"))
@@ -151,9 +159,10 @@ def check_index(deck: Deck, card_ids: list[str]) -> list[tuple[str, str, str]]:
     text = ov.read_text(encoding="utf-8")
     out = [("!", "index", f"{cid} has no row in Overview.md")
            for cid in card_ids if not re.search(rf"(?<![\w-]){re.escape(cid)}(?![\w-])", text)]
-    prefix = deck.cfg.get("prefix")
-    if prefix:
-        listed = set(re.findall(rf"^\|\s*({re.escape(prefix)}-\d+)\s*\|", text, re.M))
+    listed = set()
+    for prefix in deck.prefixes():
+        listed |= set(re.findall(rf"^\|\s*({re.escape(prefix)}-\d+)\s*\|", text, re.M))
+    if listed:
         retired = {str(i) for i in deck.cfg.get("retired_ids") or []}
         out += [("~", "index", f"Overview.md row {cid} has no card (add it to retired_ids?)")
                 for cid in sorted(listed - set(card_ids) - retired)]

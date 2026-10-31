@@ -14,6 +14,7 @@ subdecks: true                # true: <file stem> becomes a subdeck (a__b.yaml n
 check: true                   # default for all files
 files:                        # per-file overrides
   tasklog_ext.yaml: {check: false}            # not compiled (third-party libraries)
+  legacy.yaml: {prefix: old}                  # own id prefix for one file
   interview.yaml: {preset: slow, deck: "Interview"}   # own subdeck name / preset
 order: [basics, advanced]     # file import order (= new-card order for sequential presets)
 retired_ids: [tsk-007]        # deleted ids, never reused

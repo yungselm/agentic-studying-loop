@@ -104,6 +104,15 @@ class Deck:
     def file_opts(self, f: Path) -> dict:
         return dict((self.cfg.get("files") or {}).get(f.name) or {})
 
+    def prefix_for(self, f: Path | None = None) -> str | None:
+        """Id prefix for a file: `files: {x.yaml: {prefix: ..}}`, else the deck's."""
+        return (self.file_opts(f).get("prefix") if f else None) or self.cfg.get("prefix")
+
+    def prefixes(self) -> list[str]:
+        ps = [self.cfg.get("prefix")] + [o.get("prefix") for o in (self.cfg.get("files") or {}).values()
+                                         if isinstance(o, dict)]
+        return [p for p in dict.fromkeys(ps) if p]
+
     def checked(self, f: Path) -> bool:
         return bool(self.file_opts(f).get("check", self.cfg.get("check", True)))
 

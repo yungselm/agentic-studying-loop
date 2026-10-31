@@ -37,8 +37,8 @@ def used_ids(deck: Deck, files: list[Path]) -> set[str]:
     return ids
 
 
-def next_id(deck: Deck, files: list[Path]) -> str:
-    prefix = deck.cfg.get("prefix") or "card"
+def next_id(deck: Deck, files: list[Path], f: Path | None = None) -> str:
+    prefix = deck.prefix_for(f) or "card"
     nums = [_num(i) for i in used_ids(deck, files) if str(i).startswith(prefix + "-")]
     return f"{prefix}-{(max(nums) if nums else 0) + 1:03d}"
 
@@ -85,8 +85,8 @@ def fix_file(deck: Deck, f: Path, files: list[Path], std: int | None) -> int:
     if len(starts) != len(parsed):
         print(f"  [!] {f.name}: couldn't match YAML items to lines; fix by hand.")
         return 0
-    prefix = deck.cfg.get("prefix") or "card"
-    n = _num(next_id(deck, files))
+    prefix = deck.prefix_for(f) or "card"
+    n = _num(next_id(deck, files, f))
     new = set()
     for i, card in enumerate(parsed):           # assign in file order
         if not card.get("id"):
@@ -175,7 +175,8 @@ def ids(groups, fix: bool) -> int:
     for deck, files in groups:
         missing = [(f, c) for f in files for c in C.load_file(f) if not c.get("id")]
         if not fix:
-            print(f"{deck.path.name}: next free id {next_id(deck, files)}")
+            for f in files:
+                print(f"{deck.path.name}/{f.name}: next free id {next_id(deck, files, f)}")
             for f, c in missing:
                 print(f"  no id: {f.name} {C.label(c)}")
             continue

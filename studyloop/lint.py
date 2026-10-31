@@ -83,7 +83,7 @@ def _card_flags(card, lim, lint_cfg, prefix, seen, fname, fronts=None, retired=(
             out.append(("!", "id", f"duplicate id, also in {seen[cid]}"))
         seen[cid] = fname
         if prefix and not str(cid).startswith(f"{prefix}-"):
-            out.append(("~", "id", f"id doesn't use this deck's prefix '{prefix}-'"))
+            out.append(("~", "id", f"id doesn't use this file's prefix '{prefix}-'"))
     m = C.measures(card)
     if card["type"] == "code":
         lc, n = lim["code"], m["typed_chars"]
@@ -125,7 +125,6 @@ def lint(groups: list[tuple[Deck, list[Path]]], quiet: bool = False,
 
     for deck, files in groups:
         lim = find_home(deck.path).limits
-        prefix = deck.cfg.get("prefix")
         roles, repo = P.file_roles(deck), P.repo_dir(deck)
         if repo is not None and not repo.is_dir():
             report("!", "repo", deck.path.name, f"repo path in deck.yaml not found: {repo}")
@@ -135,7 +134,7 @@ def lint(groups: list[tuple[Deck, list[Path]]], quiet: bool = False,
             pack = deck.file_opts(f).get("pack") or deck.pack
             lint_cfg = load_pack(pack).get("lint", {}) if pack else {}
             for card in C.load_file(f):
-                flags = _card_flags(card, lim, lint_cfg, prefix, seen, f.name, fronts,
+                flags = _card_flags(card, lim, lint_cfg, deck.prefix_for(f), seen, f.name, fronts,
                                      {str(i) for i in deck.cfg.get("retired_ids") or []})
                 flags += P.check_card(deck, card, lint_cfg, deck.checked(f), roles, repo)
                 for sev, kind, msg in flags:
