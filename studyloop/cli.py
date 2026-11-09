@@ -34,7 +34,14 @@ def main(argv=None) -> int:
     li.add_argument("-q", "--quiet", action="store_true", help="only print problems (!)")
     li.add_argument("--skip", default="", help="comma-separated kinds to leave out, e.g. size,frame")
 
-    i = sub.add_parser("ids", help="next free id and cards without one (read-only)")
+    nt = sub.add_parser("notes", help="check study notes: tl;dr, diagram, budget, links")
+    nt.add_argument("inputs", nargs="*", help="folders or .md files (default: from ./CLAUDE.md)")
+    nt.add_argument("--vault", type=Path, help="vault root for links (default: folder with .obsidian)")
+    nt.add_argument("-q", "--quiet", action="store_true", help="only print problems (!)")
+    nt.add_argument("--budget", type=int, default=250,
+                    help="visible prose words per note before a hint (default 250)")
+
+    i = sub.add_parser("ids",help="next free id and cards without one (read-only)")
     i.add_argument("inputs", nargs="*")
     i.add_argument("--fix", action="store_true", help="same as `asl fix`")
 
@@ -81,6 +88,9 @@ def main(argv=None) -> int:
         from .lint import lint
         return lint(config.resolve_inputs(a.inputs), a.quiet,
                     frozenset(k.strip() for k in a.skip.split(",") if k.strip()))
+    if a.cmd == "notes":
+        from .notes import notes
+        return notes(a.inputs, a.vault, a.quiet, a.budget)
     if a.cmd in ("ids", "fix"):
         from .ids import ids
         return ids(config.resolve_inputs(a.inputs), a.cmd == "fix" or a.fix)

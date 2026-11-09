@@ -193,7 +193,10 @@ The commands the agent runs (you can run them too):
 | `asl fix <deck>` | add missing ids, standards version, `Overview.md` rows |
 | `asl lint -q <deck>` | sizes, self-containment, context frame, headers, verbatim excerpts, drift |
 | `asl check <deck>` | compile / lint / run every card's tests (clippy + cargo test, ruff + pytest) |
+| `asl notes [folder]` | study notes: TL;DR, a diagram, length, links, map (default: the notes folder in `CLAUDE.md`) |
 | `asl mode <mode> <project>` | switch the mode in the project's `CLAUDE.md` |
+
+**Study notes** open with a TL;DR and a Mermaid diagram, keep to one idea (details folded), and end with typed links (`builds on`, `used by`, ...); each folder's overview maps its notes. No Obsidian plugins needed. See [example-vault/Studying](example-vault/Studying).
 
 ## Let Claude set it up
 
