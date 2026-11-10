@@ -23,6 +23,7 @@ Pick your path based on:
 |---|---|
 | Anki cards with a typing editor, written by hand in simple text files. No AI involved. | [Install](#install) → [Cards without an agent](#cards-without-an-agent) |
 | The full loop: an AI agent turns what you learn in a project into notes and cards. | [Install](#install) → [The full loop](#the-full-loop) |
+| Notes and cards from lectures, books or links, no code project needed. | [Install](#install) → [Lectures and books](#lectures-and-books) |
 | The full loop, but you're not comfortable with the terminal: Claude sets it up for you. | [Let Claude set it up](#let-claude-set-it-up) |
 | You're an AI agent asked to set this up. | [For agents](#for-agents) |
 
@@ -69,11 +70,13 @@ You don't clone this repo to use it. There are three places, and you set each up
 |---|---|---|---|
 | **1. The tool** | the `asl` command, language packs, default standards, modes, templates | installed like any CLI | `uv tool install …` |
 | **2. The agent's skills** | `study-note`, `study-source`, `write-cards`, `check-cards`, `refresh-standards` | Claude Code | `/plugin install …` or `asl install-skills` |
-| **3. Your data** | your standards, notes and cards | your notes vault (e.g. Obsidian), plus one block in each project's `CLAUDE.md` | `asl init` |
+| **3. Your data** | your standards, notes and cards | your notes vault (e.g. Obsidian), plus one block in each project's `CLAUDE.md` | `asl init` (projects), `asl topic` (lectures, books) |
 
 ```
 ~/Vault/Studying/                     <- your notes vault (3)
+├── CLAUDE.md                         <- topics block (`asl topic`): start Claude Code here for lectures/books
 ├── test-rs/                         <- study notes for the project (the agent writes them)
+├── CS231n/                          <- a topic: study notes + _attachements/ (lecture PDFs)
 └── Anki cards/                       <- the "card home"
     ├── studyloop.yaml                   limits, refresh thresholds, standards version
     ├── standards/                       core.md, rust.md, preferences.md: YOUR rules, they evolve
@@ -84,6 +87,10 @@ You don't clone this repo to use it. There are three places, and you set each up
         ├── test_rs_ext.yaml            cards with third-party code (verbatim, not compiled)
         ├── profile.md                   file roles for the cards' location headers
         └── Overview.md                  card index
+    └── cs231n/                         one deck folder per topic (no repo, no profile)
+        ├── deck.yaml
+        ├── l02_linear_classifiers.yaml  cards, e.g. one file per lecture
+        └── Overview.md                  brief + sources map + card index
 
 ~/code/test-rs/                      <- your project: unchanged, except
 └── CLAUDE.md                            a study-loop block (mode + the paths above)
@@ -98,13 +105,14 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 
 # 2. asl
 uv tool install "agentic-studying-loop @ https://github.com/yungselm/agentic-studying-loop/archive/refs/heads/main.zip"
-asl packs                     # lists python, rust; if `asl` isn't found: uv tool update-shell
+asl packs                     # lists cpp, python, rust; if `asl` isn't found: uv tool update-shell
 
 # update later
 uv tool install --force "agentic-studying-loop @ https://github.com/yungselm/agentic-studying-loop/archive/refs/heads/main.zip"
 ```
 
-Rust cards also need [Rust](https://rustup.rs/) with `rustup component add clippy`.
+Rust cards also need [Rust](https://rustup.rs/) with `rustup component add clippy`. C++ cards need
+`g++` or `clang++` (checked with sanitizers); `clang-tidy` adds the Core Guidelines checks.
 
 ## Cards without an agent
 
@@ -191,7 +199,8 @@ The commands the agent runs (you can run them too):
 | | |
 |---|---|
 | `asl fix <deck>` | add missing ids, standards version, `Overview.md` rows (and refresh the sources map) |
-| `asl sources <deck>` | map the topic's books and links into parts; `--read <part>` prints one |
+| `asl topic <name> ...` | start a topic from lectures, books or links (see [Lectures and books](#lectures-and-books)) |
+| `asl sources <deck>` | map the topic's sources into parts; `--read <part>` prints one |
 | `asl lint -q <deck>` | sizes, self-containment, context frame, headers, verbatim excerpts, drift |
 | `asl check <deck>` | compile / lint / run every card's tests (clippy + cargo test, ruff + pytest) |
 | `asl notes [folder]` | study notes: TL;DR, a diagram, length, links, map (default: the notes folder in `CLAUDE.md`) |
@@ -221,37 +230,60 @@ anything outside the project and the chosen notes folder.
 3. **Ask the user** (one question at a time): where the notes vault is (an Obsidian vault or any
    folder; suggest one inside their documents), and which mode: `teacher` (user writes all code),
    `mentor`, `coworker`, `on-demand` (see Modes). Use a 2–4 letter id prefix derived from the project
-   name; the pack follows the project's language (`rust` or `python`).
-4. **Connect:** `asl init <project> --home "<vault>/Anki cards" --notes "<vault>/<project>"
-   --pack <pack> --prefix <prefix> --mode <mode>`. Use real absolute paths, never placeholders.
+   name; the pack follows the project's language (`rust`, `python` or `cpp`).
+4. **Connect:** a code project → `asl init <project> --home "<vault>/Anki cards" --notes
+   "<vault>/<project>" --pack <pack> --prefix <prefix> --mode <mode>`. Lectures, books or links
+   (no code) → `asl topic "<name>" --home "<vault>/Anki cards" --sources "<folder|file|url>"
+   --notes "<vault>/<topic>"`; then ask for the goal and what the user already knows (step 1 of
+   the `study-source` skill). Use real absolute paths, never placeholders.
 5. **Skills:** `asl install-skills` (or the plugin commands above if the user prefers).
 6. **Verify:** `asl lint -q "<vault>/Anki cards/<deck>"` prints `OK`.
 7. **Tell the user** in plain words: where notes and cards will appear, that cards are built with
    `asl build "<deck folder>" -o <name>.apkg` and imported in Anki via File → Import (tick "Update
    notetypes"), and that the agent follows the chosen mode from now on.
 
-### Learning from books and links
+## Lectures and books
 
-For a topic with sources (books in your vault, a course, docs on the web), tell the agent where
-they are, or paste the links. The `study-source` skill writes a short **brief** into the frontmatter
-of the deck's `Overview.md`:
+For a topic without code (a lecture series, a book, a course, docs on the web). You need the
+[install](#install) and the skills (step 1 of [the full loop](#the-full-loop)).
 
-```yaml
-goal: "Modern C++ for regulated medical software"
-builds_on: [rust]                  # contrast cards against what you know
-notes: "Studying/C++"              # study notes first; false = cards straight from the source
-sources:
-  - "Tour of C++ 3rd.pdf"          # a file in the vault
-  - https://cliutils.gitlab.io/modern-cmake/
+**1. Put the files in your vault**, e.g. lecture PDFs in `Studying/CS231n/_attachements/`. Slides
+in PowerPoint: export them to PDF next to the `.pptx` (Obsidian can link to PDF pages, and `asl`
+maps them). Links need no file.
+
+**2. Open Claude Code in your studying folder** (`Studying/`, the folder that holds the card home)
+and say what you want to learn and where the files are:
+
+> I want to study CS231n for deep learning in medical imaging; the slides are in
+> `CS231n/_attachements`. I know Python and NumPy.
+
+**3. The agent starts the topic** (skill `study-source`), with a command you can run yourself too:
+
+```bash
+asl topic "CS231n" --home "~/Vault/Studying/Anki cards" \
+    --sources "CS231n/_attachements" --notes "CS231n" --builds-on python
 ```
 
-`asl sources <deck>` turns the PDFs' bookmarks into a map of parts in that same file. The map shows
-pages, words, tokens to read, and status (`todo`, `notes 2 · cards 9`) counted from the `source:`
-links of notes and cards (`[[Tour of C++ 3rd.pdf#page=42]]`). The agent reads this map instead of
-the books or every card, and works one part at a time: `asl sources <deck> --read tour.3` prints
-just that chapter. A chapter too long for one batch (default 12k tokens) is listed by section.
-Once ten or more cards exist, the map also estimates cards per part from your cards per 1k words,
-so you can see how many days of new cards a chapter adds before you start it.
+This creates the deck folder, a `CLAUDE.md` in `Studying/` that lists your topics (so next time you
+just say *next lecture*), and a short **brief** in the deck's `Overview.md`:
+
+```yaml
+goal: "deep learning for medical imaging"   # steers what gets carded
+builds_on: [python]                # what you know: contrast cards against it
+focus: [backprop, CNNs]            # optional: card these in depth; `skip:` the opposite
+notes: "CS231n"                    # study notes first; false = cards straight from the sources
+sources:
+  - "CS231n/_attachements"         # a folder: every PDF in it; or a PDF/Markdown file, a URL
+```
+
+**4. Work one part at a time.** `asl sources` maps the sources into parts, in the same
+`Overview.md`: one per lecture PDF, chapters from a book's bookmarks, page chunks for anything
+longer than one batch (default 12k tokens). Each part shows pages, words, tokens to read, and
+status (`todo`, `notes 2 · cards 9`), counted from the `source:` links of notes and cards
+(`[[Lecture 03.pdf#page=12]]`). The agent reads this map, not the sources or every card, and
+reads one part per batch (`asl sources <deck> --read lecture03`). Once ten or more cards exist,
+the map estimates cards per part from your cards per 1k words, so you see how many days of new
+cards a lecture adds before you start it.
 
 ## Modes
 

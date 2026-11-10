@@ -4,6 +4,7 @@
     asl init <project dir> --home <card home> --pack rust --prefix omk
              [--mode mentor] [--notes "<vault folder with this project's notes>"]
     asl mode <teacher|mentor|coworker|on-demand> [<project dir>]
+    asl topic <name> --home <card home> --sources <folder|file|url> [...] [--notes <folder>]
 
 The card home is a folder in your notes vault (e.g. "Studying/Anki cards").
 It owns *your* standards: init-home copies the repo's defaults there, and from
@@ -83,6 +84,109 @@ def init_project(project: Path, home: Path, pack: str, prefix: str, mode: str,
     ])
     write_block(project / "CLAUDE.md", settings, mode)
     print("Next: give the agent the skills (plugin, or `asl install-skills`), then work as usual.")
+
+
+def _yaml_str(s: str | None) -> str:
+    return '""' if s is None else '"' + str(s).replace("\\", "/").replace('"', "'") + '"'
+
+
+def _vault_rel(p: Path, vault: Path | None) -> str:
+    """A path as the vault sees it (relative), else absolute."""
+    try:
+        return p.relative_to(vault).as_posix() if vault else p.as_posix()
+    except ValueError:
+        return p.as_posix()
+
+
+def _resolve_in(base: Path, s: str) -> Path:
+    p = Path(s).expanduser()
+    if p.is_absolute():
+        return p.resolve()
+    return (Path.cwd() / p).resolve() if (Path.cwd() / p).exists() else (base / p).resolve()
+
+
+def init_topic(name: str, home: Path, sources: list[str], notes: str | None, no_notes: bool,
+               prefix: str | None, pack: str, goal: str | None, builds_on: list[str]) -> Path:
+    """A deck for a topic without a code repo (lectures, books, links), plus the study-loop
+    block in the CLAUDE.md of the folder that holds the card home."""
+    from . import notes as N
+    home = home.expanduser().resolve()
+    find_pack(pack)
+    init_home(home, [pack])
+    vault = N.card_vault(home) or home.parent
+    plain = name.lower().replace("+", "p").replace("#", "sharp")       # C++ -> cpp, C# -> csharp
+    slug = re.sub(r"[^a-z0-9_]+", "_", plain).strip("_") or "topic"
+    prefix = prefix or (re.sub(r"[^a-z0-9]", "", plain)[:3] or "top")
+    deck_dir = home / slug
+    src_lines = []
+    for s in sources:
+        if re.match(r"https?://", s):
+            src_lines.append(f"  - {s}")
+        else:
+            src_lines.append(f"  - {_yaml_str(_vault_rel(_resolve_in(vault, s), vault))}")
+    notes_val = ("false" if no_notes else
+                 _yaml_str(_vault_rel(_resolve_in(vault, notes), vault)) if notes else
+                 '""                              # vault folder for study notes; false = cards only')
+    kw = dict(name=name, prefix=prefix, pack=pack,
+              goal=_yaml_str(goal) if goal else '""                               # what this topic is for',
+              builds_on="[" + ", ".join(builds_on) + "]" if builds_on else
+              "[]                          # what you know already: contrast cards",
+              notes=notes_val, sources="\n".join(src_lines) or "  []")
+    for tpl in ("deck.yaml", "Overview.md"):
+        out = deck_dir / tpl
+        if out.exists():
+            print(f"  kept {out}")
+            continue
+        out.parent.mkdir(parents=True, exist_ok=True)
+        write_keep(out, _render((TEMPLATES / "topic" / tpl).read_text(encoding="utf-8"), **kw))
+        print(f"  created {out}")
+    write_topics_block(home)
+    if sources:
+        from .config import load_deck
+        from .sources import build_map
+        build_map(load_deck(deck_dir))
+    return deck_dir
+
+
+TOPICS_BEGIN, TOPICS_END = "<!-- studyloop:topics:begin -->", "<!-- studyloop:topics:end -->"
+
+
+def write_topics_block(home: Path) -> None:
+    """CLAUDE.md next to the card home: where topics live, so an agent started anywhere
+    in the studying folder finds them without being told paths."""
+    from .config import _read_yaml
+    topics = [d for d in sorted(home.iterdir())
+              if (d / "deck.yaml").is_file() and not _read_yaml(d / "deck.yaml").get("repo")]
+    lines = [
+        TOPICS_BEGIN,
+        "## Study loop: topics ([agentic-studying-loop](https://github.com/yungselm/agentic-studying-loop))",
+        "Lectures, books and links studied here become study notes and Anki cards: skill "
+        "`study-source` (one part per batch), then `study-note`, `write-cards`, `check-cards`.",
+        "",
+        f"- **Card home** (standards, evidence): `{home}`",
+        "- **Topics** (deck folder; its `Overview.md` holds the brief and the sources map; "
+        "read that, not the sources):",
+        *[f"  - {(d / 'Overview.md').is_file() and _topic_name(d) or d.name}: `{d}`" for d in topics],
+        f'- **New topic:** `asl topic "<name>" --home "{home}" --sources "<folder|file|url>" '
+        '--notes "<notes folder>"`',
+        TOPICS_END,
+    ]
+    block = "\n".join(lines)
+    md = home.parent / "CLAUDE.md"
+    text, nl = read_keep(md) if md.exists() else ("", "\n")
+    if TOPICS_BEGIN in text and TOPICS_END in text:
+        pre, rest = text.split(TOPICS_BEGIN, 1)
+        text = pre + block + rest.split(TOPICS_END, 1)[1]
+    else:
+        text = (text.rstrip() + "\n\n" if text.strip() else "") + block + "\n"
+    write_keep(md, text, nl)
+    print(f"  {md}: topics block written ({len(topics)} topic(s))")
+
+
+def _topic_name(d: Path) -> str:
+    from .notes import split_frontmatter
+    meta, _ = split_frontmatter((d / "Overview.md").read_text(encoding="utf-8"))
+    return str(meta.get("project") or "")
 
 
 def _block(settings: str, mode: str) -> str:

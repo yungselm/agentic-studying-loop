@@ -1,0 +1,11 @@
+# Deck settings for {{name}} (agentic-studying-loop). A topic: cards come from its sources
+# (lectures, books, links) and study notes, not from a code repo.
+deck: "Study Loop::{{name}}"     # Anki deck this folder builds into
+pack: {{pack}}                   # highlighting for code in cards; checker for code cards
+prefix: {{prefix}}               # card ids: {{prefix}}-001, {{prefix}}-002, ...
+subdecks: true                   # one subdeck per card file (e.g. one per lecture)
+retired_ids: []                  # deleted ids; never reused
+presets:
+  default:
+    new_per_day: 10
+    order: sequential            # parts usually build on each other

@@ -81,6 +81,18 @@ def _main(argv=None) -> int:
     p.add_argument("--notes", help="vault folder with this project's study notes")
     p.add_argument("--name", help="deck name (default: project folder name)")
 
+    tp = sub.add_parser("topic", help="start a topic from lectures, books or links (no code repo)")
+    tp.add_argument("name", help='e.g. "CS231n" or "C++"')
+    tp.add_argument("--home", type=Path, required=True, help="card home in your vault")
+    tp.add_argument("--sources", action="append", default=[],
+                    help="a folder of PDFs, a file or a URL (repeat for more)")
+    tp.add_argument("--notes", help="vault folder for this topic's study notes")
+    tp.add_argument("--no-notes", action="store_true", help="cards straight from the sources")
+    tp.add_argument("--prefix", help="card id prefix (default: from the name)")
+    tp.add_argument("--pack", default="python", help="code highlighting/checker (default python)")
+    tp.add_argument("--goal", help="what the topic is for; steers what gets carded")
+    tp.add_argument("--builds-on", action="append", default=[], help="what you know already")
+
     m = sub.add_parser("mode", help="switch the mode in a project's CLAUDE.md")
     m.add_argument("mode")
     m.add_argument("project", type=Path, nargs="?", default=Path("."))
@@ -120,6 +132,11 @@ def _main(argv=None) -> int:
     if a.cmd == "init":
         from .project import init_project
         init_project(a.project, a.home, a.pack, a.prefix, a.mode, a.notes, a.name)
+        return 0
+    if a.cmd == "topic":
+        from .project import init_topic
+        init_topic(a.name, a.home, a.sources, a.notes, a.no_notes, a.prefix, a.pack, a.goal,
+                   a.builds_on)
         return 0
     if a.cmd == "mode":
         from .project import set_mode

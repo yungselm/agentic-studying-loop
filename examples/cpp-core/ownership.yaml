@@ -1,0 +1,83 @@
+# Example: ownership and errors, asked from the Rust side.
+
+- id: cpp-001
+  type: concept
+  question: |
+    Rust `Box<T>`: what is the C++ spelling, and where does the analogy break?
+  answer: |
+    **`std::unique_ptr<T>`, but a moved-from `unique_ptr` still exists (as null) and nothing
+    stops you from using it.**
+  code: |
+    #include <memory>
+    inline std::unique_ptr<int> make_answer() { return std::make_unique<int>(42); }
+  source: "Tour of C++ 3rd.pdf#page=221"
+  tags: [cpp, ownership, rust-contrast, concept]
+
+- id: cpp-002
+  instruction: |
+    Return the sum of the vector's elements, taking the vector without copying it
+    and without allowing changes. An empty vector sums to 0.
+  starter: |
+    #include <vector>
+
+    int sum(                        v) {
+        int total = 0;
+        for (int x : v) total += x;
+        return total;
+    }
+  solution: |
+    #include <vector>
+
+    int sum(const std::vector<int>& v) {
+        int total = 0;
+        for (int x : v) total += x;
+        return total;
+    }
+  notes: |
+    `const T&` is Rust's `&T`: no copy, no mutation. Unlike Rust, the compiler doesn't check
+    that `v` outlives the reference; that is your job (and the sanitizers' in tests).
+  source: "Tour of C++ 3rd.pdf#page=63"
+  tags: [cpp, references, rust-contrast]
+  tests: |
+    assert(sum({1, 2, 3}) == 6);
+    assert(sum({}) == 0);
+
+- id: cpp-003
+  instruction: |
+    Parse a non-negative integer from `s` and return it; return `std::nullopt` if `s` is
+    empty or has a character that isn't a digit.
+  starter: |
+    #include <optional>
+    #include <string_view>
+
+    std::optional<int> parse_digits(std::string_view s) {
+        if (s.empty()) return std::nullopt;
+        int n = 0;
+        for (char c : s) {
+            if (c < '0' || c > '9')
+            n = n * 10 + (c - '0');
+        }
+        return n;
+    }
+  solution: |
+    #include <optional>
+    #include <string_view>
+
+    std::optional<int> parse_digits(std::string_view s) {
+        if (s.empty()) return std::nullopt;
+        int n = 0;
+        for (char c : s) {
+            if (c < '0' || c > '9') return std::nullopt;
+            n = n * 10 + (c - '0');
+        }
+        return n;
+    }
+  notes: |
+    `std::optional<T>` is Rust's `Option<T>`; `std::nullopt` is `None`. Returning `n` wraps it
+    like `Some(n)`. `std::string_view` is `&str`: a borrowed view, no copy.
+  source: "CppCoreGuidelines F.21"
+  tags: [cpp, optional, errors, rust-contrast]
+  tests: |
+    assert(parse_digits("42") == 42);
+    assert(!parse_digits("4x2"));
+    assert(!parse_digits(""));

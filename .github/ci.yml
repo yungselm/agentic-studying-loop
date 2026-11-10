@@ -14,9 +14,9 @@ jobs:
         run: |
           rustup component add clippy
           asl notes example-vault/Studying
-          asl lint -q examples/python-core examples/rust-core "example-vault/Studying/Anki cards/tasklog"
-          asl check examples/python-core examples/rust-core "example-vault/Studying/Anki cards/tasklog"
-          asl build examples/python-core examples/rust-core "example-vault/Studying/Anki cards/tasklog" -o asl-output/examples.apkg
+          asl lint -q examples/python-core examples/rust-core examples/cpp-core "example-vault/Studying/Anki cards/tasklog"
+          asl check examples/python-core examples/rust-core examples/cpp-core "example-vault/Studying/Anki cards/tasklog"
+          asl build examples/python-core examples/rust-core examples/cpp-core "example-vault/Studying/Anki cards/tasklog" -o asl-output/examples.apkg
 
   # the way users install it: no clone, no editable install
   install-as-user:

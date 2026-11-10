@@ -13,11 +13,12 @@ The brief lives in the frontmatter of the deck's Overview.md:
       - "Tour of C++ 3rd.pdf"        # a file in the vault (or [[wikilink]], or a path)
       - {file: "Effective Modern C++.pdf", key: emc}
       - https://cliutils.gitlab.io/modern-cmake/
+      - "CS231n/_attachements"       # a folder: every PDF in it, one source per file
       - {url: "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines", key: cg,
          parts: ["#S-resource", "#S-errors"]}
 
 PDF parts come from the bookmarks; a chapter longer than `batch` tokens is listed with its
-sections. Status counts cards and notes whose `source:` points into a part:
+sections, and one without sections (or a PDF without bookmarks, like slides) in page chunks. Status counts cards and notes whose `source:` points into a part:
 `[[Tour of C++ 3rd.pdf#page=42]]` (page in the PDF file, as Obsidian opens it), a URL, or
 a `[[Note]]` whose own `source:` does. Bookmarks and word counts are cached in\n`.asl-sources.json` next to Overview.md.
 """
@@ -47,7 +48,7 @@ PAGE_REF = re.compile(r"#(?:page=|p\.?)(\d+)", re.I)
 class Part:
     id: str
     title: str
-    first: int = 0                  # PDF pages, 1-based, inclusive
+    first: int = 0                  # PDF pages or Markdown lines, 1-based, inclusive
     last: int = 0
     url: str = ""
     depth: int = 0
@@ -72,6 +73,9 @@ class Source:
     pages: int = 0
     parts: list[Part] = field(default_factory=list)
     problem: str = ""
+    unit: str = "pages"             # Markdown sources count lines
+    also: str = ""                  # a Markdown file's web address (cards may cite either)
+    index: dict[str, int] = field(default_factory=dict)   # anchor / rule id -> line
 
 
 # ---- the brief ------------------------------------------------------------
@@ -90,19 +94,43 @@ def _strip_link(s: str) -> str:
 
 
 def _key(text: str, taken: set[str]) -> str:
+    """Short id for a source: the first word, plus its number for numbered files
+    ("Lecture 03 - Optimization" -> lecture03)."""
+    m = re.match(r"\s*([A-Za-z]+)[\s_.-]*(\d+)", text)
     words = re.findall(r"[a-z0-9]+", text.lower())
-    base = next((w for w in words if w not in {"https", "http", "www", "the", "a", "an"}), "src")
+    base = (m.group(1).lower() + m.group(2)) if m else next(
+        (w for w in words if w not in {"https", "http", "www", "the", "a", "an"}), "src")
     key, n = base[:12], 2
     while key in taken:
         key, n = f"{base[:10]}{n}", n + 1
     return key
 
 
+def _folder(deck: Deck, vault: Path | None, name: str) -> Path | None:
+    p = Path(name).expanduser()
+    if p.is_absolute():
+        return p if p.is_dir() else None
+    return next((b / p for b in (vault, deck.path) if b and (b / p).is_dir()), None)
+
+
+def _expand(deck: Deck, vault: Path | None, raw) -> list:
+    """A folder as a source -> its PDFs (and slides, flagged) in name order."""
+    if isinstance(raw, dict) or re.match(r"https?://", str(raw)):
+        return [raw]
+    d = _folder(deck, vault, _strip_link(str(raw)))
+    if d is None:
+        return [raw]
+    found = sorted(f for f in d.iterdir() if f.suffix.lower() in (".pdf", ".pptx", ".ppt", ".key"))
+    pdfs = {f.stem.lower() for f in found if f.suffix.lower() == ".pdf"}
+    found = [f for f in found if f.suffix.lower() == ".pdf" or f.stem.lower() not in pdfs]
+    return [{"file": str(f)} for f in found] or [raw]
+
+
 def resolve(deck: Deck, meta: dict) -> list[Source]:
     vault = N.card_vault(deck.path)
     files = N.vault_index(vault)[1] if vault else {}
     out, taken = [], set()
-    for raw in meta.get("sources") or []:
+    for raw in [x for r in meta.get("sources") or [] for x in _expand(deck, vault, r)]:
         spec = raw if isinstance(raw, dict) else (
             {"url": raw} if re.match(r"https?://", str(raw)) else {"file": raw})
         if spec.get("url"):
@@ -119,11 +147,15 @@ def resolve(deck: Deck, meta: dict) -> list[Source]:
             p = Path(name).expanduser()
             path = (p if p.is_absolute() and p.is_file() else
                     (deck.path / p) if (deck.path / p).is_file() else files.get(Path(name).name.lower()))
-            src = Source(key, Path(name).name, path=path)
+            src = Source(key, Path(name).name, path=path, also=str(spec.get("also_url") or ""))
+            if path is not None and path.suffix.lower() in (".md", ".markdown", ".txt"):
+                src.unit = "lines"
             if path is None:
                 src.problem = f"{name} not found in the vault"
-            elif path.suffix.lower() != ".pdf":
-                src.problem = "only PDFs are split into parts; read this file directly"
+            elif path.suffix.lower() in (".pptx", ".ppt", ".key"):
+                src.problem = "slides: export to PDF next to it (Obsidian links PDF pages, asl maps them)"
+            elif path.suffix.lower() != ".pdf" and src.unit != "lines":
+                src.problem = "only PDF and Markdown files are split into parts; read it directly"
         taken.add(src.key)
         out.append(src)
     return out
@@ -183,7 +215,8 @@ def _bookmarks(reader) -> list[tuple[int, str, int]]:
     return flat
 
 
-def outline(src: Source, flat: list[tuple[int, str, int]], pages: int) -> None:
+def outline(src: Source, flat: list[tuple[int, str, int]], pages: int,
+            unit_ids: bool = False) -> None:
     """Bookmarks -> parts with page ranges (chapters + their sections); front matter left out."""
     src.pages = pages
     if not flat:
@@ -200,11 +233,75 @@ def outline(src: Source, flat: list[tuple[int, str, int]], pages: int) -> None:
         last = max(page, nxt - 1)
         if depth == 0:
             m = re.match(r"(?:chapter|part)?\s*(\d+)\b", title, re.I)
-            parent = Part(f"{src.key}.{m.group(1) if m else _slug(title)}", title, page, last)
+            short = re.match(r"([A-Za-z]{1,5}):\s", title) if unit_ids else None
+            pid = short.group(1) if short else m.group(1) if m else _slug(title)
+            parent = Part(f"{src.key}.{pid}", title, page, last)
             src.parts.append(parent)
         elif parent is not None:
-            parent.children.append(Part(f"{parent.id}.{len(parent.children) + 1}", title,
-                                        page, min(last, parent.last), depth=1))
+            short = re.match(r"([A-Za-z]{1,5}\.[\w.-]+):", title) if unit_ids else None
+            cid = (f"{src.key}.{short.group(1)}" if short else
+                   f"{parent.id}.{'s' if unit_ids else ''}{len(parent.children) + 1}")
+            taken = {c.id for c in parent.children}
+            cid, n = (cid, 2) if cid not in taken else (f"{cid}{2}", 3)
+            while cid in taken:
+                cid, n = f"{cid[:-1]}{n}", n + 1
+            parent.children.append(Part(cid, title, page, min(last, parent.last), depth=1))
+
+
+MD_HEAD = re.compile(r"^(#{1,2})\s+(.*)$")
+MD_ANCHOR = re.compile(r'<a\s+name="([^"]+)"\s*>\s*</a>|\{#([\w-]+)\}')
+RULE_ID = re.compile(r"\b([A-Z][A-Za-z]{0,4}\.\d+)\b")
+
+
+def scan_md(src: Source) -> list[int]:
+    """A long Markdown document (e.g. the C++ Core Guidelines): `#` headings are parts, `##`
+    their sections; anchors and rule ids (`R.1:` at a heading) index lines for the status."""
+    lines = src.path.read_text(encoding="utf-8", errors="replace").splitlines()
+    src.pages = len(lines)
+    words, heads, fence = [], [], False
+    for i, ln in enumerate(lines, 1):
+        words.append(len(ln.split()))
+        if ln.lstrip().startswith(("```", "~~~")):
+            fence = not fence
+            continue
+        if fence:
+            continue
+        for m in MD_ANCHOR.finditer(ln):
+            src.index.setdefault((m.group(1) or m.group(2)).lower(), i)
+        h = re.match(r"^(#{1,6})\s+(.*)$", ln)
+        if not h:
+            continue
+        title = MD_ANCHOR.sub("", h.group(2)).strip()
+        r = re.match(r"([A-Z][A-Za-z]{0,4}\.\d+)\s*:", title)
+        if r:
+            src.index.setdefault(r.group(1).lower(), i)
+        if len(h.group(1)) <= 2:
+            heads.append((len(h.group(1)) - 1, title, i))
+    outline(src, heads, len(lines), unit_ids=True)
+    return words
+
+
+def attach_words(src: Source, words: list[int], batch: int) -> None:
+    """Word counts per part; a part over the batch without sections gets page chunks."""
+    limit = batch / TOKENS_PER_WORD
+    for p in src.parts:
+        for r in [p, *p.children]:
+            r.words = sum(words[r.first - 1:r.last])
+        if p.children or p.words <= limit:
+            continue
+        a, acc = p.first, 0
+        for pg in range(p.first, p.last + 1):
+            w = words[pg - 1]
+            if acc and acc + w > limit:
+                p.children.append(_chunk(p, a, pg - 1, acc, src.unit))
+                a, acc = pg, 0
+            acc += w
+        p.children.append(_chunk(p, a, p.last, acc, src.unit))
+
+
+def _chunk(p: Part, a: int, b: int, words: int, unit: str) -> Part:
+    tag = "p" if unit == "pages" else "l"
+    return Part(f"{p.id}.{tag}{a}-{b}", f"{unit} {a}–{b}", a, b, depth=1, words=words)
 
 
 def _slug(title: str) -> str:
@@ -220,6 +317,9 @@ def _load_cache(deck: Deck) -> dict:
 
 
 def text_of(path: Path, first: int, last: int) -> str:
+    if path.suffix.lower() != ".pdf":
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        return "\n".join(lines[first - 1:last])
     reader = _reader(path)
     out = []
     for i in range(first - 1, min(last, len(reader.pages))):
@@ -252,6 +352,7 @@ def _as_list(v) -> str:
 
 def count(deck: Deck, meta: dict, sources: list[Source]) -> None:
     note_refs: dict[str, list] = {}          # note name -> its source refs
+    note_texts: dict[str, str] = {}          # note name -> its source text
     folder = meta.get("notes")
     vault = N.card_vault(deck.path)
     if folder:
@@ -263,15 +364,23 @@ def count(deck: Deck, meta: dict, sources: list[Source]) -> None:
             refs = _refs(_as_list(m.get("source")))
             if refs:
                 note_refs[p.stem.lower()] = refs
-    card_refs = []
+                note_texts[p.stem.lower()] = _as_list(m.get("source"))
+    card_refs, card_texts = [], []
     for f in deck.files():
         for c in C.load_file(f):
-            refs = _refs(str(c.get("source") or ""))
+            s = str(c.get("source") or "")
+            refs = _refs(s)
             for name, _ in list(refs):
                 refs += note_refs.get(name.lower(), [])
+                s += " " + note_texts.get(name.lower(), "")
             card_refs.append(refs)
+            card_texts.append(s)
 
     for src in sources:
+        if src.unit == "lines":
+            _count_md(src, list(note_texts.values()), card_texts)
+            continue
+
         def mine(ref, src=src):
             name, _ = ref
             return name.startswith(src.url) if src.url else (
@@ -281,6 +390,27 @@ def count(deck: Deck, meta: dict, sources: list[Source]) -> None:
             for p in [part, *part.children]:
                 p.notes = sum(any(mine(r) and p.covers(r) for r in refs) for refs in note_refs.values())
                 p.cards = sum(any(mine(r) and p.covers(r) for r in refs) for refs in card_refs)
+
+
+def _md_lines(src: Source, s: str) -> set[int]:
+    """Lines of a Markdown source that a source string points at: `#anchor` or a rule id,
+    when the string names the file, its key or its web address."""
+    low = s.lower()
+    names = [src.path.stem.lower(), f"{src.key} "] + ([src.also.lower()] if src.also else [])
+    if not any(n and n in low for n in names):
+        return set()
+    hits = {src.index.get(a.lower()) for a in re.findall(r"#([\w.-]+)", s)}
+    hits |= {src.index.get(r.lower()) for r in RULE_ID.findall(s)}
+    return {h for h in hits if h}
+
+
+def _count_md(src: Source, notes: list[str], cards: list[str]) -> None:
+    note_lines = [_md_lines(src, s) for s in notes]
+    card_lines = [_md_lines(src, s) for s in cards]
+    for part in src.parts:
+        for p in [part, *part.children]:
+            p.notes = sum(any(p.first <= x <= p.last for x in ls) for ls in note_lines)
+            p.cards = sum(any(p.first <= x <= p.last for x in ls) for ls in card_lines)
 
 
 # ---- the map --------------------------------------------------------------
@@ -311,11 +441,11 @@ def render(deck: Deck, meta: dict, sources: list[Source]) -> str:
              f"{per_day}/day." + (f" So far {rate:.1f} cards per 1k words; `~N cards` "
                                   "estimates todo parts from that." if rate else ""), ""]
     for src in sources:
-        head = f"**{src.key}**: {src.label}" + (f" ({src.pages} pages)" if src.pages else "")
+        head = f"**{src.key}**: {src.label}" + (f" ({src.pages} {src.unit})" if src.pages else "")
         lines += [head + (f": {src.problem}" if src.problem else ""), ""]
         if not src.parts:
             continue
-        cols = "| part | title | pages | words | ~tokens | status |" if not src.url else \
+        cols = f"| part | title | {src.unit} | words | ~tokens | status |" if not src.url else \
                "| part | link | status |"
         lines += [cols, "|---|---|---|---|---|---|" if not src.url else "|---|---|---|"]
         for p in src.parts:
@@ -362,10 +492,8 @@ def build_map(deck: Deck, quiet: bool = False) -> list[Source] | None:
     for src in sources:
         if src.path is None or src.problem:
             continue
-        words = scan(src, cache)
-        for p in src.parts:
-            for r in [p, *p.children]:
-                r.words = sum(words[r.first - 1:r.last])
+        words = scan_md(src) if src.unit == "lines" else scan(src, cache)
+        attach_words(src, words, int(meta.get("batch") or DEFAULT_BATCH))
     if json.dumps(cache, sort_keys=True) != before:
         (deck.path / CACHE).write_text(json.dumps(cache), encoding="utf-8")
     count(deck, meta, sources)
@@ -393,7 +521,8 @@ def sources(groups, read: str | None = None) -> int:
             srcs, cache = resolve(deck, meta), _load_cache(deck)
             for s in srcs:
                 if s.path is not None and not s.problem:
-                    scan(s, cache)
+                    words = scan_md(s) if s.unit == "lines" else scan(s, cache)
+                    attach_words(s, words, int(meta.get("batch") or DEFAULT_BATCH))
             hit = find_part(srcs, read)
             if hit is None:
                 print(f"! no part `{read}` in {deck.path.name}; run `asl sources` and pick an id "
@@ -403,7 +532,8 @@ def sources(groups, read: str | None = None) -> int:
             if s.url:
                 print(f"{p.id}: {p.url}\n(a link: fetch only this part)")
                 return 0
-            print(f"# {s.label} — {p.title} (pages {p.first}–{p.last})\n")
+            where = "" if p.title.startswith(s.unit) else f" ({s.unit} {p.first}–{p.last})"
+            print(f"# {s.label} — {p.title}{where}\n")
             print(text_of(s.path, p.first, p.last))
             return 0
         if build_map(deck) is None:

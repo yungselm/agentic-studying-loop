@@ -25,7 +25,8 @@ questions. Image occlusion is left out: quick to make by hand, hard to generate.
   day (`studyloop.yaml`); from that and the measured cost per card (median seconds per answer:
   cloze ~6–8 s, flip ~10 s, typed code ~27 s; answers per card from `asl stats`), suggest how
   many cards a topic or lecture should get, and which to drop first when it's over budget.
-- [ ] Lecture input: slides (PDF/PPTX) → study note → cards, `source: lecture.pdf#p12`.
+- [x] Lecture input: slide PDFs → study note → cards, `source: "[[lecture.pdf#page=12]]"` (2b).
+  `.pptx` is flagged (export to PDF), not read.
 - [ ] `asl stats` reads foreign note types (AnKing's cloze, basic), so any existing deck can
   seed the standards; then reuse before writing: match a note against unstudied cards
   (e.g. 34k AnKing notes) and propose "unsuspend these, write those".
@@ -40,9 +41,14 @@ show where plain vocab cards struggle.
 A brief in the deck's `Overview.md` (goal, `builds_on`, `notes:` flag, sources) and a sources map
 written by `asl sources`: PDF bookmarks → parts with pages, words, tokens and status from the
 `source:` links of notes and cards; chapters over the batch size listed by section. The agent reads
-one part per batch (`--read`), never the whole book (`study-source` skill).
-- [ ] C++ topic on it: Tour of C++ + Effective Modern C++ + Core Guidelines + Modern CMake,
-  `builds_on: rust`; then a `cpp` pack (sanitizer build as checker).
+one part per batch (`--read`), never the whole book (`study-source` skill). `asl topic` starts a
+topic without a code repo (a folder of lecture PDFs counts as one source per file; PDFs without
+bookmarks split into page chunks) and lists the topics in a `CLAUDE.md` next to the card home.
+- [x] `cpp` pack: one translation unit, a namespace per card, `-Werror` + ASan/UBSan, each card's
+  asserts in their own process, clang-tidy Core Guidelines checks when installed.
+- [x] Markdown sources split by headings (the Core Guidelines: sections, rule ids → status).
+- [ ] C++ topic (author): Tour + Effective Modern C++ + Core Guidelines + Modern CMake, focused on
+  regulated medical software; every chapter → cards, kata style. Then the regulatory topic.
 - [ ] Parts for long web pages without hand-written `parts:` (fetch the headings once).
 
 ## Later
@@ -53,6 +59,6 @@ one part per batch (`--read`), never the whole book (`study-source` skill).
   Then the card home keeps only `preferences.md` and per-deck profiles, and `core.md` becomes a
   managed copy (`asl standards --update`).
 - Publish on PyPI, so the install becomes `uv tool install agentic-studying-loop`.
-- More packs: TypeScript (tsc + vitest), Go, C++. Each needs a checker and a standards addendum.
+- More packs: TypeScript (tsc + vitest), Go. Each needs a checker and a standards addendum.
 - `asl stats --share`: an anonymised summary (bins and counts only) to pool evidence across learners.
 - A drag-to-order front for timeline cards (today: labelled A–E, answer is the order).
