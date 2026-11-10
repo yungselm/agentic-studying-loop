@@ -5,6 +5,7 @@
       - `id:` for every card without one (<prefix>-NNN, never reusing retired_ids)
       - `std: <standards_version>` on those new cards (from studyloop.yaml)
       - a row in Overview.md for every card that has none (status `draft`)
+      - the sources map in Overview.md, if `asl sources` wrote one
 
 So an agent can write a card without id/std/index row and let `asl fix` add them.
 
@@ -186,4 +187,8 @@ def ids(groups, fix: bool) -> int:
         rows = fix_index(deck)
         print(f"{deck.path.name}: id/std/guid written on {total} card(s), "
               f"{rows} Overview.md row(s) added.")
+        from .sources import BEGIN, build_map
+        ov = deck.path / "Overview.md"
+        if ov.is_file() and BEGIN in ov.read_text(encoding="utf-8"):
+            build_map(deck, quiet=True)         # refresh the sources map's status
     return 0

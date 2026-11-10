@@ -36,6 +36,15 @@ card (cloze/translation, audio, screenshot); a subtitle miner (`.srt` → i+1 se
 on sentence length, word frequency, unknown words. AnKing's term → definition cards (9.8% fail)
 show where plain vocab cards struggle.
 
+### 2b. Topics from books and links (done)
+A brief in the deck's `Overview.md` (goal, `builds_on`, `notes:` flag, sources) and a sources map
+written by `asl sources`: PDF bookmarks → parts with pages, words, tokens and status from the
+`source:` links of notes and cards; chapters over the batch size listed by section. The agent reads
+one part per batch (`--read`), never the whole book (`study-source` skill).
+- [ ] C++ topic on it: Tour of C++ + Effective Modern C++ + Core Guidelines + Modern CMake,
+  `builds_on: rust`; then a `cpp` pack (sanitizer build as checker).
+- [ ] Parts for long web pages without hand-written `parts:` (fetch the headings once).
+
 ## Later
 - **Documentation on Read the Docs**: move the docs (card format, packs, standards, the agent
   workflow) from `docs/` into a hosted site, with the README as the short entry point.

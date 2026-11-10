@@ -19,6 +19,7 @@ the first screen carries it, links build the web. `preferences.md` (*Notes*) win
    tags: [python, files]
    aliases: [other names]
    budget: 600          # only if the topic needs it (default ~250 visible words, lecture ~800)
+   source: "[[Book.pdf#page=42]]"   # from a book or link: the sources map counts it
    ---
    # Atomic file writes
 

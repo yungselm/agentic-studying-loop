@@ -54,8 +54,12 @@ def _main(argv=None) -> int:
     i.add_argument("inputs", nargs="*")
     i.add_argument("--fix", action="store_true", help="same as `asl fix`")
 
-    fx = sub.add_parser("fix", help="write missing ids, std versions and Overview.md rows")
+    fx = sub.add_parser("fix", help="write missing ids, std versions, Overview.md rows and sources map")
     fx.add_argument("inputs", nargs="*")
+
+    so = sub.add_parser("sources", help="map a topic's books/links into parts (Overview.md)")
+    so.add_argument("inputs", nargs="*")
+    so.add_argument("--read", metavar="PART", help="print the text of one part, e.g. tour.3")
 
     s = sub.add_parser("stats", help="analyse a manual Anki export (.apkg/.colpkg)")
     s.add_argument("export")
@@ -103,6 +107,9 @@ def _main(argv=None) -> int:
     if a.cmd in ("ids", "fix"):
         from .ids import ids
         return ids(config.resolve_inputs(a.inputs), a.cmd == "fix" or a.fix)
+    if a.cmd == "sources":
+        from .sources import sources
+        return sources(config.resolve_inputs(a.inputs), a.read)
     if a.cmd == "stats":
         from .stats import stats
         return stats(Path(a.export), a.deck, a.home, a.mark_refreshed)

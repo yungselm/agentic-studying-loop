@@ -11,6 +11,8 @@ Paths (card home, deck folder) are in the CLAUDE.md study-loop block.
 2. **Decide:** only recurring patterns, only confirmed working code. Big pattern → ladder;
    async/concurrency → timeline first. Aim for ~half code cards. From a vault note (lectures,
    study notes): facts → `cloze`, *why* → `concept`; its `[!question]` callouts are ready-made.
+   From a book or link (`study-source`): `source: "[[Book.pdf#page=N]]"` or the URL, so the
+   sources map counts it; the brief's `goal` and `builds_on` (Overview.md) decide what and how.
 3. **Write** into `<slug>.yaml` (stdlib + stubs, checked) or `<slug>_ext.yaml` (third-party,
    verbatim). Leave out `id`/`std`, `asl fix` adds them:
    ```yaml

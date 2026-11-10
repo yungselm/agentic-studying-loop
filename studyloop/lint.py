@@ -96,7 +96,8 @@ def vault_flags(card: dict, fields, vault: Path | None) -> list[tuple[str, str, 
     out = []
     notes, files = N.vault_index(vault)
     for m in WIKI.finditer(str(card.get("source") or "")):
-        if m.group(2).split("#")[0].strip().lower() not in notes:
+        target = m.group(2).split("#")[0].strip().lower()
+        if target not in notes and target not in files:     # a note, or a file (book.pdf#page=4)
             out.append(("~", "source", f"[[{m.group(2)}]] not found in {vault.name}"))
     for field in fields:
         for m in C.EMBED.finditer(str(card.get(field) or "")):

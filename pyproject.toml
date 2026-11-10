@@ -9,7 +9,7 @@ description = "Turn what you learn while coding into study notes and Anki cards,
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
-dependencies = ["genanki>=0.13", "PyYAML>=6.0", "zstandard>=0.21", "pytest>=7", "ruff>=0.4"]
+dependencies = ["genanki>=0.13", "PyYAML>=6.0", "pypdf>=4", "zstandard>=0.21", "pytest>=7", "ruff>=0.4"]
 
 [project.optional-dependencies]
 dev = ["build"]

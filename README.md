@@ -68,7 +68,7 @@ You don't clone this repo to use it. There are three places, and you set each up
 | | What | Where it lives | Set up with |
 |---|---|---|---|
 | **1. The tool** | the `asl` command, language packs, default standards, modes, templates | installed like any CLI | `uv tool install …` |
-| **2. The agent's skills** | `study-note`, `write-cards`, `check-cards`, `refresh-standards` | Claude Code | `/plugin install …` or `asl install-skills` |
+| **2. The agent's skills** | `study-note`, `study-source`, `write-cards`, `check-cards`, `refresh-standards` | Claude Code | `/plugin install …` or `asl install-skills` |
 | **3. Your data** | your standards, notes and cards | your notes vault (e.g. Obsidian), plus one block in each project's `CLAUDE.md` | `asl init` |
 
 ```
@@ -190,7 +190,8 @@ The commands the agent runs (you can run them too):
 
 | | |
 |---|---|
-| `asl fix <deck>` | add missing ids, standards version, `Overview.md` rows |
+| `asl fix <deck>` | add missing ids, standards version, `Overview.md` rows (and refresh the sources map) |
+| `asl sources <deck>` | map the topic's books and links into parts; `--read <part>` prints one |
 | `asl lint -q <deck>` | sizes, self-containment, context frame, headers, verbatim excerpts, drift |
 | `asl check <deck>` | compile / lint / run every card's tests (clippy + cargo test, ruff + pytest) |
 | `asl notes [folder]` | study notes: TL;DR, a diagram, length, links, map (default: the notes folder in `CLAUDE.md`) |
@@ -228,6 +229,29 @@ anything outside the project and the chosen notes folder.
 7. **Tell the user** in plain words: where notes and cards will appear, that cards are built with
    `asl build "<deck folder>" -o <name>.apkg` and imported in Anki via File → Import (tick "Update
    notetypes"), and that the agent follows the chosen mode from now on.
+
+### Learning from books and links
+
+For a topic with sources (books in your vault, a course, docs on the web), tell the agent where
+they are, or paste the links. The `study-source` skill writes a short **brief** into the frontmatter
+of the deck's `Overview.md`:
+
+```yaml
+goal: "Modern C++ for regulated medical software"
+builds_on: [rust]                  # contrast cards against what you know
+notes: "Studying/C++"              # study notes first; false = cards straight from the source
+sources:
+  - "Tour of C++ 3rd.pdf"          # a file in the vault
+  - https://cliutils.gitlab.io/modern-cmake/
+```
+
+`asl sources <deck>` turns the PDFs' bookmarks into a map of parts in that same file. The map shows
+pages, words, tokens to read, and status (`todo`, `notes 2 · cards 9`) counted from the `source:`
+links of notes and cards (`[[Tour of C++ 3rd.pdf#page=42]]`). The agent reads this map instead of
+the books or every card, and works one part at a time: `asl sources <deck> --read tour.3` prints
+just that chapter. A chapter too long for one batch (default 12k tokens) is listed by section.
+Once ten or more cards exist, the map also estimates cards per part from your cards per 1k words,
+so you can see how many days of new cards a chapter adds before you start it.
 
 ## Modes
 

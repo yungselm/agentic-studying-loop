@@ -91,7 +91,7 @@ def _block(settings: str, mode: str) -> str:
         BEGIN,
         "## Study loop ([agentic-studying-loop](https://github.com/yungselm/agentic-studying-loop))",
         "What the user learns here becomes study notes and Anki cards, via the skills "
-        "`study-note`, `write-cards`, `check-cards`, `refresh-standards`.",
+        "`study-note`, `study-source`, `write-cards`, `check-cards`, `refresh-standards`.",
         "",
         settings.strip(),
         "",
