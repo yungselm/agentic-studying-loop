@@ -17,6 +17,9 @@ Every card has a row. Status: `draft` → `reviewed` → `needs update` (code it
 | tsk-002 | reviewed | code | store.py → Store.load |
 | tsk-003 | reviewed | concept | store.py → Task |
 | tsk-004 | draft | timeline | store.py → Store.save |
+| tsk-006 | draft | cloze | [[Atomic file writes]] |
+| tsk-007 | draft | cloze | [[Atomic file writes]] |
+| tsk-008 | draft | cloze | [[Context managers]] |
 
 ## Command line (`cli.py`)
 

@@ -132,6 +132,11 @@
   color: #d7ba7d;
 }
 
+/* ===== Cloze cards ===== */
+.instr .cloze { font-weight: 600; color: #4ec9b0; }
+.instr .cloze-inactive { color: inherit; }
+.hook img, .answer img, .instr img { max-width: 100%; height: auto; border-radius: 4px; }
+
 /* Provenance line */
 .source {
   margin-top: 10px;

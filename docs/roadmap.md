@@ -8,20 +8,27 @@ and an overview map (`study-note` skill). `asl notes` checks them (in CI for the
 Length is a default (~250 words, lectures ~800), raised per note with `budget:`.
 - [ ] Upgrade a few real vault notes, tune the rules from that (`preferences.md` → *Notes*).
 
-### 2. Lecture cards (medicine), built on the author's AnKing history
-The author's Staatsexamen deck (45k notes; 10.7k cards with 88k reviews, 2020–21) is the
-evidence. First signals, review fail rate: cloze answers ≤ 10 chars 5–6% vs 20–80 chars ~9%
-(the code cards' finding again: answer size predicts failure); cloze 5–8% vs basic 9–11%;
-2–5 clozes per note beat 1; radiology/derm worst (11–12%), so image occlusion matters.
-- [ ] `asl stats` reads foreign note types (cloze, basic, image occlusion) with their measures;
-  the report becomes the baseline for `standards/medicine.md`.
-- [ ] Card types `cloze` and `occlusion` (+ `basic` for image → diagnosis); a `med` pack whose
-  checker lints instead of compiling.
+### 2. Notes → cards, for any subject (cloze type done)
+A notes vault (lectures, study notes) becomes Anki cards. The new `cloze` type is built on the
+author's medical exam deck (10.6k cards studied, 53k reviews; [evidence](evidence-cloze-cards.md)):
+short gaps, 2–5 gaps per note, gap the name too (findings → name was harder and never carded).
+Images, shared scenes and mnemonics showed no effect, so `hook:` stays optional and measured.
+Language showed no effect either: no per-language rules. A Python course deck (767 cards;
+[evidence](evidence-python-course.md)) replicates the code-card limits and favours contrast
+questions. Image occlusion is left out: quick to make by hand, hard to generate.
+- [x] `type: cloze`: gaps, hints, `$math$`, `[[Note#Section]]` source, `![[image]]` embeds; lint
+  for gap size, single gaps, missing notes/images; `asl stats` measures gaps and hooks.
+- [x] Concept cards take `$math$`, `![[image]]` and a `[[Note]]` source too.
+- [ ] CS231n pilot: lectures 02–04 as 60 notes (cloze + concept) in the card home; review them,
+  then card the other lectures and tune on the reviews.
+- [ ] *Maybe, needs testing:* a study budget. The user sets minutes per day and new cards per
+  day (`studyloop.yaml`); from that and the measured cost per card (median seconds per answer:
+  cloze ~6–8 s, flip ~10 s, typed code ~27 s; answers per card from `asl stats`), suggest how
+  many cards a topic or lecture should get, and which to drop first when it's over budget.
 - [ ] Lecture input: slides (PDF/PPTX) → study note → cards, `source: lecture.pdf#p12`.
-- [ ] Reuse before writing: match a lecture against the 34k unstudied AnKing notes, propose
-  "unsuspend these, write those".
-- Open: first subject and language; unsuspend in the existing profile or copy into an `asl`
-  deck; a newer export (~15k cards studied)? Media (4.2 GB) stays local, never committed.
+- [ ] `asl stats` reads foreign note types (AnKing's cloze, basic), so any existing deck can
+  seed the standards; then reuse before writing: match a note against unstudied cards
+  (e.g. 34k AnKing notes) and propose "unsuspend these, write those".
 
 ### 3. Language cards
 Collect the author's inputs and favourite sets first, then design. Starting ideas: a sentence

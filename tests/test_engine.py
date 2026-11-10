@@ -171,8 +171,8 @@ def test_fix_adds_id_std_index_and_keeps_crlf(tmp_path):
     f.write_bytes(text.replace("\n", "\r\n").encode())
     ids.ids(config.resolve_inputs([str(deck)]), fix=True)
     raw = f.read_bytes().decode()
-    assert "\r\n- id: tsk-006\r\n  std: 1\r\n  type: concept" in raw
-    assert "| tsk-006 | draft | concept |" in (deck / "Overview.md").read_text(encoding="utf-8")
+    assert "\r\n- id: tsk-009\r\n  std: 1\r\n  type: concept" in raw
+    assert "| tsk-009 | draft | concept |" in (deck / "Overview.md").read_text(encoding="utf-8")
 
 
 # ---- regressions from review ---------------------------------------------------

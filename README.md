@@ -196,7 +196,7 @@ The commands the agent runs (you can run them too):
 | `asl notes [folder]` | study notes: TL;DR, a diagram, length, links, map (default: the notes folder in `CLAUDE.md`) |
 | `asl mode <mode> <project>` | switch the mode in the project's `CLAUDE.md` |
 
-**Study notes** open with a TL;DR and a Mermaid diagram, keep to one idea (details folded), and end with typed links (`builds on`, `used by`, ...); each folder's overview maps its notes. No Obsidian plugins needed. See [example-vault/Studying](example-vault/Studying).
+**Study notes** open with a TL;DR and a Mermaid diagram, keep to one idea (details folded), and end with typed links (`builds on`, `used by`, ...); each folder's overview maps its notes. No Obsidian plugins needed. See [example-vault/Studying](example-vault/Studying). Facts from a note become **cloze cards** (`type: cloze`, linked back with `source: "[[Note#Section]]"`); their rules come from 53k reviews of a medical exam deck ([evidence](docs/evidence-cloze-cards.md)).
 
 ## Let Claude set it up
 

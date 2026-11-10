@@ -37,13 +37,14 @@ from pathlib import Path
 import yaml
 
 from . import cards as C
-from .build import CODE_MODEL_ID, CONCEPT_MODEL_ID
+from .build import CLOZE_MODEL_ID, CODE_MODEL_ID, CONCEPT_MODEL_ID
 from .config import Home, find_home
 
 TIMER_MS = 60000
 CODE_BINS = [0, 40, 80, 120, 160, 250, 10**9]
 ANSWER_BINS = [0, 150, 250, 300, 450, 10**9]
 BOLD_BINS = [0, 80, 120, 150, 250, 10**9]
+GAP_BINS = [0, 10, 20, 40, 80, 10**9]
 MIN_BIN_ANSWERS = 60
 
 
@@ -71,7 +72,7 @@ def open_collection(path: Path) -> tuple[sqlite3.Connection, Path]:
 
 
 ASL_MODEL_NAMES = {"Code Editor Card": "code", "Concept Card": "concept",
-                   "Rust Concept Card": "concept"}
+                   "Rust Concept Card": "concept", "Cloze Card": "cloze"}
 
 
 def model_kinds(con) -> dict[int, str]:
@@ -85,6 +86,7 @@ def model_kinds(con) -> dict[int, str]:
     kinds = {mid: ASL_MODEL_NAMES[n] for mid, n in names.items() if n in ASL_MODEL_NAMES}
     kinds.setdefault(CODE_MODEL_ID, "code")
     kinds.setdefault(CONCEPT_MODEL_ID, "concept")
+    kinds.setdefault(CLOZE_MODEL_ID, "cloze")
     return kinds
 
 
@@ -155,8 +157,8 @@ def load_cards(con, deck_prefix: str | None) -> list[Card]:
     notes = {nid: (mid, tags, flds.split("\x1f"))
              for nid, mid, tags, flds in con.execute("select id, mid, tags, flds from notes")}
     out: dict[int, Card] = {}
-    rows = con.execute("select id, nid, did, odid, ivl, lapses, queue, type, data from cards")
-    for cid, nid, did, odid, ivl, lapses, queue, ctype, data in rows:
+    rows = con.execute("select id, nid, did, odid, ivl, lapses, queue, type, data, ord from cards")
+    for cid, nid, did, odid, ivl, lapses, queue, ctype, data, ord_ in rows:
         deck = decks.get(odid or did, "?")
         if deck_prefix and not (deck == deck_prefix or deck.startswith(deck_prefix + "::")):
             continue
@@ -178,6 +180,10 @@ def load_cards(con, deck_prefix: str | None) -> list[Card]:
             bold = re.findall(r"<(?:strong|b)>(.*?)</(?:strong|b)>", ans, re.S)
             m = {"answer_chars": len(_strip(ans)),
                  "bold_chars": len(_strip(bold[0])) if bold else 0}
+        elif kind == "cloze":
+            g = C.gap_answers(re.sub(r"\\[()\[\]]", "$", _strip(f[0])))   # as written: $x$
+            m = {"gap_chars": g.get(ord_ + 1, 0), "gaps": len(g),
+                 "hook": int(bool(_strip(f[2]))) if len(f) > 2 else 0}
         else:
             m = {}
         out[cid] = Card(
@@ -326,6 +332,7 @@ def report(cards: list[Card], home: Home, src: Path, deck: str | None, state: di
     old = [c for c in cards if c.created <= cutoff and c.review]
     code = [c for c in old if c.kind == "code"]
     concept = [c for c in old if c.kind in ("concept", "timeline")]
+    cloze = [c for c in old if c.kind == "cloze"]
     due, why, _snap = refresh_status(cards, home, state)
     out = [f"# Card evidence report — {dt.date.today().isoformat()}", "",
            f"Source: `{src.name}`{f', deck `{deck}`' if deck else ''}. "
@@ -338,7 +345,9 @@ def report(cards: list[Card], home: Home, src: Path, deck: str | None, state: di
            "that have review answers.", "",
            "| | cards | fail rate | median difficulty | leeches (≥5 lapses) |",
            "|---|---|---|---|---|"]
-    for name, sel in (("code", code), ("concept", concept)):
+    for name, sel in (("code", code), ("concept", concept), ("cloze", cloze)):
+        if name == "cloze" and not sel:
+            continue
         fr, _ = pooled(sel)
         out.append(f"| {name} | {len(sel)} | {_pct(fr)} | {_fmt(_med(c.difficulty for c in sel))} "
                    f"| {sum(1 for c in sel if c.lapses >= 5)} |")
@@ -358,6 +367,19 @@ def report(cards: list[Card], home: Home, src: Path, deck: str | None, state: di
                             lim["concept"]["answer_chars_max"], "answer chars"))
         sugg.append(suggest(s2, lim["concept"]["bold_chars_target"],
                             lim["concept"]["bold_chars_max"], "bold lead chars"))
+    if cloze:
+        t, s = bin_table(cloze, "gap_chars", GAP_BINS, "gap chars")
+        t2, _ = bin_table(cloze, "gaps", [0, 1, 5, 10**9], "gaps per note")
+        t3 = ["| hook | cards | review answers | fail rate |", "|---|---|---|---|"]
+        for label, h in (("none", 0), ("yes", 1)):
+            sel = [c for c in cloze if c.measures.get("hook") == h]
+            fr, n = pooled(sel)
+            t3.append(f"| {label} | {len(sel)} | {n} | {_pct(fr)} |")
+        out += ["", "## Cloze cards", "", t, "", t2, "",
+                "Hooks (mnemonic, scene) have no measured effect yet; this tests yours:", "",
+                *t3]
+        sugg.append(suggest(s, lim["cloze"]["gap_chars_target"],
+                            lim["cloze"]["gap_chars_max"], "gap chars"))
     # per deck
     by_deck: dict[str, list[Card]] = {}
     for c in code:
@@ -377,8 +399,9 @@ def report(cards: list[Card], home: Home, src: Path, deck: str | None, state: di
         out += ["", "## By standards version (did the last rule change help?)", "",
                 "| version | kind | cards | fail rate | median difficulty |", "|---|---|---|---|---|"]
         for v in sorted(cohorts):
-            for kind in ("code", "concept"):
-                sel = [c for c in cohorts[v] if (c.kind == "code") == (kind == "code")]
+            for kind in ("code", "concept", "cloze"):
+                sel = [c for c in cohorts[v] if c.kind == kind or
+                       (kind == "concept" and c.kind == "timeline")]
                 if sel:
                     out.append(f"| {v} | {kind} | {len(sel)} | {_pct(pooled(sel)[0])} | "
                                f"{_fmt(_med(c.difficulty for c in sel))} |")
@@ -405,6 +428,8 @@ def _size(c: Card) -> str:
     m = c.measures
     if "typed_chars" in m:
         return f"{m['typed_chars']} typed"
+    if "gap_chars" in m:
+        return f"{m['gap_chars']} gap/{m['gaps']} gaps"
     if "answer_chars" in m:
         return f"{m['answer_chars']}/{m['bold_chars']} ans/bold"
     return "–"
@@ -414,13 +439,14 @@ def write_csv(cards: list[Card], p: Path):
     with p.open("w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         w.writerow(["card_id", "anki_cid", "deck", "kind", "std", "typed_chars", "typed_lines",
-                    "answer_chars", "bold_chars", "difficulty", "stability", "ivl", "lapses",
+                    "answer_chars", "bold_chars", "gap_chars", "gaps", "hook", "difficulty", "stability", "ivl", "lapses",
                     "review_answers", "fail_rate", "median_ms", "timer_hits", "front"])
         for c in cards:
             m = c.measures
             w.writerow([c.card_id, c.cid, c.deck, c.kind, c.std, m.get("typed_chars", ""),
                         m.get("typed_lines", ""), m.get("answer_chars", ""),
-                        m.get("bold_chars", ""), _fmt(c.difficulty, 2), _fmt(c.stability, 1),
+                        m.get("bold_chars", ""), m.get("gap_chars", ""), m.get("gaps", ""),
+                        m.get("hook", ""), _fmt(c.difficulty, 2), _fmt(c.stability, 1),
                         c.ivl, c.lapses, len(c.review),
                         "" if c.fail_rate is None else f"{c.fail_rate:.3f}",
                         c.median_ms or "", c.timer_hits, c.front])

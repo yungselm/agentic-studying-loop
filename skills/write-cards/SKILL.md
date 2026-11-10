@@ -9,7 +9,8 @@ Paths (card home, deck folder) are in the CLAUDE.md study-loop block.
 1. **Read** `<card home>/standards/core.md`, `<pack>.md`, `preferences.md` (wins), and the deck's
    `profile.md`. Skim `Overview.md` and grep the deck for the pattern: no duplicates.
 2. **Decide:** only recurring patterns, only confirmed working code. Big pattern → ladder;
-   async/concurrency → timeline first. Aim for ~half code cards.
+   async/concurrency → timeline first. Aim for ~half code cards. From a vault note (lectures,
+   study notes): facts → `cloze`, *why* → `concept`; its `[!question]` callouts are ready-made.
 3. **Write** into `<slug>.yaml` (stdlib + stubs, checked) or `<slug>_ext.yaml` (third-party,
    verbatim). Leave out `id`/`std`, `asl fix` adds them:
    ```yaml
@@ -28,6 +29,11 @@ Paths (card home, deck folder) are in the CLAUDE.md study-loop block.
      question: "Order ...:"
      steps: [first, second, third]   # correct order; the build shuffles
      detail: "who runs what"
+   - type: cloze
+     text: |                         # 2–5 short gaps; gap the name too (asks both ways)
+       {{Atomic write}}: a {{temp file}} in the same folder, then {{`os.replace`}}.
+     hook: "optional mnemonic / scene, ![[scene.png]]"
+     source: "[[Atomic file writes#How it works]]"
    ```
 4. **Finish:** `asl fix <deck>`, then `asl lint -q <deck>` and `asl check <deck>`; fix every
    problem. Report the new ids in one line.

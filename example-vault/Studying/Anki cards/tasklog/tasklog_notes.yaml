@@ -1,0 +1,30 @@
+# Tasklog: cards written from the study notes (`type: cloze`, no code to check).
+# Every {{gap}} becomes its own card; the other gaps stay visible, so gapping the name
+# as well as its facts asks both ways. Standards: ../standards/core.md §4.
+
+- id: tsk-006
+  std: 1
+  type: cloze
+  text: |
+    {{Atomic write}}: write a {{temp file}} in the target's folder, then swap it in with {{`os.replace`}}.
+  extra: "Readers and crashes see the old file or the new one, never half of each."
+  source: "[[Atomic file writes#How it works]]"
+  tags: [files]
+
+- id: tsk-007
+  std: 1
+  type: cloze
+  text: |
+    `os.replace` is atomic only within {{one file system}}, so the temp file goes in {{the target's folder}}, not `/tmp`.
+  source: "[[Atomic file writes#Pitfalls]]"
+  tags: [files]
+
+- id: tsk-008
+  std: 1
+  type: cloze
+  text: |
+    `with x as y:` calls {{`__enter__`}}, runs the body, then {{`__exit__`}}, even when the body raised.
+  extra: "`__exit__` returning True swallows the error."
+  hook: "A door: you enter, do your work, and the door always closes behind you."
+  source: "[[Context managers]]"
+  tags: [python]

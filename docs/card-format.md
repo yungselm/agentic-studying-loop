@@ -45,6 +45,7 @@ from a migration), `lint_allow: ["literal"]`.
 ```
 
 **concept**: recall, then flip. The `**bold lead**` is what you grade yourself against.
+`$math$`, `![[image.png]]` and a `[[Note]]` source work as in cloze cards (below).
 
 ```yaml
 - id: tsk-003
@@ -66,6 +67,21 @@ id), labels them A–E and makes the order the answer.
   detail: "One line on threads / who calls what."
 ```
 
+**cloze**: facts from a vault note. Every `{{gap}}` becomes its own card; the other gaps stay
+visible. `{{answer::hint}}` adds a hint, `{{c2::a}} … {{c2::b}}` asks two gaps on one card.
+`$math$` renders (MathJax), `[[Note#Section]]` shows as `Note › Section`, `![[image.png]]` embeds
+(found next to the card file or anywhere in the vault).
+
+```yaml
+- id: tsk-006
+  type: cloze
+  text: |           # 2–5 gaps; gap the name too, and Anki also asks facts → name
+    {{Atomic write}}: write a {{temp file}} in the target's folder, then swap it in with {{`os.replace`}}.
+  extra: |          # optional, back side only
+  hook: |           # optional mnemonic / scene / acronym, back side only
+  source: "[[Atomic file writes#How it works]]"
+```
+
 ## Project decks
 
 A deck with `repo:` or a `profile.md` gets extra `asl lint` checks: every code section starts
@@ -80,5 +96,5 @@ exists in the repo. `asl fix` adds missing ids, `std:` and index rows.
 
 ## Tags added by the build
 
-`asl::id::<id>`, `asl::std::v<N>`, `asl::type::<type>`: `asl stats` uses them to map review data
+`asl::id::<id>`, `asl::std::v<N>`, `asl::type::<type>` (and `asl::hook`): `asl stats` uses them to map review data
 back to cards and to compare standards versions.

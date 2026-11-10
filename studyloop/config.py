@@ -15,6 +15,7 @@ DEFAULT_LIMITS = {
     "code": {"typed_chars_target": 80, "typed_chars_max": 120},
     "concept": {"answer_chars_target": 250, "answer_chars_max": 300,
                 "bold_chars_target": 120, "bold_chars_max": 150},
+    "cloze": {"gap_chars_target": 20, "gap_chars_max": 80},
 }
 DEFAULT_REFRESH = {"mature_share": 0.5, "step_share": 0.25, "min_review_answers": 1000,
                    "min_card_age_days": 30, "mature_ivl_days": 21}

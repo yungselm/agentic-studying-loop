@@ -26,6 +26,7 @@ Card-home files (`scope: anki`) are skipped.
 """
 from __future__ import annotations
 
+import functools
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -196,6 +197,37 @@ def find_vault(start: Path) -> Path:
         if (p / ".obsidian").is_dir():
             return p
     return start.parent if start.parent != start else start
+
+
+def card_vault(deck_dir: Path) -> Path | None:
+    """The vault a deck's cards link into: the folder with `.obsidian`, else the folder
+    holding the card home (the home sits inside the vault), else None."""
+    from .config import find_home
+    for p in [deck_dir, *deck_dir.parents]:
+        if (p / ".obsidian").is_dir():
+            return p
+    home = find_home(deck_dir).path
+    return home.parent if home else None
+
+
+@functools.lru_cache(maxsize=8)
+def vault_index(vault: Path) -> tuple[dict[str, Path], dict[str, Path]]:
+    """(note name or alias -> note, file name -> file), lower-cased, for card links."""
+    notes, files = {}, {}
+    for p in vault.rglob("*"):
+        if ".obsidian" in p.parts or not p.is_file():
+            continue
+        files.setdefault(p.name.lower(), p)
+        if p.suffix.lower() == ".md":
+            notes.setdefault(p.stem.lower(), p)
+            try:
+                meta, _ = split_frontmatter(p.read_text(encoding="utf-8"))
+            except (OSError, UnicodeDecodeError):
+                continue
+            al = meta.get("aliases") or []
+            for a in [al] if isinstance(al, str) else al:
+                notes.setdefault(str(a).lower(), p)
+    return notes, files
 
 
 def notes_dir_from_claude_md(cwd: Path) -> Path | None:

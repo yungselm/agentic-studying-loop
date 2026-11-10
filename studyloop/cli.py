@@ -18,6 +18,15 @@ def _utf8_stdout() -> None:
 
 def main(argv=None) -> int:
     _utf8_stdout()
+    from .cards import CardFileError
+    try:
+        return _main(argv)
+    except CardFileError as e:
+        print(f"! {e}", file=sys.stderr)
+        return 1
+
+
+def _main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="asl", description=__doc__)
     sub = ap.add_subparsers(dest="cmd", required=True)
 

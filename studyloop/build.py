@@ -30,9 +30,12 @@ import genanki
 
 from . import cards as C
 from .config import ANKI, Deck, all_packs, load_pack
+from .notes import card_vault as vault_of
+from .notes import vault_index
 
 CODE_MODEL_ID = 1607392319       # same ids as rust-lang-kata, so its decks can migrate
 CONCEPT_MODEL_ID = 1607392321
+CLOZE_MODEL_ID = 1607392323
 TPL = ANKI / "templates"
 VENDOR = ANKI / "vendor"
 
@@ -53,8 +56,14 @@ def b64(s) -> str:
     return base64.b64encode((s or "").encode("utf-8")).decode("ascii")
 
 
-def text(s) -> str:
+MATH_BLOCK, MATH_INLINE = C.MATH_BLOCK, C.MATH_INLINE
+WIKILINK = re.compile(r"(!?)\[\[([^\]|]+?)(?:\|([^\]]*))?\]\]")
+MD_IMAGE = re.compile(r"!\[[^\]]*\]\(([^)\s]+)\)")
+
+
+def text(s, math: bool = False) -> str:
     """HTML-escape; `code` -> <code>, **bold** -> <strong> (never inside code).
+    `math`: Obsidian's `$x$` / `$$x$$` become Anki's MathJax `\\(x\\)` / `\\[x\\]`.
     Line breaks and indentation are kept by the CSS."""
     spans, parts = [], []
     for is_code, t in C._split_code(str(s or "")):
@@ -63,9 +72,33 @@ def text(s) -> str:
             parts.append(f"\x01{len(spans)}\x02")
             spans.append(t)
         else:
+            if math:
+                t = MATH_INLINE.sub(r"\\(\1\\)", MATH_BLOCK.sub(r"\\[\1\\]", t))
             parts.append(t)
     out = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", "".join(parts), flags=re.S)
     return re.sub("\x01(\\d+)\x02", lambda m: f"<code>{spans[int(m.group(1))]}</code>", out)
+
+
+def link_text(target: str, alias: str | None) -> str:
+    """`[[Note#Section|alias]]` as shown on a card: the alias, else `Note › Section`."""
+    if alias:
+        return alias
+    return " › ".join(p for p in re.split(r"[#^]", target, maxsplit=1) if p)
+
+
+def vault_links(s: str, find_file, media: dict[str, Path]) -> str:
+    """Rendered field: `![[img.png]]` / `![](img.png)` -> <img> (file added to `media`),
+    `[[Note]]` -> its name. `find_file(name)` returns the file or None."""
+    def embed(name: str, fallback: str) -> str:
+        f = find_file(name)
+        if not f or f.suffix.lower() not in C.IMAGE_EXT:
+            return fallback
+        media.setdefault(f.name, f)
+        return f'<img src="{html.escape(f.name)}">'
+
+    s = MD_IMAGE.sub(lambda m: embed(m.group(1), m.group(0)), s)
+    return WIKILINK.sub(lambda m: embed(m.group(2), m.group(0)) if m.group(1)
+                        else link_text(m.group(2), m.group(3)), s)
 
 
 def titled(seg: str) -> str:
@@ -121,7 +154,13 @@ def build_models(renames):
         templates=[{"name": "Concept Card", "qfmt": _tpl("front_concept.html", renames),
                     "afmt": _tpl("back_concept.html", renames)}],
         css=css, sort_field_index=0)
-    return code, concept
+    cloze = genanki.Model(
+        CLOZE_MODEL_ID, "Cloze Card",
+        fields=[{"name": n} for n in ("Text", "Extra", "Hook", "Source")],
+        templates=[{"name": "Cloze Card", "qfmt": _tpl("front_cloze.html", renames),
+                    "afmt": _tpl("back_cloze.html", renames)}],
+        css=css, sort_field_index=0, model_type=genanki.Model.CLOZE)
+    return {"code": code, "concept": concept, "cloze": cloze}
 
 
 # ---- decks, guids, notes -------------------------------------------------------------
@@ -145,7 +184,7 @@ def guid(deck: Deck, f: Path, card: dict) -> str:
     if card.get("guid"):
         return str(card["guid"])
     kind = "concept" if card["type"] != "code" else "code"
-    front = card.get("question") if kind == "concept" else card.get("instruction")
+    front = card.get("instruction") or card.get("question") or card.get("text")
     if deck.cfg.get("guid") == "legacy-kata":
         key = f.stem if not deck.cfg.get("legacy_additional") else f"additional__{f.stem}"
         return genanki.guid_for(key, kind, front)
@@ -166,7 +205,8 @@ def lang_for(deck: Deck, f: Path, card: dict) -> str:
         return pack
 
 
-def make_note(deck, f, card, code_model, concept_model) -> genanki.Note:
+def make_note(deck, f, card, models, find_file=lambda _n: None,
+              media: dict[str, Path] | None = None) -> genanki.Note:
     tags = [str(t).replace(" ", "_") for t in card.get("tags", [])]
     if card.get("id"):
         tags.append(f"asl::id::{card['id']}")
@@ -174,15 +214,27 @@ def make_note(deck, f, card, code_model, concept_model) -> genanki.Note:
         tags.append(f"asl::std::v{card['std']}")
     tags.append(f"asl::type::{card['type']}")
     lang = lang_for(deck, f, card)
+    media = {} if media is None else media
+
+    def field(s):          # vault text: $math$, ![[images]], [[links]]
+        return vault_links(text(str(s or "").strip("\n"), math=True), find_file, media)
+
+    source = vault_links(text(card.get("source", "")), find_file, media)
     if card["type"] == "code":
         fields = [text(str(card["instruction"]).rstrip("\n")), b64(card.get("starter", "")),
                   b64(card.get("solution", "")), lang, text(card.get("notes", "")),
                   text(card.get("source", "")), b64(card.get("walkthrough", ""))]
-        model = code_model
+        model = models["code"]
+    elif card["type"] == "cloze":
+        fields = [field(C.cloze_text(card.get("text"))), field(card.get("extra")),
+                  field(card.get("hook")), source]
+        model = models["cloze"]
+        if str(card.get("hook") or "").strip():
+            tags.append("asl::hook")
     else:
-        fields = [text(card["question"]), text(card.get("answer", "")),
-                  b64(card.get("code", "")), lang, text(card.get("source", ""))]
-        model = concept_model
+        fields = [field(card["question"]), field(card.get("answer")),
+                  b64(card.get("code", "")), lang, source]
+        model = models["concept"]
     return genanki.Note(model=model, fields=fields, guid=guid(deck, f, card), tags=tags)
 
 
@@ -271,16 +323,23 @@ def postprocess(apkg: Path, deck_presets: dict[str, tuple[int, dict, str]],
 def build(groups: list[tuple[Deck, list[Path]]], out: Path) -> int:
     tmp = Path(tempfile.mkdtemp())
     media, renames = stage_media(tmp)
-    code_model, concept_model = build_models(renames)
+    models = build_models(renames)
+    note_media: dict[str, Path] = {}
     anki_decks: dict[str, genanki.Deck] = {}
     deck_presets: dict[str, tuple[int, dict, str]] = {}
     sequential: list[str] = []
     group_defaults = []
-    total, no_id, guids = 0, 0, {}
+    total, anki_cards, no_id, guids = 0, 0, 0, {}
     for deck, files in groups:
         presets = deck.presets()
         group_defaults.append((deck.name, (conf_id(deck.name, "default", presets["default"]),
                                            presets["default"], presets["default"].get("name") or f"{deck.name} default")))
+        vault = vault_of(deck.path)
+        def find_file(n, _f=None, _v=vault):
+            hit = (_f.parent / n) if _f else None
+            if hit and hit.is_file():
+                return hit
+            return vault_index(_v)[1].get(Path(n).name.lower()) if _v else None
         for f in files:
             name = deck_name(deck, f)
             if name not in anki_decks:
@@ -291,24 +350,27 @@ def build(groups: list[tuple[Deck, list[Path]]], out: Path) -> int:
                 if p.get("order") == "sequential":
                     sequential.append(name)
             for card in C.load_file(f):
-                note = make_note(deck, f, card, code_model, concept_model)
+                note = make_note(deck, f, card, models,
+                                 lambda n, _f=f: find_file(n, _f), note_media)
                 if note.guid in guids:
                     raise SystemExit(f"Duplicate GUID: {C.label(card)} ({f.name}) and "
                                      f"{guids[note.guid]} — ids must be unique.")
                 guids[note.guid] = f"{C.label(card)} ({f.name})"
                 anki_decks[name].add_note(note)
                 total += 1
+                anki_cards += len(note.cards)
                 no_id += not card.get("id") and not card.get("guid")
     if not total:
         print("No cards found.")
         return 1
     out.parent.mkdir(parents=True, exist_ok=True)
     pkg = genanki.Package(list(anki_decks.values()))
-    pkg.media_files = media
+    pkg.media_files = media + [str(p) for p in note_media.values()]
     pkg.write_to_file(str(out))
     postprocess(out, deck_presets, sequential, group_defaults)
     shutil.rmtree(tmp)
-    print(f"Wrote {out}: {total} cards in {len(anki_decks)} deck(s).")
+    extra = f" ({anki_cards} Anki cards)" if anki_cards != total else ""
+    print(f"Wrote {out}: {total} cards{extra} in {len(anki_decks)} deck(s).")
     if no_id:
         print(f"  [!] {no_id} card(s) without an id: their GUID follows the front text, "
               "so editing the front will import a duplicate. Run `asl fix`.")

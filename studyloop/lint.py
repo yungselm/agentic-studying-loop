@@ -7,6 +7,8 @@
   [xref]     the front points at another card ("like the previous card")
   [literal]  the solution produces a string the prompt never mentions
   [dup]      two cards with the same front
+  [gaps]     a cloze card with one gap (2-5 fail less)
+  [source]   a `[[Note]]` source isn't in the vault; [media] an embedded image is missing
 Project decks (profile.md or `repo:` in deck.yaml) also get [frame], [header],
 [excerpt], [index] and [std]; see project_lint.py.
 
@@ -19,6 +21,7 @@ import re
 from pathlib import Path
 
 from . import cards as C
+from . import notes as N
 from . import project_lint as P
 from .config import Deck, find_home, load_pack
 
@@ -66,11 +69,54 @@ def literal_flags(card: dict, lint_cfg: dict) -> list[str]:
     return flags
 
 
-def _card_flags(card, lim, lint_cfg, prefix, seen, fname, fronts=None, retired=()):
+def cloze_flags(card: dict, lc: dict, vault: Path | None = None) -> list[tuple[str, str, str]]:
+    out = []
+    g = C.gap_answers(card.get("text"))
+    if not g:
+        out.append(("!", "size", "cloze card without a {{gap}} in `text:`"))
+        return out
+    n = max(g.values())
+    if n > lc["gap_chars_max"]:
+        out.append(("!", "size", f"a gap asks {n} chars > max {lc['gap_chars_max']} "
+                    "(shorter answer, or split it into more gaps)"))
+    elif n > lc["gap_chars_target"]:
+        out.append(("~", "size", f"a gap asks {n} chars > target {lc['gap_chars_target']}"))
+    if len(g) == 1:
+        out.append(("~", "gaps", "one gap: 2-5 gaps per note fail less; gap the related "
+                    "facts and the name they belong to"))
+    if not str(card.get("source") or "").strip():
+        out.append(("~", "source", "no `source:` (the vault note, `[[Note#Section]]`)"))
+    return out + vault_flags(card, ("text", "extra", "hook"), vault)
+
+
+def vault_flags(card: dict, fields, vault: Path | None) -> list[tuple[str, str, str]]:
+    """`[[Note]]` in `source:` and `![[image]]` embeds in `fields` must exist in the vault."""
+    if vault is None:
+        return []
+    out = []
+    notes, files = N.vault_index(vault)
+    for m in WIKI.finditer(str(card.get("source") or "")):
+        if m.group(2).split("#")[0].strip().lower() not in notes:
+            out.append(("~", "source", f"[[{m.group(2)}]] not found in {vault.name}"))
+    for field in fields:
+        for m in C.EMBED.finditer(str(card.get(field) or "")):
+            name = m.group(1) or m.group(2)
+            if Path(name).suffix.lower() not in C.IMAGE_EXT:
+                continue
+            if Path(name).name.lower() not in files and not (card["_file"].parent / name).is_file():
+                out.append(("!", "media", f"{field}: image {name} not found"))
+    return out
+
+
+WIKI = re.compile(r"(!?)\[\[([^\]|]+?)(?:\|[^\]]*)?\]\]")
+
+
+def _card_flags(card, lim, lint_cfg, prefix, seen, fname, fronts=None, retired=(), vault=None):
     out = []
     if card.get("id") and str(card["id"]) in retired:
         out.append(("!", "id", "uses a retired id (deck.yaml retired_ids); give it a new one"))
-    front = " ".join(str(card.get("instruction") or card.get("question") or "").split())
+    front = " ".join(str(card.get("instruction") or card.get("question")
+                         or card.get("text") or "").split())
     if fronts is not None and front:
         if front in fronts:
             out.append(("!", "dup", f"same front as {fronts[front]}"))
@@ -95,6 +141,8 @@ def _card_flags(card, lim, lint_cfg, prefix, seen, fname, fronts=None, retired=(
         if XREF.search(card.get("instruction") or ""):
             out.append(("!", "xref", "front refers to another card"))
         out += [("!", "literal", msg) for msg in literal_flags(card, lint_cfg)]
+    elif card["type"] == "cloze":
+        out += cloze_flags(card, lim["cloze"], vault)
     else:
         lc = lim["concept"]
         a, b = m["answer_chars"], m["bold_chars"]
@@ -105,6 +153,7 @@ def _card_flags(card, lim, lint_cfg, prefix, seen, fname, fronts=None, retired=(
                         f"bold {b}/{lc['bold_chars_max']} chars"))
         elif a > lc["answer_chars_target"] or b > lc["bold_chars_target"]:
             out.append(("~", "size", f"answer {a}, bold {b} chars (over target)"))
+        out += vault_flags(card, ("question", "answer"), vault)
     return out
 
 
@@ -125,6 +174,7 @@ def lint(groups: list[tuple[Deck, list[Path]]], quiet: bool = False,
 
     for deck, files in groups:
         lim = find_home(deck.path).limits
+        vault = N.card_vault(deck.path)
         roles, repo = P.file_roles(deck), P.repo_dir(deck)
         if repo is not None and not repo.is_dir():
             report("!", "repo", deck.path.name, f"repo path in deck.yaml not found: {repo}")
@@ -135,7 +185,7 @@ def lint(groups: list[tuple[Deck, list[Path]]], quiet: bool = False,
             lint_cfg = load_pack(pack).get("lint", {}) if pack else {}
             for card in C.load_file(f):
                 flags = _card_flags(card, lim, lint_cfg, deck.prefix_for(f), seen, f.name, fronts,
-                                     {str(i) for i in deck.cfg.get("retired_ids") or []})
+                                     {str(i) for i in deck.cfg.get("retired_ids") or []}, vault)
                 flags += P.check_card(deck, card, lint_cfg, deck.checked(f), roles, repo)
                 for sev, kind, msg in flags:
                     report(sev, kind, f"{f.name}: {C.label(card)}", msg)
