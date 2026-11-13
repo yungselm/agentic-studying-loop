@@ -167,8 +167,9 @@ def write_topics_block(home: Path) -> None:
         "- **Topics** (deck folder; its `Overview.md` holds the brief and the sources map; "
         "read that, not the sources):",
         *[f"  - {(d / 'Overview.md').is_file() and _topic_name(d) or d.name}: `{d}`" for d in topics],
-        f'- **New topic:** `asl topic "<name>" --home "{home}" --sources "<folder|file|url>" '
-        '--notes "<notes folder>"`',
+        f'- **New topic:** ask the goal, prior knowledge and notes-or-cards-only first, then '
+        f'`asl topic "<name>" --home "{home}" --sources "<folder|file|url>" '
+        '--notes "<notes folder>"` (or `--no-notes`)',
         TOPICS_END,
     ]
     block = "\n".join(lines)

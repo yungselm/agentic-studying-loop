@@ -104,11 +104,11 @@ curl -LsSf https://astral.sh/uv/install.sh | sh                                 
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"  # Windows
 
 # 2. asl
-uv tool install "agentic-studying-loop @ https://github.com/yungselm/agentic-studying-loop/archive/refs/heads/main.zip"
+uv tool install "agentic-studying-loop @ https://github.com/yungselm/agentic-studying-loop/archive/refs/heads/master.zip"
 asl packs                     # lists cpp, python, rust; if `asl` isn't found: uv tool update-shell
 
 # update later
-uv tool install --force "agentic-studying-loop @ https://github.com/yungselm/agentic-studying-loop/archive/refs/heads/main.zip"
+uv tool install --force "agentic-studying-loop @ https://github.com/yungselm/agentic-studying-loop/archive/refs/heads/master.zip"
 ```
 
 Rust cards also need [Rust](https://rustup.rs/) with `rustup component add clippy`. C++ cards need
@@ -226,7 +226,7 @@ anything outside the project and the chosen notes folder.
    [Install](#install) table for the user's OS, then use the full path or a new shell). For Rust
    projects check `cargo clippy --version`. Check that Anki is installed; if not, give the user the
    link and wait.
-2. **Install:** `uv tool install "agentic-studying-loop @ https://github.com/yungselm/agentic-studying-loop/archive/refs/heads/main.zip"`, then `asl packs`.
+2. **Install:** `uv tool install "agentic-studying-loop @ https://github.com/yungselm/agentic-studying-loop/archive/refs/heads/master.zip"`, then `asl packs`.
 3. **Ask the user** (one question at a time): where the notes vault is (an Obsidian vault or any
    folder; suggest one inside their documents), and which mode: `teacher` (user writes all code),
    `mentor`, `coworker`, `on-demand` (see Modes). Use a 2–4 letter id prefix derived from the project
@@ -234,8 +234,9 @@ anything outside the project and the chosen notes folder.
 4. **Connect:** a code project → `asl init <project> --home "<vault>/Anki cards" --notes
    "<vault>/<project>" --pack <pack> --prefix <prefix> --mode <mode>`. Lectures, books or links
    (no code) → `asl topic "<name>" --home "<vault>/Anki cards" --sources "<folder|file|url>"
-   --notes "<vault>/<topic>"`; then ask for the goal and what the user already knows (step 1 of
-   the `study-source` skill). Use real absolute paths, never placeholders.
+   --notes "<vault>/<topic>"` (or `--no-notes`); first ask for the goal, what the user already
+   knows, and whether they want study notes or cards straight from the sources (step 1 of the
+   `study-source` skill). Use real absolute paths, never placeholders.
 5. **Skills:** `asl install-skills` (or the plugin commands above if the user prefers).
 6. **Verify:** `asl lint -q "<vault>/Anki cards/<deck>"` prints `OK`.
 7. **Tell the user** in plain words: where notes and cards will appear, that cards are built with
@@ -257,7 +258,9 @@ and say what you want to learn and where the files are:
 > I want to study CS231n for deep learning in medical imaging; the slides are in
 > `CS231n/_attachements`. I know Python and NumPy.
 
-**3. The agent starts the topic** (skill `study-source`), with a command you can run yourself too:
+**3. The agent starts the topic** (skill `study-source`). It first asks your goal, what you
+already know, and whether you want **study notes** in the vault first or **cards straight from the
+sources** (kata style). Then it runs a command you can run yourself too:
 
 ```bash
 asl topic "CS231n" --home "~/Vault/Studying/Anki cards" \
@@ -284,6 +287,10 @@ status (`todo`, `notes 2 · cards 9`), counted from the `source:` links of notes
 reads one part per batch (`asl sources <deck> --read lecture03`). Once ten or more cards exist,
 the map estimates cards per part from your cards per 1k words, so you see how many days of new
 cards a lecture adds before you start it.
+
+After each part the agent checks the cards (`asl check` compiles and runs code cards) and builds
+`<deck>.apkg` in the card home; import it again after every batch and Anki updates the cards in
+place.
 
 ## Modes
 
