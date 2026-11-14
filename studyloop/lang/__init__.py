@@ -66,7 +66,8 @@ def main(a) -> int:
                           title, d.cfg.get("speaker_labels") or "", d.cfg.get("strip") or "",
                           video=a.video, only=a.only,
                           pad=tuple(d.cfg.get("clip_padding") or (0.25, 0.4)),
-                          width=int(d.cfg.get("screenshot_width") or 960))
+                          width=int(d.cfg.get("screenshot_width") or 960),
+                          subs=a.subs, keep_re=d.cfg.get("subtitle_keep") or "")
     if a.lang_cmd == "grammar":
         from .grammar import check_points, import_game_gengo
         if a.input:
@@ -126,11 +127,12 @@ def add_parser(sub) -> None:
     s.add_argument("--force", action="store_true", help="download again")
     ad = ls.add_parser("add", help="import a media source (.apkg from subs2srs/movies2anki)")
     ad.add_argument("deck", type=Path)
-    ad.add_argument("input", help="the source: an .apkg (video + subtitles: later)")
+    ad.add_argument("input", help="a video (subtitles next to it: .srt/.ass) or a mined .apkg")
     ad.add_argument("--title", help='e.g. "Terrace House OND 1"')
     ad.add_argument("--key", help="short id prefix for its lines (default: from the title)")
     ad.add_argument("--video", help="the original video: cut padded clips + sharp screenshots from it")
     ad.add_argument("--only", help="keep notes mentioning this (default with --video: its file name)")
+    ad.add_argument("--subs", help="the subtitle file, if not next to the video with the same name")
     se = ls.add_parser("seed", help="mark words known from your own Anki exports")
     se.add_argument("deck", type=Path)
     se.add_argument("exports", nargs="*", help="default: `known_from:` in Overview.md")

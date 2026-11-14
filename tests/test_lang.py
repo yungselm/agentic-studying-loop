@@ -475,3 +475,31 @@ def test_sync_raises_statuses_from_reviews(tmp_path):
     assert vocab.entries["住む|"].status == "known"
     assert "status: known" in (notes / "Grammar" / "じゃだめ.md").read_text(encoding="utf-8")
     assert r["_cards_found"] == 2 and sum(n for n, _ in r["_per_source"].values()) == 1
+
+
+def test_parse_subs_srt_and_ass(tmp_path):
+    from studyloop.lang.lines import import_subs, parse_subs
+    srt = tmp_path / "ep1.srt"
+    srt.write_bytes("﻿1\r\n00:00:01,000 --> 00:00:02,500\r\n<i>はいー</i>\r\n\r\n"
+                    "2\r\n00:01:19,750 --> 00:01:28,250\r\n本字幕由諸神字幕組出品\r\n\r\n"
+                    "3\r\n00:02:00,300 --> 00:02:02,950\r\nお母さん\r\nおかわり\r\n".encode())
+    assert parse_subs(srt)[0] == ("00:00:01.000", "00:00:02.500", "はいー")
+    lines, _, stats = import_subs(tmp_path / "ep1.mp4", srt, "sk1", LABELS, keep_re="[ぁ-んァ-ヶ]")
+    assert [ln.text for ln in lines] == ["はいー", "お母さん おかわり"] and stats["dropped"] == 1
+    assert lines[1].audio == "ep1_0.02.00.300-0.02.02.950.mp3"      # the subs2srs/movies2anki style
+    ass = tmp_path / "ep2.ass"
+    ass.write_text("[Events]\nDialogue: 0,0:00:05.20,0:00:07.00,Default,,0,0,0,,{\\an8}もう\\Nいいよ\n",
+                   encoding="utf-8")
+    assert parse_subs(ass) == [("00:00:05.200", "00:00:07.000", "もう いいよ")]
+
+
+def test_readd_from_other_input_keeps_cards(tmp_path):
+    from studyloop.lang.lines import Line, _match_old_ids
+    old = [Line("sk1-0001", "00:01:42.880", "", "笹を食べながら"), Line("sk1-0002", "00:01:48.030", "", "ちょっと")]
+    new = [Line("sk1-0001", "00:00:01.000", "", "はいー"), Line("sk1-0002", "00:01:42.880", "", "笹を食べながら"),
+           Line("sk1-0003", "00:01:48.030", "", "ちょっと また")]
+    assert _match_old_ids(old, new) == {"sk1-0001": "sk1-0002", "sk1-0002": "sk1-0003"}
+    padded = [Line("sk3-0001", "00:01:35.930", "", "シロクマくん 暇だから 何か問題出してよ")]   # movies2anki: -0.25 s
+    cues = [Line("sk3-0002", "00:01:36.180", "", "シロクマくん　暇だから　何か問題出してよ"),
+            Line("sk3-0003", "00:01:36.400", "", "いいよ")]
+    assert _match_old_ids(padded, cues) == {"sk3-0001": "sk3-0002"}

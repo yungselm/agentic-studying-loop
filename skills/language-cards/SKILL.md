@@ -13,7 +13,8 @@ the `lang` extra and, once per language, `asl lang setup <code>` (word lists, di
    `media_dir`, presets: vocabulary `{order: sequential, gather: position}`) and the brief in
    `Overview.md` (`goal`, `gloss_language`, `level`, `known_from`, `notes`), and run
    `asl lang seed <deck>`.
-2. **New media:** `asl lang add <deck> <source.apkg> --title "<Show Ep>" --key <short>`.
+2. **New media:** `asl lang add <deck> <video> --title "<Show Ep>" --key <short>` (subtitles
+   `.srt`/`.ass` next to it, or `--subs`), or a mined `.apkg` (`--video` to re-cut from the video).
    Images and subtitles are the user's job; never open media files.
 3. **Plan:** `asl lang plan <deck>`. Tell the user in two lines: ready cards, parked, skipped.
 4. **Draft:** `asl lang draft <deck> -n 20` (more only when asked). It prints each card's line and

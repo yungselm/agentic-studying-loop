@@ -296,7 +296,13 @@ tools, never content (book pages, Game Gengo images, JLPT Sensei text stay with 
    the next line) and screenshots at up to `screenshot_width` from the video. Shirokuma
    (movies2anki, 3 episodes, 489 lines, its .srt files hold timings only): 1,000 files in
    ~1 minute, 960×540 screenshots. `asl lang draft --source sk` drafts one source only.
-   Still open: subtitles-only input (.srt/.ass text), Whisper check, TTS.
+   **Video + subtitles** (`asl lang add <deck> <ep.mp4>`, `.srt`/`.ass` found next to it): one
+   line per cue; cues without the language's script (`subtitle_keep`, kana for Japanese) are
+   dropped (credits, other-language lines). Shirokuma's full subtitles: 990 lines instead of
+   the 489 mined notes. Re-importing a source from another input keeps its cards: lines are
+   matched by start time (±0.6 s: movies2anki padded by 0.25 s) and text, cards' `line:` is
+   renumbered, and a line with a card or rejection that cannot be matched stops the import.
+   Still open: Whisper check, TTS.
 6. **Second language:** Italian from *Praxis-Grammatik Italienisch* + media, proving the
    book → grammar notes → media sentence path.
 

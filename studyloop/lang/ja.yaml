@@ -5,6 +5,7 @@ frequency: wordfreq          # general word frequency (wordfreq's Japanese list)
 clip_padding: [0.25, 0.4]     # s before/after a line when cutting from video
 screenshot_width: 960        # px, at most (screenshots from video)
 length_cap: 30               # characters; longer lines fail more (Game Gengo: >30 chars 17% vs 9%)
+subtitle_keep: '[ぁ-んァ-ヶ]'      # cues without kana are not Japanese (credits, Chinese lines)
 speaker_labels: '（[^）]*）'   # Japanese TV subtitles: （名前）; also drops （笑い） etc.
 strip: '\(([ぁ-ゖァ-ヺー]+)\)'  # inline readings after names: 軽井沢(かるいざわ)
 levels:
