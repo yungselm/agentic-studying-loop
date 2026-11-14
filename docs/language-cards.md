@@ -1,7 +1,7 @@
 # Language cards (design)
 
-Status: **design, not implemented.** Roadmap §3. Test case: port *Terrace House OND 1* (962
-subs2srs notes, Japanese) into the new card types.
+Status: **milestone 1 done** (`asl lang setup / add / seed / plan`), cards not yet. Roadmap §3.
+Test case: port *Terrace House OND 1* (962 subs2srs notes, Japanese) into the new card types.
 
 ## Principles
 
@@ -174,7 +174,7 @@ from reviews.
 
 ### Word levels
 
-Every word gets a `level`, written by `asl lang plan` (editable by hand):
+Every word gets a `level`, recomputed by `asl lang plan` (a hand-set level ends in `!`: `N3!`):
 
 1. **On a level list** (JLPT, CEFR, HSK, TOPIK; from `lang.yaml`): that level, e.g. `N4`.
 2. **Not listed, in the frequency data:** estimated from its frequency rank, with bands
@@ -203,7 +203,7 @@ The grammar phase runs the same loop over grammar points (vocabulary relaxed: th
 full translation). Only `ready` lines become cards and only built cards enter Anki: the deck
 grows at the front instead of being reordered (Anki keeps a new card's position once imported).
 
-## Tools (per language in `studyloop/langs/<code>/lang.yaml`)
+## Tools (per language in `studyloop/lang/<code>.yaml`)
 
 | Step | Japanese | Others |
 |---|---|---|
@@ -227,6 +227,14 @@ tools, never content (book pages, Game Gengo images, JLPT Sensei text stay with 
    Game Gengo), `asl lang plan` report: ready / parked by reason on Terrace House. Count the
    low-quality lines (single words, fillers, fragments) and the `~` / `—` levels; a quality
    filter is designed from those numbers in a second step.
+   **Done.** Terrace House: 960 lines → 1,142 rows (189 multi-speaker lines split; audio cut
+   pending, needs ffmpeg). Seed: 274 studied notes → 366 known + 40 learning words. Plan at N4:
+   375 rows ready (33%; 263 words at once, 112 unlocked by planning others), 415 all known,
+   256 covered, 96 parked. Ready rows: 21% single words, 8% under 4 characters, 78% clean.
+   Planned words: N5 76 · N4 64 · N3 76 · N2/N1 52 · estimated (`~`) 81 · `—` 26. With N5
+   assumed known: 315 ready. Known limits: unidic-lite reads 私 as わたくし (readings on cards
+   come from JMdict in milestone 2); the show's name (テラス + ハウス) blocks 8 lines until
+   marked `ignored` by hand.
 2. **Card types** `sentence` and `grammar`: templates, lint, build; first ~50 Terrace House
    cards by the agent; review on the phone.
 3. **Grammar ground truth:** `Grammar/` from Game Gengo, `pattern:` detection, grammar links,

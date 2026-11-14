@@ -37,7 +37,7 @@ screenshot front, one target word glossed). Known words and grammar points live 
 and order the cards; a language is a topic (grammar book PDF/URL + media sources). Built on the
 author's Japanese decks: 1 unknown word fails 20% vs 23% for 2+ (Shirokuma, 3.4k reviews).
 Opt-in: `[lang]` extra + separate skill.
-- [ ] Import + plan report on Terrace House OND 1 (no cards yet).
+- [x] Import + plan report on Terrace House OND 1 (no cards yet): `asl lang setup/add/seed/plan`.
 - [ ] `sentence` and `grammar` card types; first ~50 Terrace House cards.
 - [ ] Grammar ground truth from Game Gengo; grammar gate.
 - [ ] `asl lang sync` from reviews; stats.

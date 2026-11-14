@@ -1,0 +1,268 @@
+"""`asl lang plan`: which lines become one-new-word cards, in which order, and why the rest wait.
+
+Writes the `status` column of every lines/*.tsv, fills `level` in Vocabulary.md, prints a report.
+No cards are written here."""
+from __future__ import annotations
+
+import heapq
+import re
+from collections import Counter, defaultdict
+from dataclasses import dataclass, field, replace
+from pathlib import Path
+
+from .levels import NONE, Levels
+from .lines import Line, read_lines, write_lines
+from .vocab import COUNTS_AS_KNOWN, Vocabulary
+
+MEDIA_PULL = 3          # a word in >= 3 lines of the user's media counts as current level
+_PUNCT = re.compile(r"[\s、。！？!?…‥・「」『』“”\"'（）()~〜ー―-]+")
+
+
+@dataclass
+class Analysed:
+    line: Line
+    source: str
+    words: list[str]                  # lexeme keys (kind == word), unique, in order
+    kinds: Counter = field(default_factory=Counter)
+    chars: int = 0
+
+
+@dataclass
+class Plan:
+    order: list[tuple[str, int]] = field(default_factory=list)   # (lexeme key, line index)
+    status: dict[int, str] = field(default_factory=dict)
+    remaining: list[set] = field(default_factory=list)    # per line: unknown words left
+    first_round: int = 0
+
+
+def analyse(lines_by_source: dict[str, list[Line]], tok) -> tuple[list[Analysed], dict]:
+    out, forms = [], defaultdict(Counter)       # key -> Counter[(word, reading)]
+    for src, lines in lines_by_source.items():
+        names = sorted({n for ln in lines for n in _names(ln.speaker)}, key=len, reverse=True)
+        for ln in lines:
+            toks = _mark_names(tok(ln.text), ln.text, names)
+            keys = []
+            for t in toks:
+                if t.kind == "word":
+                    forms[t.key][(t.word, t.reading)] += 1
+                    if t.key not in keys:
+                        keys.append(t.key)
+            out.append(Analysed(ln, src, keys, Counter(t.kind for t in toks),
+                                len(_PUNCT.sub("", ln.text))))
+    return out, forms
+
+
+def _names(speaker: str) -> list[str]:
+    """Speaker labels name the cast: '徳井' or 'YOU' (2+ characters, to stay clear of words)."""
+    return [n for n in re.split(r"[\s・/、,]+", speaker or "") if len(n) >= 2]
+
+
+def _mark_names(toks: list, text: str, names: list[str]) -> list:
+    """Tokens inside a cast name in the text become kind 'name' (UniDic splits 安未 into words)."""
+    if not names:
+        return toks
+    spans = [(m.start(), m.end()) for n in names for m in re.finditer(re.escape(n), text)]
+    if not spans:
+        return toks
+    out, pos = [], 0
+    for t in toks:
+        start = text.find(t.surface, pos)
+        if start < 0:
+            out.append(t)
+            continue
+        end = pos = start + len(t.surface)
+        if t.kind == "word" and any(s < end and start < e for s, e in spans):
+            t = replace(t, kind="name")
+        out.append(t)
+    return out
+
+
+def make_plan(items: list[Analysed], known, priority) -> Plan:
+    """Greedy i+1: repeatedly take the highest-priority word that has a line where it is the only
+    unknown word; plan it on its best line (within the length cap, shortest); recompute."""
+    plan = Plan()
+    remaining = [set(k for k in it.words if not known(k)) for it in items]
+    initially_zero = {i for i, r in enumerate(remaining) if not r}
+    lines_of = defaultdict(list)
+    for i, r in enumerate(remaining):
+        for k in r:
+            lines_of[k].append(i)
+    heap, pushed = [], set()
+
+    def offer(i: int) -> None:
+        (k,) = remaining[i]
+        if k not in pushed:
+            pushed.add(k)
+            heapq.heappush(heap, (priority(k), k))
+
+    for i, r in enumerate(remaining):
+        if len(r) == 1:
+            offer(i)
+    plan.first_round = len(pushed)
+    planned = set()
+    while heap:
+        _, k = heapq.heappop(heap)
+        if k in planned:
+            continue
+        cands = [i for i in lines_of[k] if remaining[i] == {k}]
+        if not cands:
+            continue
+        best = min(cands, key=lambda i: (items[i].chars > priority.cap, items[i].line.id[-1].isalpha(),
+                                         items[i].chars))
+        planned.add(k)
+        plan.order.append((k, best))
+        for i in lines_of[k]:
+            remaining[i].discard(k)
+            if len(remaining[i]) == 1:
+                offer(i)
+    chosen = {i: n for n, (_, i) in enumerate(plan.order, 1)}
+    for i, it in enumerate(items):
+        if i in chosen:
+            plan.status[i] = f"ready:{chosen[i]}"
+        elif i in initially_zero:
+            plan.status[i] = "known"
+        elif not remaining[i]:
+            plan.status[i] = "covered"
+        else:
+            plan.status[i] = f"parked:{len(remaining[i])} words"
+    plan.remaining = remaining
+    return plan
+
+
+class Priority:
+    def __init__(self, levels: Levels, level_of: dict[str, str], media_count: Counter,
+                 current: str | None, cap: int):
+        self.levels, self.level_of, self.media, self.current, self.cap = (
+            levels, level_of, media_count, current, cap)
+
+    def effective_level(self, k: str) -> str:
+        lvl = self.level_of.get(k, NONE)
+        if lvl == NONE and self.media[k] >= MEDIA_PULL and self.current:
+            return self.current
+        return lvl
+
+    def __call__(self, k: str) -> tuple:
+        return (self.levels.sort_index(self.effective_level(k), self.current), -self.media[k], k)
+
+
+def run(deck_dir: Path, vocab: Vocabulary, levels: Levels, cfg: dict, current: str | None,
+        assume: list[str], write: bool = True) -> int:
+    tok = vocab.tok
+    files = sorted((deck_dir / "lines").glob("*.tsv"))
+    if not files:
+        raise SystemExit(f"{deck_dir}: no lines/*.tsv yet; run `asl lang add` first")
+    by_src = {f.stem: read_lines(f) for f in files}
+    items, forms = analyse(by_src, tok)
+
+    level_of, media = {}, Counter()
+    for it in items:
+        media.update(it.words)
+    for k, fc in forms.items():
+        (word, reading), _ = fc.most_common(1)[0]
+        e = vocab.get(k, word, reading)
+        if not e.level.endswith("!"):          # `N3!`: set by hand, kept
+            e.level = levels.level([w for (w, _) in fc] + [k.split("|")[0]], reading)
+        level_of[k] = e.level.rstrip("!")
+    for k, e in vocab.entries.items():          # seeded words not in these sources
+        if k not in forms and not e.level.endswith("!"):
+            e.level = levels.level([e.word, k.split("|")[0]], e.reading)
+
+    assumed = {k for k in forms if level_of[k] in assume}
+    def known(k):
+        return vocab.status(k) in COUNTS_AS_KNOWN or k in assumed
+
+    prio = Priority(levels, level_of, media, current, int(cfg.get("length_cap") or 10**6))
+    plan = make_plan(items, known, prio)
+
+    if write:
+        target = {i: k for k, i in plan.order}
+        idx = 0
+        for f in files:
+            lines = by_src[f.stem]
+            for ln in lines:
+                st = plan.status[idx]
+                if st.startswith("ready"):
+                    st = f"{st}:{vocab.entries[target[idx]].word}"
+                elif st.startswith("parked"):
+                    st += ": " + " ".join(vocab.entries[k].word for k in items[idx].words
+                                          if k in plan.remaining[idx])
+                ln.status = st
+                idx += 1
+            write_lines(f, lines)
+        vocab.write(levels.order, rank_of=lambda k: -media[k])
+
+    _report(items, plan, vocab, levels, prio, known, assumed, by_src, current, cfg)
+    return 0
+
+
+def _pct(a: int, b: int) -> str:
+    return f"{a} ({100 * a / b:.0f}%)" if b else str(a)
+
+
+def _report(items, plan, vocab, levels, prio, known, assumed, by_src, current, cfg) -> None:
+    n = len(items)
+    counts = Counter(e.status for e in vocab.entries.values())
+    print(f"Sources: {', '.join(f'{s} ({len(v)} rows)' for s, v in by_src.items())}")
+    print(f"Vocabulary: {len(vocab.entries)} words · known {counts['known']}, learning "
+          f"{counts['learning']}, ignored {counts['ignored']}"
+          + (f" · assumed known (level {', '.join(sorted({vocab.entries[k].level for k in assumed}))}):"
+             f" {len(assumed)}" if assumed else "")
+          + f" · current level: {current or '?'}")
+
+    before = Counter(min(len([k for k in it.words if not known(k)]), 4) for it in items)
+    print("\nUnknown words per line (before planning):")
+    print("  " + " · ".join(f"{'4+' if b == 4 else b}: {_pct(before[b], n)}" for b in range(5)))
+
+    ready = [i for i, s in plan.status.items() if s.startswith("ready")]
+    st = Counter(s.split(":")[0] for s in plan.status.values())
+    parked = Counter(min(len(plan.remaining[i]), 4) for i, s in plan.status.items()
+                     if s.startswith("parked"))
+    print(f"\nPlan: {_pct(len(ready), n)} lines ready as one-new-word cards "
+          f"({plan.first_round} words available at once, {len(ready) - plan.first_round} unlocked by "
+          f"planning others)")
+    print(f"  all words known already: {st['known']} · covered by planned words: {st['covered']}")
+    print(f"  parked: {st['parked']} ("
+          + ", ".join(f"{'4+' if b >= 4 else b} words: {c}" for b, c in sorted(parked.items())) + ")")
+
+    lv = Counter(prio.effective_level(k) for k, _ in plan.order)
+    order = levels.order
+    keys = [*order, *("~" + o for o in order), NONE]
+    print("  levels of the planned words: "
+          + " · ".join(f"{k} {lv[k]}" for k in keys if lv[k]))
+
+    cap = prio.cap
+    def quality(i):
+        it = items[i]
+        flags = []
+        if len(it.words) <= 1:
+            flags.append("single word")
+        if it.chars < 4:
+            flags.append("< 4 chars")
+        if it.chars > cap:
+            flags.append(f"> {cap} chars")
+        if it.kinds["filler"] and len(it.words) <= 1:
+            flags.append("filler")
+        return flags
+    q_all = Counter(f for i in range(n) for f in quality(i))
+    q_ready = Counter(f for i in ready for f in quality(i))
+    print("\nQuality (all lines → ready lines):")
+    for f in ("single word", "filler", "< 4 chars", f"> {cap} chars"):
+        print(f"  {f:12} {_pct(q_all[f], n):>12} → {_pct(q_ready[f], len(ready))}")
+    good = [i for i in ready if not quality(i)]
+    print(f"  ready and none of these: {_pct(len(good), len(ready))}")
+
+    blockers = Counter()
+    for i, s in plan.status.items():
+        if s.startswith("parked"):
+            blockers.update(plan.remaining[i])
+    print("\nWords blocking the most parked lines (no line where they are the only new word):")
+    print("  " + " · ".join(f"{vocab.entries[k].word} ({prio.effective_level(k)}, {c})"
+                            for k, c in blockers.most_common(15)))
+
+    print("\nFirst 25 cards in order:")
+    for n_, (k, i) in enumerate(plan.order[:25], 1):
+        e = vocab.entries[k]
+        flags = quality(i)
+        print(f"  {n_:3}. {e.word} 【{e.reading}】 {prio.effective_level(k):4} "
+              f"×{prio.media[k]:<3} {items[i].line.id}  {items[i].line.text}"
+              + (f"   [{', '.join(flags)}]" if flags else ""))

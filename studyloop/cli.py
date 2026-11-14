@@ -102,6 +102,9 @@ def _main(argv=None) -> int:
 
     sub.add_parser("packs", help="list available packs")
 
+    from .lang import add_parser as add_lang_parser
+    add_lang_parser(sub)
+
     a = ap.parse_args(argv)
     if a.cmd == "build":
         from .build import build
@@ -146,6 +149,9 @@ def _main(argv=None) -> int:
         from .project import install_skills
         install_skills(a.target)
         return 0
+    if a.cmd == "lang":
+        from .lang import main as lang_main
+        return lang_main(a)
     if a.cmd == "packs":
         for d in config.all_packs():
             print(f"{d.name:12} {d}")
