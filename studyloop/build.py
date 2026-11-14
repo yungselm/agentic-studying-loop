@@ -36,6 +36,8 @@ from .notes import vault_index
 CODE_MODEL_ID = 1607392319       # same ids as rust-lang-kata, so its decks can migrate
 CONCEPT_MODEL_ID = 1607392321
 CLOZE_MODEL_ID = 1607392323
+SENTENCE_MODEL_ID = 1607392325   # language: one target word, listening front
+GRAMMAR_MODEL_ID = 1607392327    # language: grammar point; Listening + optional Reading card
 TPL = ANKI / "templates"
 VENDOR = ANKI / "vendor"
 
@@ -160,7 +162,24 @@ def build_models(renames):
         templates=[{"name": "Cloze Card", "qfmt": _tpl("front_cloze.html", renames),
                     "afmt": _tpl("back_cloze.html", renames)}],
         css=css, sort_field_index=0, model_type=genanki.Model.CLOZE)
-    return {"code": code, "concept": concept, "cloze": cloze}
+    sentence = genanki.Model(
+        SENTENCE_MODEL_ID, "Sentence Card",
+        fields=[{"name": n} for n in ("Text", "Word", "Reading", "Gloss", "Audio", "Image",
+                                      "Grammar", "Source")],
+        templates=[{"name": "Listening", "qfmt": _tpl("front_sentence.html", renames),
+                    "afmt": _tpl("back_sentence.html", renames)}],
+        css=css, sort_field_index=0)
+    grammar = genanki.Model(
+        GRAMMAR_MODEL_ID, "Grammar Card",
+        fields=[{"name": n} for n in ("Text", "Grammar", "Meaning", "Translation", "Audio",
+                                      "Image", "Notes", "Source", "ReadCard")],
+        templates=[{"name": "Listening", "qfmt": _tpl("front_sentence.html", renames),
+                    "afmt": _tpl("back_grammar.html", renames)},
+                   {"name": "Reading", "qfmt": _tpl("front_grammar_read.html", renames),
+                    "afmt": _tpl("back_grammar.html", renames)}],
+        css=css, sort_field_index=0)
+    return {"code": code, "concept": concept, "cloze": cloze, "sentence": sentence,
+            "grammar": grammar}
 
 
 # ---- decks, guids, notes -------------------------------------------------------------
@@ -220,6 +239,33 @@ def make_note(deck, f, card, models, find_file=lambda _n: None,
         return vault_links(text(str(s or "").strip("\n"), math=True), find_file, media)
 
     source = vault_links(text(card.get("source", "")), find_file, media)
+
+    def media_file(name, kind):          # language cards: clips and screenshots from media_dir
+        name = str(name or "").strip()
+        if not name:
+            return ""
+        f = find_file(name)
+        if f:
+            media.setdefault(f.name, f)
+        return f"[sound:{html.escape(name)}]" if kind == "audio" else f'<img src="{html.escape(name)}">'
+
+    def links(v):
+        items = v if isinstance(v, list) else ([v] if v else [])
+        return " · ".join(vault_links(text(str(i)), find_file, media) for i in items)
+
+    if card["type"] == "sentence":
+        fields = [text(card.get("text")), text(card.get("word")), text(card.get("reading")),
+                  text(card.get("gloss")), media_file(card.get("audio"), "audio"),
+                  media_file(card.get("image"), "image"), links(card.get("grammar")), source]
+        return genanki.Note(model=models["sentence"], fields=fields, guid=guid(deck, f, card), tags=tags)
+    if card["type"] == "grammar":
+        read = "read" in (deck.file_opts(f).get("cards") or deck.cfg.get("cards") or ["listen", "read"])
+        notes = links(card.get("note")) + (f'<br><a href="{html.escape(str(card["link"]))}">'
+                                            f"{html.escape(str(card['link']))}</a>" if card.get("link") else "")
+        fields = [text(card.get("text")), text(card.get("grammar")), text(card.get("meaning")),
+                  text(card.get("translation")), media_file(card.get("audio"), "audio"),
+                  media_file(card.get("image"), "image"), notes, source, "y" if read else ""]
+        return genanki.Note(model=models["grammar"], fields=fields, guid=guid(deck, f, card), tags=tags)
     if card["type"] == "code":
         fields = [text(str(card["instruction"]).rstrip("\n")), b64(card.get("starter", "")),
                   b64(card.get("solution", "")), lang, text(card.get("notes", "")),
@@ -248,6 +294,8 @@ def make_conf(cid: int, name: str, p: dict) -> dict:
                 "initialFactor": 2500, "ints": [1, 4, 7],
                 "order": 1 if p.get("order") == "sequential" else 0,  # 1 = order added
                 "perDay": p.get("new_per_day", 14), "separate": True},
+        # v3 scheduler: 1 = gather new cards by position (across subdecks), 0 = deck by deck
+        "newGatherPriority": 1 if p.get("gather") == "position" else 0,
         "rev": {"bury": False, "ease4": 1.3, "fuzz": 0.05, "ivlFct": 1.0,
                 "maxIvl": 36500, "perDay": p.get("max_reviews", 9999),
                 "hardFactor": 1.2, "minSpace": 1},
@@ -272,7 +320,8 @@ def _deck_obj(did, name, cid):
 
 def postprocess(apkg: Path, deck_presets: dict[str, tuple[int, dict, str]],
                 sequential_order: list[str],
-                group_defaults: list[tuple[str, tuple[int, dict, str]]] = ()):
+                group_defaults: list[tuple[str, tuple[int, dict, str]]] = (),
+                positions: dict[str, int] | None = None):
     """deck_presets: anki deck name -> (conf id, preset dict, preset label).
     Adds the presets, creates missing parent decks, stamps sequential order."""
     tmp = Path(tempfile.mkdtemp())
@@ -293,7 +342,8 @@ def postprocess(apkg: Path, deck_presets: dict[str, tuple[int, dict, str]],
     for pname in parents:
         # a parent takes the `default` preset of the deck folder it belongs to
         conf = next((c[0] for name, c in group_defaults
-                     if name == pname or name.startswith(pname + "::")), 1)
+                     if name == pname or name.startswith(pname + "::")
+                     or pname.startswith(name + "::")), 1)   # parents inside the folder's deck too
         pid = 1600000000 + zlib.crc32(pname.encode()) % 90000000
         decks[str(pid)] = _deck_obj(pid, pname, conf)
     for d in decks.values():
@@ -310,6 +360,13 @@ def postprocess(apkg: Path, deck_presets: dict[str, tuple[int, dict, str]],
                     if name_by_id.get(did) in seq)
     for pos, (_r, _n, cid) in enumerate(picked, start=1):
         cur.execute("update cards set due = ?, type = 0, queue = 0 where id = ?", (pos, cid))
+    # language decks: the planner's order (card id number) across all their subdecks
+    if positions:
+        start = len(picked) + 1
+        for cid, g in cur.execute("select c.id, n.guid from cards c join notes n on n.id = c.nid").fetchall():
+            if g in positions:
+                cur.execute("update cards set due = ?, type = 0, queue = 0 where id = ?",
+                            (start + positions[g], cid))
     con.commit()
     con.close()
     with zipfile.ZipFile(apkg, "w", zipfile.ZIP_DEFLATED) as z:
@@ -319,6 +376,20 @@ def postprocess(apkg: Path, deck_presets: dict[str, tuple[int, dict, str]],
 
 
 # ---- main --------------------------------------------------------------------------
+
+def media_index(deck: Deck) -> dict[str, Path]:
+    """Language decks: clips and screenshots live in `media_dir` (outside the vault)."""
+    from .config import native_path
+    d = native_path(deck.cfg["media_dir"]) if deck.cfg.get("media_dir") else None
+    if not d or not d.is_dir():
+        return {}
+    return {p.name.lower(): p for p in d.rglob("*") if p.is_file()}
+
+
+def id_number(cid) -> int:
+    m = re.search(r"(\d+)$", str(cid))
+    return int(m.group(1)) if m else 0
+
 
 def build(groups: list[tuple[Deck, list[Path]]], out: Path) -> int:
     tmp = Path(tempfile.mkdtemp())
@@ -330,12 +401,16 @@ def build(groups: list[tuple[Deck, list[Path]]], out: Path) -> int:
     sequential: list[str] = []
     group_defaults = []
     total, anki_cards, no_id, guids = 0, 0, 0, {}
+    positions: dict[str, int] = {}
     for deck, files in groups:
         presets = deck.presets()
         group_defaults.append((deck.name, (conf_id(deck.name, "default", presets["default"]),
                                            presets["default"], presets["default"].get("name") or f"{deck.name} default")))
         vault = vault_of(deck.path)
-        def find_file(n, _f=None, _v=vault):
+        lang_media = media_index(deck)
+        def find_file(n, _f=None, _v=vault, _m=lang_media):
+            if Path(n).name.lower() in _m:
+                return _m[Path(n).name.lower()]
             hit = (_f.parent / n) if _f else None
             if hit and hit.is_file():
                 return hit
@@ -357,6 +432,8 @@ def build(groups: list[tuple[Deck, list[Path]]], out: Path) -> int:
                                      f"{guids[note.guid]} — ids must be unique.")
                 guids[note.guid] = f"{C.label(card)} ({f.name})"
                 anki_decks[name].add_note(note)
+                if deck.cfg.get("lang") and card.get("id"):
+                    positions[note.guid] = id_number(card["id"])
                 total += 1
                 anki_cards += len(note.cards)
                 no_id += not card.get("id") and not card.get("guid")
@@ -367,7 +444,7 @@ def build(groups: list[tuple[Deck, list[Path]]], out: Path) -> int:
     pkg = genanki.Package(list(anki_decks.values()))
     pkg.media_files = media + [str(p) for p in note_media.values()]
     pkg.write_to_file(str(out))
-    postprocess(out, deck_presets, sequential, group_defaults)
+    postprocess(out, deck_presets, sequential, group_defaults, positions)
     shutil.rmtree(tmp)
     extra = f" ({anki_cards} Anki cards)" if anki_cards != total else ""
     print(f"Wrote {out}: {total} cards{extra} in {len(anki_decks)} deck(s).")

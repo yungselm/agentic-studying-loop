@@ -153,6 +153,8 @@ def source_flags(card: dict, repo: Path) -> list[tuple[str, str, str]]:
 
 
 def check_index(deck: Deck, card_ids: list[str]) -> list[tuple[str, str, str]]:
+    if deck.cfg.get("lang"):
+        return []          # language decks: lines/*.tsv and Vocabulary.md are the index
     ov = deck.path / "Overview.md"
     if not ov.is_file():
         return [("~", "index", "no Overview.md card index in this deck")] if is_project(deck) else []

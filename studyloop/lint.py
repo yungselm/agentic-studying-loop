@@ -9,6 +9,7 @@
   [dup]      two cards with the same front
   [gaps]     a cloze card with one gap (2-5 fail less)
   [source]   a `[[Note]]` source isn't in the vault; [media] an embedded image is missing
+  [lang]     sentence/grammar cards: one **target**, word + gloss, length cap; [media] clip missing
 Project decks (profile.md or `repo:` in deck.yaml) also get [frame], [header],
 [excerpt], [index] and [std]; see project_lint.py.
 
@@ -144,6 +145,8 @@ def _card_flags(card, lim, lint_cfg, prefix, seen, fname, fronts=None, retired=(
         out += [("!", "literal", msg) for msg in literal_flags(card, lint_cfg)]
     elif card["type"] == "cloze":
         out += cloze_flags(card, lim["cloze"], vault)
+    elif card["type"] in ("sentence", "grammar"):
+        pass                                  # lang_flags(), with the deck's language context
     else:
         lc = lim["concept"]
         a, b = m["answer_chars"], m["bold_chars"]
@@ -155,6 +158,53 @@ def _card_flags(card, lim, lint_cfg, prefix, seen, fname, fronts=None, retired=(
         elif a > lc["answer_chars_target"] or b > lc["bold_chars_target"]:
             out.append(("~", "size", f"answer {a}, bold {b} chars (over target)"))
         out += vault_flags(card, ("question", "answer"), vault)
+    return out
+
+
+TARGET = re.compile(r"\*\*(.+?)\*\*", re.S)
+
+
+def lang_context(deck: Deck) -> dict | None:
+    if not deck.cfg.get("lang"):
+        return None
+    from .build import media_index
+    from .lang.levels import lang_config
+    try:
+        cfg = lang_config(deck.cfg["lang"])
+    except SystemExit:
+        cfg = {}
+    return {"cap": int(cfg.get("length_cap") or 10**6), "media": media_index(deck),
+            "has_media_dir": bool(deck.cfg.get("media_dir"))}
+
+
+def lang_flags(card: dict, ctx: dict | None) -> list[tuple[str, str, str]]:
+    """Sentence and grammar cards (docs/language-cards.md)."""
+    from .lang.tokens import plain_text
+    t = card["type"]
+    if ctx is None:
+        return [("!", "lang", f"a {t} card needs a language deck (`lang:` and `media_dir:` in deck.yaml)")]
+    out = []
+    textv = str(card.get("text") or "")
+    spans = TARGET.findall(textv)
+    if len(spans) != 1:
+        what = "target word" if t == "sentence" else "grammar pattern"
+        out.append(("!", "lang", f"`text:` needs exactly one **{what}** (has {len(spans)})"))
+    need = ("word", "gloss") if t == "sentence" else ("grammar", "meaning", "translation")
+    for k in need:
+        if not str(card.get(k) or "").strip():
+            out.append(("!", "lang", f"no `{k}:`"))
+    if t == "sentence" and not str(card.get("reading") or "").strip():
+        out.append(("~", "lang", "no `reading:` for the target word"))
+    n = len(re.sub(r"[\s、。！？!?…‥・「」『』“”\"'（）()~〜―-]", "", plain_text(textv)))
+    if n > ctx["cap"]:
+        out.append(("~", "size", f"sentence {n} chars > cap {ctx['cap']} (longer lines fail more)"))
+    for k in ("audio", "image"):
+        name = str(card.get(k) or "").strip()
+        if not name:
+            if k == "audio" or t == "sentence":
+                out.append(("!", "media", f"no `{k}:`"))
+        elif ctx["has_media_dir"] and Path(name).name.lower() not in ctx["media"]:
+            out.append(("!", "media", f"{k} {name} not found in media_dir"))
     return out
 
 
@@ -181,6 +231,7 @@ def lint(groups: list[tuple[Deck, list[Path]]], quiet: bool = False,
             report("!", "repo", deck.path.name, f"repo path in deck.yaml not found: {repo}")
             repo = None
         ids = []
+        lctx = lang_context(deck)
         for f in files:
             pack = deck.file_opts(f).get("pack") or deck.pack
             lint_cfg = load_pack(pack).get("lint", {}) if pack else {}
@@ -188,6 +239,8 @@ def lint(groups: list[tuple[Deck, list[Path]]], quiet: bool = False,
                 flags = _card_flags(card, lim, lint_cfg, deck.prefix_for(f), seen, f.name, fronts,
                                      {str(i) for i in deck.cfg.get("retired_ids") or []}, vault)
                 flags += P.check_card(deck, card, lint_cfg, deck.checked(f), roles, repo)
+                if card["type"] in ("sentence", "grammar"):
+                    flags += lang_flags(card, lctx)
                 for sev, kind, msg in flags:
                     report(sev, kind, f"{f.name}: {C.label(card)}", msg)
                 if card.get("id"):

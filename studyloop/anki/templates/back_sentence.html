@@ -1,0 +1,13 @@
+<div class="shot">{{Image}}</div>
+<div class="play">{{Audio}}</div>
+<div class="instr sentence">{{furigana:Text}}</div>
+<div class="answer word"><span class="tw">{{Word}}</span>{{#Reading}} <span class="rd">【{{Reading}}】</span>{{/Reading}}  {{Gloss}}</div>
+{{#Grammar}}<details class="notes more"><summary>Grammar</summary>{{Grammar}}</details>{{/Grammar}}
+{{#Source}}<div class="source">Source: {{Source}}</div>{{/Source}}
+<script>
+/* size a screenshot by its own resolution: 1.5x its pixels, never wider than the card */
+document.querySelectorAll('.shot img').forEach(function (im) {
+  function fit() { if (im.naturalWidth) im.style.width = Math.round(im.naturalWidth * 1.5) + 'px'; }
+  if (im.complete) fit(); else im.addEventListener('load', fit);
+});
+</script>

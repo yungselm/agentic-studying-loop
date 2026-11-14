@@ -55,6 +55,8 @@ def setup(code: str, force: bool = False) -> int:
         print(f"  {level}: downloaded → {out}")
     if credit := (cfg.get("levels") or {}).get("credit"):
         print(f"  ({credit})")
+    from .dictionary import setup_dictionary
+    setup_dictionary(cfg, force)
     try:
         import wordfreq  # noqa: F401
     except ImportError:

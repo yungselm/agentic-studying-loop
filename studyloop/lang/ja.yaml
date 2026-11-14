@@ -2,6 +2,8 @@
 name: Japanese
 tokenizer: unidic            # fugashi + unidic-lite (pip extra: agentic-studying-loop[lang])
 frequency: wordfreq          # general word frequency (wordfreq's Japanese list)
+clip_padding: [0.25, 0.4]     # s before/after a line when cutting from video
+screenshot_width: 960        # px, at most (screenshots from video)
 length_cap: 30               # characters; longer lines fail more (Game Gengo: >30 chars 17% vs 9%)
 speaker_labels: '（[^）]*）'   # Japanese TV subtitles: （名前）; also drops （笑い） etc.
 strip: '\(([ぁ-ゖァ-ヺー]+)\)'  # inline readings after names: 軽井沢(かるいざわ)
@@ -15,3 +17,10 @@ levels:
     N3: https://raw.githubusercontent.com/jamsinclair/open-anki-jlpt-decks/main/src/n3.csv
     N2: https://raw.githubusercontent.com/jamsinclair/open-anki-jlpt-decks/main/src/n2.csv
     N1: https://raw.githubusercontent.com/jamsinclair/open-anki-jlpt-decks/main/src/n1.csv
+dictionary:
+  url: http://ftp.edrdg.org/pub/Nihongo/JMdict.gz
+  credit: "JMdict, Electronic Dictionary Research and Development Group, CC BY-SA 4.0"
+reading_aid: furigana          # cards keep readings as 漢字[かんじ] (Anki's furigana filter)
+reading_fixes:                 # unidic-lite readings that are wrong in everyday speech
+  私: わたし
+  今日: きょう

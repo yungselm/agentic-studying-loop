@@ -1,6 +1,7 @@
 # Language cards (design)
 
-Status: **milestone 1 done** (`asl lang setup / add / seed / plan`), cards not yet. Roadmap §3.
+Status: **milestones 1–2 built** (`asl lang setup / add / seed / plan / draft`, `sentence` and
+`grammar` card types, skill `language-cards`); first Terrace House cards next. Roadmap §3.
 Test case: port *Terrace House OND 1* (962 subs2srs notes, Japanese) into the new card types.
 
 ## Principles
@@ -159,7 +160,7 @@ text split; the audio is cut at the silence nearest the character-proportional p
 
 ```
 <notes folder>/
-├── Vocabulary.md     lemma | reading | level | status | card id | first source   (asl-maintained, editable)
+├── Vocabulary.md     word | reading | level | meaning | status | card | source   (asl-maintained, editable)
 └── Grammar/          one note per grammar point (level, pattern, explanation, examples, cards)
 <card home>/<deck>/
 ├── deck.yaml         lang: ja, cards: [...], media_dir
@@ -243,13 +244,40 @@ tools, never content (book pages, Game Gengo images, JLPT Sensei text stay with 
    本当にヤバい, どうも はじめまして).
 2. **Card types** `sentence` and `grammar`: templates, lint, build; first ~50 Terrace House
    cards by the agent; review on the phone.
+   **Built:** JMdict (German + English senses) for readings and glosses; `asl lang draft`
+   writes stubs in plan order (furigana, `**target**`), the agent fills `gloss`. A deleted
+   card's line becomes `rejected:<id>` (id never reused) and its word is planned on another
+   line. Card ids give the order across vocabulary subdecks (deck option: gather by
+   position). Multi-speaker lines get their own clip: cut at the quietest stretch near the
+   text's character share (TV audio has music, so no fixed silence level); no clear pause →
+   whole clip (`split:whole-audio`). ffmpeg from PATH or `imageio-ffmpeg` (in the `lang`
+   extra). Terrace House: 127 of 189 cut, 62 whole. Re-importing keeps `card:`/`rejected:`.
+   **First batch** (author's vault, English glosses): 50 drafted, 1 deleted (あたす？, a
+   mis-tokenized fragment), 49 built. Agent fixes on top of the drafts: set phrases the
+   tokenizer splits (はじめまして, もしかして, 何時) and one reading (様になる → さま). Tool fixes
+   from it: katakana words keep their own reading (シーン, not しーん), dictionary entries are
+   ranked by part of speech (よく → often, not 欲). Interjections the tokenizer tags as words
+   (うわっ before a word) are never targets when they are on no level list and the dictionary
+   knows them only as interjections (なるほど, N4, stays). Paths in deck.yaml / Overview.md may be
+   Windows (`C:\...`) or WSL (`/mnt/c/...`); both work on either side.
 3. **Grammar ground truth:** `Grammar/` from Game Gengo, `pattern:` detection, grammar links,
    grammar gate for vocabulary.
 4. **Sync loop:** `asl lang sync`, re-plan, stats (fail by unknown words, length, audio kind,
    sibling card).
 5. **New media:** video + subtitles → clips, subtitle retiming, Whisper and TTS fallbacks.
+   **Started:** a mined deck + its original video (`asl lang add <deck> <x.apkg> --video
+   <ep.mp4>`): text and timings from the notes, padded clips (`clip_padding`, never far into
+   the next line) and screenshots at up to `screenshot_width` from the video. Shirokuma
+   (movies2anki, 3 episodes, 489 lines, its .srt files hold timings only): 1,000 files in
+   ~1 minute, 960×540 screenshots. `asl lang draft --source sk` drafts one source only.
+   Still open: subtitles-only input (.srt/.ass text), Whisper check, TTS.
 6. **Second language:** Italian from *Praxis-Grammatik Italienisch* + media, proving the
    book → grammar notes → media sentence path.
+
+`meaning` is for quick lookup: a card's gloss when the word has a card, else the dictionary's
+first sense in the gloss language (a hand-written meaning is kept). Sources rank by quality
+(`quality:` in `lines/<key>.yaml`; cut from video = 2, mined deck = 1): a word's line comes
+from the best source, then the shortest line.
 
 ## Decisions
 

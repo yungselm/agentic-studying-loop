@@ -22,6 +22,20 @@ DEFAULT_REFRESH = {"mature_share": 0.5, "step_share": 0.25, "min_review_answers"
 DEFAULT_PRESET = {"new_per_day": 14, "order": "random"}
 
 
+def native_path(s) -> Path:
+    """A path from a config file, for this system: `C:\\x\\y` works in WSL (/mnt/c/x/y) and
+    `/mnt/c/x/y` works on Windows (C:\\x\\y), so one vault serves both."""
+    import re
+    s = str(s).strip().strip('"')
+    m = re.match(r"^([A-Za-z]):[\\/](.*)$", s)
+    if m and os.name != "nt" and Path(f"/mnt/{m.group(1).lower()}").is_dir():
+        return Path(f"/mnt/{m.group(1).lower()}/" + m.group(2).replace("\\", "/"))
+    m = re.match(r"^/mnt/([a-zA-Z])/(.*)$", s)
+    if m and os.name == "nt":
+        return Path(f"{m.group(1).upper()}:\\" + m.group(2).replace("/", "\\"))
+    return Path(s).expanduser()
+
+
 def _read_yaml(p: Path) -> dict:
     if not p.is_file():
         return {}

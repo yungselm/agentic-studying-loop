@@ -197,3 +197,18 @@
 .vz-ch.hash { color: #ce9178; border-color: #6b4a3a; }
 .vz-ch.lenc { color: #569cd6; border-color: #38597a; }
 .vz-ix { font-size: 10px; color: #6a6a6a; margin-top: 1px; }
+
+/* ===== Language cards (sentence, grammar): same boxes as the other cards ===== */
+.shot { text-align: center; margin-bottom: 8px; }
+.shot img { max-width: 100%; height: auto; border-radius: 6px; }   /* width: by resolution (template script) */
+.play { text-align: center; margin: 4px 0 8px; }
+.instr.sentence { font-size: 24px; line-height: 2.3; white-space: normal; }
+.instr.sentence strong, .answer.word .tw { color: #e5c07b; font-weight: 600; }   /* target: yellow */
+.instr.sentence ruby { ruby-position: over; }
+.instr.sentence rt { font-size: 12px; line-height: 1; color: #a0a0a0; }   /* own line height: else it sinks into the kanji */
+.answer.word { font-size: 18px; white-space: normal; }
+.answer.word .rd { color: #a0a0a0; }
+.answer.word .translation { font-size: 15px; color: #c8c8c8; margin-top: 6px; }
+.answer.word .translation strong { color: #e5c07b; }
+details.more summary { cursor: pointer; color: #858585; }
+details.more { white-space: normal; }

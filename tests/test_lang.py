@@ -61,7 +61,7 @@ def _subs2srs_apkg(tmp: Path) -> Path:
 
 def test_import_apkg_sorts_dedupes_and_splits(tmp_path):
     lines, media, stats, ex = import_apkg(_subs2srs_apkg(tmp_path), "th1", LABELS)
-    assert stats == {"notes": 4, "lines": 2, "split": 1}
+    assert {k: stats[k] for k in ("notes", "lines", "split")} == {"notes": 4, "lines": 2, "split": 1}
     assert [(ln.id, ln.text, ln.speaker) for ln in lines] == [
         ("th1-0001a", "こんばんは", "ﾄﾘﾝﾄﾞﾙ"), ("th1-0001b", "こんばんは", "一同"),
         ("th1-0002", "テラスハウスは", "YOU(ユウ)")]
@@ -163,3 +163,190 @@ def test_single_word_line_skipped_while_its_word_waits():
     plan = make_plan(items, known=lambda k: False, priority=_Prio(["a", "x", "y"]))
     assert plan.order == []
     assert plan.status == {0: "skipped:single word", 1: "parked:3 words"}
+
+
+# ---- milestone 2: furigana, card types, lint, build, rejection --------------------------
+
+def test_ruby_and_plain_text():
+    from studyloop.lang.tokens import plain_text, ruby
+    assert ruby("住んで", "すんで") == " 住[す]んで"
+    assert ruby("お願い", "おねがい") == "お 願[ねが]い"
+    assert ruby("軽井沢", "かるいざわ") == " 軽井沢[かるいざわ]"
+    assert ruby("めっちゃ", "めっちゃ") == "めっちゃ"
+    assert plain_text("ずっと 軽井沢[かるいざわ]に ** 住[す]ん**でます") == "ずっと軽井沢に 住んでます"   # the space before kanji only marks the base
+
+
+def test_furigana_marks_target_tokens():
+    from studyloop.lang.tokens import furigana
+    toks = [Token("料理", "料理|りょうり", "料理", "りょうり", "word", "りょうり"),
+            Token("の", "の|の", "の", "の", "function", "の"),
+            Token("専門", "専門|せんもん", "専門", "せんもん", "word", "せんもん"),
+            Token("辞め", "止める|やめる", "辞める", "やめる", "word", "やめ", " ")]
+    assert furigana(toks, "専門|せんもん") == " 料理[りょうり]の** 専門[せんもん]**  辞[や]め".strip()
+
+
+def test_plan_excludes_rejected_lines():
+    items = [_item(0, ["a", "k"], chars=5), _item(1, ["a", "k"], chars=12)]
+    plan = make_plan(items, known=lambda k: k == "k", priority=_Prio(["a"]), excluded=frozenset({0}))
+    assert plan.order == [("a", 1)] and plan.status[0] == "rejected"
+
+
+def _lang_deck(tmp: Path, cards_yaml: str) -> Path:
+    media = tmp / "media" / "th1"
+    media.mkdir(parents=True)
+    (media / "c1.mp3").write_bytes(b"ID3")
+    (media / "c1.jpg").write_bytes(b"\xff\xd8\xff")
+    d = tmp / "japanese"
+    d.mkdir()
+    (d / "deck.yaml").write_text(
+        f'deck: "日本語"\nlang: ja\nprefix: ja\nmedia_dir: "{tmp / "media"}"\n'
+        "presets:\n  default: {new_per_day: 20, order: sequential, gather: position}\n"
+        "files:\n  grammar.yaml: {prefix: jag, cards: [listen]}\n", encoding="utf-8")
+    (d / "vocabulary__th.yaml").write_text(cards_yaml, encoding="utf-8")
+    (d / "grammar.yaml").write_text(
+        '- id: jag-001\n  type: grammar\n  text: "こんなところで ** 死[し]んじゃダメ**なんです"\n'
+        '  grammar: じゃだめ\n  meaning: must not do\n  translation: "You **must not** die here."\n'
+        '  audio: c1.mp3\n  image: c1.jpg\n', encoding="utf-8")
+    return d
+
+
+SENTENCE = '''\
+- id: ja-002
+  type: sentence
+  text: "ずっと こっちの 軽井沢[かるいざわ]に ** 住[す]ん**でます"
+  word: "住む"
+  reading: "すむ"
+  gloss: "wohnen"
+  audio: "c1.mp3"
+  image: "c1.jpg"
+  line: th1-0249
+- id: ja-001
+  type: sentence
+  text: "**めっちゃ** 気[き]になる"
+  word: "めっちゃ"
+  gloss: ""
+  audio: "missing.mp3"
+  image: "c1.jpg"
+'''
+
+
+def test_lang_lint(tmp_path, capsys):
+    from studyloop import config, lint
+    d = _lang_deck(tmp_path, SENTENCE)
+    assert lint.lint(config.resolve_inputs([str(d)])) == 1
+    out = capsys.readouterr().out
+    assert "ja-001" in out and "no `gloss:`" in out and "missing.mp3 not found" in out
+    assert "no `reading:`" in out and "[index]" not in out
+    assert "ja-002" not in out and "jag-001" not in out
+
+
+def test_lang_build(tmp_path):
+    import json
+    import sqlite3
+
+    from studyloop import config
+    from studyloop.build import build
+    d = _lang_deck(tmp_path, SENTENCE.split("- id: ja-001")[0])
+    out = tmp_path / "ja.apkg"
+    assert build(config.resolve_inputs([str(d)]), out) == 0
+    with zipfile.ZipFile(out) as z:
+        z.extract("collection.anki2", tmp_path)
+        media = set(json.loads(z.read("media")).values())
+    assert {"c1.mp3", "c1.jpg"} <= media
+    con = sqlite3.connect(tmp_path / "collection.anki2")
+    models = json.loads(con.execute("select models from col").fetchone()[0])
+    by_type = {models[str(mid)]["name"]: flds.split("\x1f")
+               for mid, flds in con.execute("select mid, flds from notes")}
+    assert by_type["Sentence Card"][0].endswith("<strong> 住[す]ん</strong>でます")
+    assert by_type["Sentence Card"][4] == "[sound:c1.mp3]"
+    assert by_type["Grammar Card"][8] == ""                  # cards: [listen] -> no Reading card
+    assert con.execute("select count(*) from cards").fetchone()[0] == 2
+    decks = json.loads(con.execute("select decks from col").fetchone()[0])
+    dconf = json.loads(con.execute("select dconf from col").fetchone()[0])
+    conf_of = {v["name"]: v["conf"] for v in decks.values()}
+    assert dconf[str(conf_of["日本語::Vocabulary"])]["newGatherPriority"] == 1   # parent deck too
+
+
+# ---- paths, audio split, re-import ----------------------------------------------------------
+
+def test_native_path_windows_and_wsl():
+    import os
+
+    from studyloop.config import native_path
+    if os.name == "nt":
+        assert str(native_path("/mnt/c/x/y")) == "C:\\x\\y"
+    elif Path("/mnt/c").is_dir():
+        assert native_path(r"C:\WorkingData\AnkiMedia") == Path("/mnt/c/WorkingData/AnkiMedia")
+    assert native_path("/tmp/x") == Path("/tmp/x")
+
+
+def test_cut_points_finds_the_quiet_stretch():
+    from studyloop.lang.audio import WIN, cut_points
+    levels = [10.0] * 40 + [1.0] * 5 + [10.0] * 55          # a pause at windows 40-44
+    ((end_a, start_b),) = cut_points(levels, [0.5])
+    assert (start_b, end_a) == (40 * WIN, 45 * WIN)           # both parts keep the whole pause
+    assert cut_points([10.0] * 100, [0.5]) is None           # no clear pause: keep whole
+    late = [10.0] * 92 + [1.0] * 3 + [10.0] * 5               # quiet only near the end
+    assert cut_points(late, [0.6]) is None                    # 2nd part too short for its text
+
+
+def test_readd_keeps_card_and_rejected_statuses(tmp_path):
+    from studyloop.lang.lines import add_source
+    apkg = _subs2srs_apkg(tmp_path)
+    deck = tmp_path / "deck"
+    add_source(deck, tmp_path / "media", apkg, "th1", "TH", LABELS)
+    tsv = deck / "lines" / "th1.tsv"
+    lines = read_lines(tsv)
+    lines[2].status, lines[0].status = "card:ja-001", "rejected:ja-002"
+    write_lines(tsv, lines)
+    add_source(deck, tmp_path / "media", apkg, "th1", "TH", LABELS)
+    st = {ln.id: ln.status for ln in read_lines(tsv)}
+    assert st["th1-0002"] == "card:ja-001" and st["th1-0001a"] == "rejected:ja-002"
+    assert st["th1-0001b"].startswith("split:")          # fake clips: no split, kept whole
+
+
+def test_cut_from_video(tmp_path):
+    import subprocess
+
+    from studyloop.lang.audio import ffmpeg_exe
+    from studyloop.lang.lines import cut_from_video
+    exe = ffmpeg_exe()
+    if not exe:
+        pytest.skip("no ffmpeg")
+    video = tmp_path / "ep1.mp4"
+    subprocess.run([exe, "-y", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc=duration=4:size=1280x720:rate=10",
+                    "-f", "lavfi", "-i", "sine=frequency=440:duration=4", "-shortest", str(video)], check=True)
+    rows = [(("00:00:00.500", "00:00:01.500"), "a", "ep1_a.mp3", "ep1_a.jpg"),
+            (("00:00:01.500", "00:00:03.000"), "b", "ep1_b.mp3", "ep1_b.jpg")]
+    na, ni = cut_from_video(video, rows, tmp_path / "out", (0.25, 0.4), 960)
+    assert (na, ni) == (2, 2)
+    assert all((tmp_path / "out" / n).stat().st_size > 0 for n in ("ep1_a.mp3", "ep1_b.jpg"))
+    probe = subprocess.run([exe, "-hide_banner", "-i", str(tmp_path / "out" / "ep1_b.jpg")],
+                           capture_output=True, text=True).stderr
+    assert "960x540" in probe                                   # scaled to the width cap
+
+
+def test_plan_prefers_the_better_source():
+    items = [_item(0, ["a", "k"], chars=8), _item(1, ["a", "k"], chars=20)]
+    items[1].quality = 2                      # cut from video: wins over the shorter line
+    plan = make_plan(items, known=lambda k: k == "k", priority=_Prio(["a"]))
+    assert plan.order == [("a", 1)]
+
+
+def test_vocabulary_reads_old_and_new_columns(tmp_path):
+    from studyloop.lang.vocab import Vocabulary
+
+    class Tok:
+        def key_for(self, w):
+            return f"{w}|"
+    old = tmp_path / "Vocabulary.md"
+    old.write_text("| word | reading | level | status | card | source |\n|---|---|---|---|---|---|\n"
+                   "| 住む | すむ | N5 | planned | ja-003 | seed |\n", encoding="utf-8")
+    v = Vocabulary(old, "ja", Tok())
+    e = v.entries["住む|"]
+    assert (e.status, e.card, e.meaning) == ("planned", "ja-003", "")
+    e.meaning = "to live"
+    v.write(["N5"])
+    text = old.read_text(encoding="utf-8")
+    assert "| word | reading | level | meaning | status | card | source |" in text
+    assert Vocabulary(old, "ja", Tok()).entries["住む|"].meaning == "to live"

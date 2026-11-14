@@ -24,9 +24,11 @@ Maintained by `asl lang` (seed, plan, sync). Edit `status` by hand when you like
 `known`, `learning`, `planned` (a card exists), `unknown`, `ignored` (never a card target).
 `level`: on a level list (`N4`), estimated from frequency (`~N3`), or neither (`—`);
 recomputed on every plan unless set by hand with `!` (`N3!`).
+`meaning`: the card's gloss when a card exists, else the dictionary's first sense (kept once set,
+so a hand-written meaning stays).
 
-| word | reading | level | status | card | source |
-|---|---|---|---|---|---|
+| word | reading | level | meaning | status | card | source |
+|---|---|---|---|---|---|---|
 """
 
 
@@ -38,6 +40,7 @@ class Entry:
     status: str = "unknown"
     card: str = ""
     source: str = ""
+    meaning: str = ""
 
     def raise_to(self, status: str, source: str = "") -> None:
         """Statuses only go up (a hand-set `ignored` or `known` is never lowered)."""
@@ -57,18 +60,26 @@ class Vocabulary:
             self._read()
 
     def _read(self) -> None:
+        cols = ["word", "reading", "level", "status", "card", "source"]     # files before `meaning`
         for line in self.path.read_text(encoding="utf-8").splitlines():
-            cells = [c.strip() for c in line.strip().strip("|").split("|")]
-            if len(cells) < 4 or cells[0] in ("word", "") or set(cells[0]) <= {"-"}:
+            if not line.strip().startswith("|"):
                 continue
-            word, reading, level, status, *rest = cells + ["", ""]
-            key = self.tok.key_for(word)
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if cells and cells[0] == "word":                 # the header names the columns
+                cols = cells
+                continue
+            if len(cells) < 4 or not cells[0] or set(cells[0]) <= {"-"}:
+                continue
+            row = dict(zip(cols, cells))
+            key = self.tok.key_for(row.get("word", ""))
             if not key:
                 continue
-            status = status if status in STATUSES else "unknown"
+            status = row.get("status") if row.get("status") in STATUSES else "unknown"
             e = self.entries.get(key)
             if e is None:
-                self.entries[key] = Entry(word, reading, level, status, rest[0], rest[1])
+                self.entries[key] = Entry(row["word"], row.get("reading", ""), row.get("level", ""),
+                                          status, row.get("card", ""), row.get("source", ""),
+                                          row.get("meaning", ""))
             else:
                 e.raise_to(status)
 
@@ -87,7 +98,8 @@ class Vocabulary:
             base = e.level.lstrip("~").rstrip("!")
             li = level_order.index(base) if base in level_order else len(level_order)
             return (li, e.level.startswith("~"), rank_of(key) if rank_of else 0, e.reading)
-        rows = [f"| {_cell(e.word)} | {_cell(e.reading)} | {e.level} | {e.status} | {e.card} | {_cell(e.source)} |"
+        rows = [f"| {_cell(e.word)} | {_cell(e.reading)} | {e.level} | {_cell(e.meaning)} | {e.status} "
+                f"| {e.card} | {_cell(e.source)} |"
                 for _, e in sorted(self.entries.items(), key=sort_key)]
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.write_text(HEADER.format(lang=self.lang) + "\n".join(rows) + "\n", encoding="utf-8")

@@ -82,6 +82,40 @@ visible. `{{answer::hint}}` adds a hint, `{{c2::a}} … {{c2::b}}` asks two gaps
   source: "[[Atomic file writes#How it works]]"
 ```
 
+**sentence** (language decks, `asl lang draft` writes them): listen to a native line (audio +
+screenshot, no text), flip to the line with readings and **one** target word glossed.
+`text` keeps furigana as `漢字[かんじ]` and marks the target with `**…**`; `audio`/`image` are
+file names in the deck's `media_dir`. See [language cards](language-cards.md).
+
+```yaml
+- id: ja-003
+  type: sentence
+  text: "ずっと こっちの 軽井沢[かるいざわ]に ** 住[す]ん**でます"
+  word: "住む"
+  reading: "すむ"
+  gloss: "wohnen"                 # the sense used in this line
+  audio: "Terrace_House_OND_1_0.13.03.866-0.13.06.327.mp3"
+  image: "Terrace_House_OND_1_0.13.05.097.jpg"
+  line: th1-0249                  # lines/<source>.tsv; delete the card to reject the line
+  source: "Terrace House OND 1 · 00:13:03"
+  grammar: ["[[ている]]"]          # optional: grammar notes, shown folded
+```
+
+**grammar** (language decks): the Game Gengo layout. A Listening card, plus a Reading card
+unless `cards: [listen]` (deck.yaml or per file); the back shows the whole translation.
+
+```yaml
+- id: jag-001
+  type: grammar
+  text: "こんなところで ** 死[し]んじゃダメ**なんです"
+  grammar: じゃだめ
+  meaning: must not do (spoken)
+  translation: "You **must not** die in a place like this!"
+  note: "[[じゃだめ]]"            # optional vault note; link: optional URL
+  audio: "clip.mp3"
+  image: "clip.jpg"               # optional (TTS fallback has none)
+```
+
 ## Project decks
 
 A deck with `repo:` or a `profile.md` gets extra `asl lint` checks: every code section starts

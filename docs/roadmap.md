@@ -43,6 +43,10 @@ Opt-in: `[lang]` extra + separate skill.
 - [ ] `asl lang sync` from reviews; stats.
 - [ ] Video + subtitles input; Whisper / TTS fallbacks.
 - [ ] Italian from *Praxis-Grammatik Italienisch* as the second language.
+- [ ] Card preferences and quality checks the user decides (which source or card kind wins a
+  word, minimum audio/image quality, Whisper check), designed together after the pipeline.
+- [ ] The author's real start: a fresh topic from all their sources (Terrace House, Shirokuma,
+  Game Gengo, ...) with everything new (no seed), so the vault's ground truth starts clean.
 
 ### 2b. Topics from books and links (done)
 A brief in the deck's `Overview.md` (goal, `builds_on`, `notes:` flag, sources) and a sources map

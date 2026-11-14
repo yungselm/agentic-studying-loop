@@ -16,10 +16,59 @@ class Token:
     word: str         # dictionary form as written here (e.g. する, 辞める)
     reading: str      # reading of `word` (hiragana for Japanese)
     kind: str         # word | name | number | filler | function
+    kana: str = ""    # reading of the surface as it appears (hiragana)
+    space: str = ""   # whitespace before the token in the text
+    pos: str = ""     # part of speech (UniDic pos1: 名詞, 動詞, 副詞, ...)
 
 
 def hira(s: str) -> str:
     return "".join(chr(ord(c) - 0x60) if "ァ" <= c <= "ヶ" else c for c in s or "")
+
+
+def _kanji(c: str) -> bool:
+    return "㐀" <= c <= "鿿" or c in "々〆ヶ"
+
+
+def ruby(surface: str, kana: str) -> str:
+    """Anki furigana for one token: 住んで + すんで -> ' 住[す]んで' (kana around the kanji stay
+    outside the brackets; the space marks where the kanji base starts and is not shown)."""
+    if not kana or not any(_kanji(c) for c in surface):
+        return surface
+    i = 0
+    while i < min(len(surface), len(kana)) and not _kanji(surface[i]) and hira(surface[i]) == kana[i]:
+        i += 1
+    j = 0
+    while (j < min(len(surface), len(kana)) - i and not _kanji(surface[-1 - j])
+           and hira(surface[-1 - j]) == kana[-1 - j]):
+        j += 1
+    base, rt = surface[i:len(surface) - j], kana[i:len(kana) - j]
+    if not rt or hira(base) == rt:
+        return surface
+    return f"{surface[:i]} {base}[{rt}]{surface[len(surface) - j:]}"
+
+
+def furigana(tokens: list[Token], target_key: str | None = None) -> str:
+    """The text with readings (`軽井沢[かるいざわ]`) and the target word's tokens in `**…**`."""
+    out, open_ = [], False
+    for t in tokens:
+        hit = target_key is not None and t.key == target_key
+        if open_ and not hit:
+            out.append("**")
+            open_ = False
+        out.append(t.space)
+        if hit and not open_:
+            out.append("**")
+            open_ = True
+        out.append(ruby(t.surface, t.kana))
+    if open_:
+        out.append("**")
+    return "".join(out).strip()
+
+
+def plain_text(s: str) -> str:
+    """Card text as read: no furigana brackets, no `**`, no base-marking spaces."""
+    s = re.sub(r" ?([^ \[\]>*]+?)\[[^\]]*\]", r"\1", s or "")
+    return s.replace("**", "")
 
 
 _LATIN = re.compile(r"^[A-Za-z0-9Ａ-Ｚａ-ｚ０-９'’.\-]+$")
@@ -55,7 +104,8 @@ class UnidicTokenizer:
                 kind = "number"
             else:
                 kind = "word"
-            out.append(Token(w.surface, f"{lemma}|{hira(f.lForm or '')}", word, reading, kind))
+            out.append(Token(w.surface, f"{lemma}|{hira(f.lForm or '')}", word, reading, kind,
+                             hira(f.kana or ""), w.white_space or "", pos1))
         return out
 
     @cache  # noqa: B019  (one tokenizer per run)

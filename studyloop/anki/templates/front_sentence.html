@@ -1,0 +1,10 @@
+<div class="shot">{{Image}}</div>
+<div class="play">{{Audio}}</div>
+<div class="hint">Listen, then flip &#9654;</div>
+<script>
+/* size a screenshot by its own resolution: 1.5x its pixels, never wider than the card */
+document.querySelectorAll('.shot img').forEach(function (im) {
+  function fit() { if (im.naturalWidth) im.style.width = Math.round(im.naturalWidth * 1.5) + 'px'; }
+  if (im.complete) fit(); else im.addEventListener('load', fit);
+});
+</script>

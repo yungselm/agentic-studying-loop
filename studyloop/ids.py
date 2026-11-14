@@ -143,6 +143,8 @@ def _source_short(card: dict) -> str:
 
 
 def fix_index(deck: Deck) -> int:
+    if deck.cfg.get("lang"):
+        return 0                          # language decks: thousands of cards, no index rows
     ov = deck.path / "Overview.md"
     if not ov.is_file():
         return 0

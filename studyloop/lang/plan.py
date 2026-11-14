@@ -25,6 +25,7 @@ class Analysed:
     words: list[str]                  # lexeme keys (kind == word), unique, in order
     kinds: Counter = field(default_factory=Counter)
     chars: int = 0
+    quality: int = 1                  # the source's rank: better audio/images win a word's line
 
 
 @dataclass
@@ -77,7 +78,7 @@ def _mark_names(toks: list, text: str, names: list[str]) -> list:
     return out
 
 
-def make_plan(items: list[Analysed], known, priority) -> Plan:
+def make_plan(items: list[Analysed], known, priority, excluded: frozenset = frozenset()) -> Plan:
     """Greedy i+1: repeatedly take the highest-priority word that has a line where it is the only
     unknown word; plan it on its best line (within the length cap, shortest); recompute.
 
@@ -93,6 +94,8 @@ def make_plan(items: list[Analysed], known, priority) -> Plan:
     has_longer = {k for it in items if len(it.words) > 1 for k in it.words}
 
     def eligible(i: int) -> bool:
+        if i in excluded:                       # rejected: its card was deleted
+            return False
         return len(items[i].words) > 1 or next(iter(remaining[i])) not in has_longer
 
     heap, pushed = [], set()
@@ -117,8 +120,8 @@ def make_plan(items: list[Analysed], known, priority) -> Plan:
         cands = [i for i in lines_of[k] if remaining[i] == {k} and eligible(i)]
         if not cands:
             continue
-        best = min(cands, key=lambda i: (items[i].chars > priority.cap, items[i].line.id[-1].isalpha(),
-                                         items[i].chars))
+        best = min(cands, key=lambda i: (items[i].chars > priority.cap, -items[i].quality,
+                                         items[i].line.id[-1].isalpha(), items[i].chars))
         planned.add(k)
         plan.order.append((k, best))
         for i in lines_of[k]:
@@ -127,7 +130,9 @@ def make_plan(items: list[Analysed], known, priority) -> Plan:
                 offer(i)
     chosen = {i: n for n, (_, i) in enumerate(plan.order, 1)}
     for i, it in enumerate(items):
-        if i in chosen:
+        if i in excluded:
+            plan.status[i] = "rejected"
+        elif i in chosen:
             plan.status[i] = f"ready:{chosen[i]}"
         elif i in initially_zero:
             plan.status[i] = "known"
@@ -157,14 +162,45 @@ class Priority:
         return (self.levels.sort_index(self.effective_level(k), self.current), -self.media[k], k)
 
 
-def run(deck_dir: Path, vocab: Vocabulary, levels: Levels, cfg: dict, current: str | None,
-        assume: list[str], write: bool = True) -> int:
+@dataclass
+class State:
+    files: list[Path]
+    by_src: dict[str, list[Line]]
+    items: list[Analysed]
+    plan: Plan
+    prio: Priority
+    known: object
+    assumed: set
+    media: Counter
+    cards: dict[str, str]               # line id -> card id (sentence cards in the deck)
+
+
+def source_quality(meta: Path) -> int:
+    """`quality:` in lines/<key>.yaml; default 2 when cut from the original video (padded clips,
+    sharp screenshots), else 1 (clips as the mined deck cut them)."""
+    import yaml
+    m = (yaml.safe_load(meta.read_text(encoding="utf-8")) or {}) if meta.is_file() else {}
+    return int(m.get("quality") or (2 if m.get("video") else 1))
+
+
+def existing_cards(deck_dir: Path) -> list[dict]:
+    from ..cards import load_file
+    from ..config import load_deck
+    deck = load_deck(deck_dir)
+    return [c for f in deck.files() for c in load_file(f) if c.get("type") == "sentence"]
+
+
+def compute(deck_dir: Path, vocab: Vocabulary, levels: Levels, cfg: dict, current: str | None,
+            assume: list[str], gloss_lang: str = "en") -> State:
     tok = vocab.tok
     files = sorted((deck_dir / "lines").glob("*.tsv"))
     if not files:
         raise SystemExit(f"{deck_dir}: no lines/*.tsv yet; run `asl lang add` first")
     by_src = {f.stem: read_lines(f) for f in files}
     items, forms = analyse(by_src, tok)
+    quality = {f.stem: source_quality(f.with_suffix(".yaml")) for f in files}
+    for it in items:
+        it.quality = quality[it.source]
 
     level_of, media = {}, Counter()
     for it in items:
@@ -179,31 +215,129 @@ def run(deck_dir: Path, vocab: Vocabulary, levels: Levels, cfg: dict, current: s
         if k not in forms and not e.level.endswith("!"):
             e.level = levels.level([e.word, k.split("|")[0]], e.reading)
 
+    # interjections the tokenizer tagged as words (うわっ before a word is an adverb to UniDic):
+    # on no level list and only ever an interjection in the dictionary -> never a target
+    fillers = _interjections(forms, level_of, levels, cfg)
+    if fillers:
+        for it in items:
+            it.words = [k for k in it.words if k not in fillers]
+        media = Counter(k for it in items for k in it.words)
+
+    # cards decide `planned`: a word with a card is planned; a planned word whose card is gone
+    # is unknown again, and its line is rejected (never proposed again)
+    cards, carded_words, glosses = {}, {}, {}
+    words_of_line = {it.line.id: it.words for it in items}
+    for c in existing_cards(deck_dir):
+        cid = str(c.get("id") or "")
+        if str(c.get("gloss") or "").strip() and (gk := tok.key_for(str(c.get("word") or ""))):
+            glosses[gk] = str(c["gloss"]).strip()
+        for k in [k for k in words_of_line.get(str(c.get("line") or ""), [])
+                  if vocab.status(k) in ("unknown", "planned")][:1]:
+            if str(c.get("gloss") or "").strip():
+                glosses.setdefault(k, str(c["gloss"]).strip())
+        if c.get("line"):
+            cards[str(c["line"])] = cid or "?"
+        # the card's line: its one new word is the target, however `word:` was edited
+        # (はじめまして, 様になる); known words stay known (statuses only go up)
+        for k in words_of_line.get(str(c.get("line") or ""), []):
+            if vocab.status(k) in ("unknown", "planned"):
+                carded_words.setdefault(k, cid)
+        if k := tok.key_for(str(c.get("word") or "")):
+            carded_words.setdefault(k, cid)
+    for k, e in vocab.entries.items():
+        if k in carded_words:
+            e.raise_to("planned")
+            e.card = carded_words[k]
+        elif e.status == "planned":
+            e.status, e.card = "unknown", ""
+    _fill_meanings(vocab, glosses, cfg, gloss_lang)
+    old_ids = {i: it.line.status.split(":", 1)[1] for i, it in enumerate(items)
+               if it.line.status.startswith(("card:", "rejected:"))}
+    excluded = frozenset(i for i in old_ids if items[i].line.id not in cards)
+
     assumed = {k for k in forms if level_of[k] in assume}
     def known(k):
         return vocab.status(k) in COUNTS_AS_KNOWN or k in assumed
 
     prio = Priority(levels, level_of, media, current, int(cfg.get("length_cap") or 10**6))
-    plan = make_plan(items, known, prio)
+    plan = make_plan(items, known, prio, excluded)
+    for i, it in enumerate(items):
+        if it.line.id in cards:
+            plan.status[i] = f"card:{cards[it.line.id]}"
+        elif i in excluded:
+            plan.status[i] = f"rejected:{old_ids[i]}"       # the id stays used: never reissued
+    return State(files, by_src, items, plan, prio, known, assumed, media, cards)
 
+
+def _fill_meanings(vocab: Vocabulary, glosses: dict[str, str], cfg: dict, gloss_lang: str) -> None:
+    """`meaning` for quick lookup: a card's gloss wins; else keep what is there (hand-written);
+    else the dictionary's first sense in the gloss language (English as fallback)."""
+    for k, g in glosses.items():
+        if k in vocab.entries:
+            vocab.entries[k].meaning = g
+    if all(e.meaning for k, e in vocab.entries.items() if k not in glosses) or not cfg.get("dictionary"):
+        return
+    from .dictionary import ISO2, Dictionary
+    try:
+        dic = Dictionary(cfg)
+    except SystemExit:
+        return
+    codes = list(dict.fromkeys([ISO2.get(gloss_lang, gloss_lang), "eng"]))
+    for k, e in vocab.entries.items():
+        if e.meaning or k in glosses:
+            continue
+        lemma = k.split("|")[0]                      # dictionary form: なん -> 何
+        hits = dic.lookup(lemma, e.reading) or dic.lookup(e.word, e.reading)
+        for code in codes:
+            sense = next((sn for h in hits[:1] for sn in h["s"] if sn["gloss"].get(code)), None)
+            if sense:
+                e.meaning = "; ".join(sense["gloss"][code][:3])
+                break
+
+
+def _interjections(forms: dict, level_of: dict, levels: Levels, cfg: dict) -> set[str]:
+    if not cfg.get("dictionary"):
+        return set()
+    from .dictionary import Dictionary
+    try:
+        dic = Dictionary(cfg)
+    except SystemExit:
+        return set()
+    out = set()
+    for k, fc in forms.items():
+        if level_of.get(k, NONE).lstrip("~") in levels.order and not level_of[k].startswith("~"):
+            continue                                   # on a list (なるほど N4): a word to learn
+        entries = [e for (w, _) in fc for e in dic.lookup(w)[:1]]
+        if entries and all(sn["pos"] and all("interjection" in p for p in sn["pos"])
+                           for e in entries for sn in e["s"] if sn["gloss"].get("eng")):
+            out.add(k)
+    return out
+
+
+def write_state(st: State, vocab: Vocabulary, levels: Levels) -> None:
+    target = {i: k for k, i in st.plan.order}
+    idx = 0
+    for f in st.files:
+        lines = st.by_src[f.stem]
+        for ln in lines:
+            s = st.plan.status[idx]
+            if s.startswith("ready"):
+                s = f"{s}:{vocab.entries[target[idx]].word}"
+            elif s.startswith("parked"):
+                s += ": " + " ".join(vocab.entries[k].word for k in st.items[idx].words
+                                     if k in st.plan.remaining[idx])
+            ln.status = s
+            idx += 1
+        write_lines(f, lines)
+    vocab.write(levels.order, rank_of=lambda k: -st.media[k])
+
+
+def run(deck_dir: Path, vocab: Vocabulary, levels: Levels, cfg: dict, current: str | None,
+        assume: list[str], write: bool = True, gloss_lang: str = "en") -> int:
+    st = compute(deck_dir, vocab, levels, cfg, current, assume, gloss_lang)
     if write:
-        target = {i: k for k, i in plan.order}
-        idx = 0
-        for f in files:
-            lines = by_src[f.stem]
-            for ln in lines:
-                st = plan.status[idx]
-                if st.startswith("ready"):
-                    st = f"{st}:{vocab.entries[target[idx]].word}"
-                elif st.startswith("parked"):
-                    st += ": " + " ".join(vocab.entries[k].word for k in items[idx].words
-                                          if k in plan.remaining[idx])
-                ln.status = st
-                idx += 1
-            write_lines(f, lines)
-        vocab.write(levels.order, rank_of=lambda k: -media[k])
-
-    _report(items, plan, vocab, levels, prio, known, assumed, by_src, current, cfg)
+        write_state(st, vocab, levels)
+    _report(st.items, st.plan, vocab, levels, st.prio, st.known, st.assumed, st.by_src, current, cfg)
     return 0
 
 
@@ -232,7 +366,9 @@ def _report(items, plan, vocab, levels, prio, known, assumed, by_src, current, c
     print(f"\nPlan: {_pct(len(ready), n)} lines ready as one-new-word cards "
           f"({plan.first_round} words available at once, {len(ready) - plan.first_round} unlocked by "
           f"planning others)")
-    print(f"  all words known already: {st['known']} · covered by planned words: {st['covered']}")
+    print(f"  all words known already: {st['known']} · covered by planned words: {st['covered']}"
+          + (f" · with a card: {st['card']}" if st['card'] else "")
+          + (f" · rejected (card deleted): {st['rejected']}" if st['rejected'] else ""))
     print(f"  parked: {st['parked']} ("
           + ", ".join(f"{'4+' if b >= 4 else b} words: {c}" for b, c in sorted(parked.items())) + ")")
     skipped = [i for i, s in plan.status.items() if s.startswith("skipped")]
