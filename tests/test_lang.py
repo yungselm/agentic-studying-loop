@@ -107,15 +107,15 @@ def _item(i, words, chars=10):
 
 
 def test_plan_chains_unlocks_and_priority():
-    items = [
-        _item(0, ["z"]),                 # low priority, available at once
-        _item(1, ["a"]),
+    items = [                            # 'k' is known; every line has 2+ words
+        _item(0, ["z", "k"]),            # low priority, available at once
+        _item(1, ["a", "k"]),
         _item(2, ["a", "b"]),            # b (top priority) unlocks once a is planned
         _item(3, ["b", "c", "d"]),       # still 2 unknown after b: parked
-        _item(4, ["k"]),                 # all known
+        _item(4, ["k", "k2"]),           # all known
         _item(5, ["a", "k"], chars=20),  # a is planned on the shorter line 1: covered
     ]
-    plan = make_plan(items, known=lambda k: k == "k", priority=_Prio(["b", "a", "z", "c", "d", "k"]))
+    plan = make_plan(items, known=lambda k: k in ("k", "k2"), priority=_Prio(["b", "a", "z", "c", "d"]))
     assert [k for k, _ in plan.order] == ["a", "b", "z"]   # b jumps ahead of z once unlocked
     assert plan.first_round == 2
     assert plan.status == {0: "ready:3", 1: "ready:1", 2: "ready:2", 3: "parked:2 words",
@@ -123,9 +123,9 @@ def test_plan_chains_unlocks_and_priority():
 
 
 def test_plan_prefers_lines_within_cap_and_unsplit():
-    items = [_item(0, ["a"], chars=40), _item(1, ["a"], chars=12), _item(2, ["a"], chars=5)]
+    items = [_item(0, ["a", "k"], chars=40), _item(1, ["a", "k"], chars=12), _item(2, ["a", "k"], chars=5)]
     items[2].line.id += "b"              # a split line: only if nothing else
-    plan = make_plan(items, known=lambda k: False, priority=_Prio(["a"]))
+    plan = make_plan(items, known=lambda k: k == "k", priority=_Prio(["a"]))
     assert plan.order == [("a", 1)]
 
 
@@ -143,3 +143,23 @@ def test_unidic_kinds():
     kinds = {t.surface: t.kind for t in tok("いやいや 困るよ。")}
     assert kinds["困る"] == "word" and kinds["よ"] == "function" and kinds["いやいや"] == "filler"
     assert tok.key_for("付き合う") == next(t.key for t in tok("付き合ってる") if t.kind == "word")
+
+
+def test_single_word_line_only_when_no_longer_line_exists():
+    items = [
+        _item(0, ["a"], chars=3),        # single word; a longer line (2) has 'a': skipped
+        _item(1, ["b"], chars=3),        # single word; no longer line has 'b': kept
+        _item(2, ["a", "c"], chars=12),  # 'a' waits until 'c' is planned
+        _item(3, ["c", "k"], chars=10),
+    ]
+    plan = make_plan(items, known=lambda k: k == "k", priority=_Prio(["a", "b", "c", "k"]))
+    assert [k for k, _ in plan.order] == ["b", "c", "a"]
+    assert plan.order[2] == ("a", 2)
+    assert plan.status[0] == "covered" and plan.status[1].startswith("ready")
+
+
+def test_single_word_line_skipped_while_its_word_waits():
+    items = [_item(0, ["a"], chars=3), _item(1, ["a", "x", "y"], chars=12)]
+    plan = make_plan(items, known=lambda k: False, priority=_Prio(["a", "x", "y"]))
+    assert plan.order == []
+    assert plan.status == {0: "skipped:single word", 1: "parked:3 words"}

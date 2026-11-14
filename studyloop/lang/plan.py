@@ -79,7 +79,10 @@ def _mark_names(toks: list, text: str, names: list[str]) -> list:
 
 def make_plan(items: list[Analysed], known, priority) -> Plan:
     """Greedy i+1: repeatedly take the highest-priority word that has a line where it is the only
-    unknown word; plan it on its best line (within the length cap, shortest); recompute."""
+    unknown word; plan it on its best line (within the length cap, shortest); recompute.
+
+    A single-word line (one content word: 'ヤバい', '私ですか？') is a card only when no longer
+    line in the sources has that word; otherwise the word waits for a longer line."""
     plan = Plan()
     remaining = [set(k for k in it.words if not known(k)) for it in items]
     initially_zero = {i for i, r in enumerate(remaining) if not r}
@@ -87,9 +90,16 @@ def make_plan(items: list[Analysed], known, priority) -> Plan:
     for i, r in enumerate(remaining):
         for k in r:
             lines_of[k].append(i)
+    has_longer = {k for it in items if len(it.words) > 1 for k in it.words}
+
+    def eligible(i: int) -> bool:
+        return len(items[i].words) > 1 or next(iter(remaining[i])) not in has_longer
+
     heap, pushed = [], set()
 
     def offer(i: int) -> None:
+        if not eligible(i):
+            return
         (k,) = remaining[i]
         if k not in pushed:
             pushed.add(k)
@@ -104,7 +114,7 @@ def make_plan(items: list[Analysed], known, priority) -> Plan:
         _, k = heapq.heappop(heap)
         if k in planned:
             continue
-        cands = [i for i in lines_of[k] if remaining[i] == {k}]
+        cands = [i for i in lines_of[k] if remaining[i] == {k} and eligible(i)]
         if not cands:
             continue
         best = min(cands, key=lambda i: (items[i].chars > priority.cap, items[i].line.id[-1].isalpha(),
@@ -123,6 +133,8 @@ def make_plan(items: list[Analysed], known, priority) -> Plan:
             plan.status[i] = "known"
         elif not remaining[i]:
             plan.status[i] = "covered"
+        elif len(remaining[i]) == 1 and not eligible(i):
+            plan.status[i] = "skipped:single word"       # its word waits for a longer line
         else:
             plan.status[i] = f"parked:{len(remaining[i])} words"
     plan.remaining = remaining
@@ -223,6 +235,11 @@ def _report(items, plan, vocab, levels, prio, known, assumed, by_src, current, c
     print(f"  all words known already: {st['known']} · covered by planned words: {st['covered']}")
     print(f"  parked: {st['parked']} ("
           + ", ".join(f"{'4+' if b >= 4 else b} words: {c}" for b, c in sorted(parked.items())) + ")")
+    skipped = [i for i, s in plan.status.items() if s.startswith("skipped")]
+    waiting = {k for i in skipped for k in plan.remaining[i]}
+    kept = sum(1 for i in ready if len(items[i].words) <= 1)
+    print(f"  single-word lines: {len(skipped)} skipped (a longer line has the word; "
+          f"{len(waiting)} words wait for it) · {kept} kept as cards (no longer line exists)")
 
     lv = Counter(prio.effective_level(k) for k, _ in plan.order)
     order = levels.order

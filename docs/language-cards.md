@@ -197,7 +197,10 @@ the media doesn't hold back the rest.
    level (current level and below first, then upwards; `—` last), then frequency in the user's
    media, then general frequency → best line per word (shortest) → mark planned → recompute.
    A line with three unknown words becomes ready once two of them are planned elsewhere.
-4. The rest is `parked:<reason>`, re-planned after every sync.
+4. **Single-word lines** (one content word: ヤバい, 私ですか？) are cards only when no longer line
+   in the sources has the word; otherwise `skipped:single word` and the word waits for a
+   longer line.
+5. The rest is `parked:<reason>`, re-planned after every sync.
 
 The grammar phase runs the same loop over grammar points (vocabulary relaxed: the back has a
 full translation). Only `ready` lines become cards and only built cards enter Anki: the deck
@@ -235,6 +238,9 @@ tools, never content (book pages, Game Gengo images, JLPT Sensei text stay with 
    assumed known: 315 ready. Known limits: unidic-lite reads 私 as わたくし (readings on cards
    come from JMdict in milestone 2); the show's name (テラス + ハウス) blocks 8 lines until
    marked `ignored` by hand.
+   **Single-word rule** (then): 357 ready, 88% clean (was 78%); 14 single-word lines skipped,
+   38 kept (no longer line exists). The first cards are now full sentences (よろしく お願いします,
+   本当にヤバい, どうも はじめまして).
 2. **Card types** `sentence` and `grammar`: templates, lint, build; first ~50 Terrace House
    cards by the agent; review on the phone.
 3. **Grammar ground truth:** `Grammar/` from Game Gengo, `pattern:` detection, grammar links,
@@ -253,5 +259,7 @@ tools, never content (book pages, Game Gengo images, JLPT Sensei text stay with 
 - Grammar cards: whole-sentence translation; vocabulary cards: target word only.
 - Multi-speaker lines are split.
 - Word level orders the cards but never blocks one; unlisted words get a frequency estimate.
+- A single-word line is a card only when no longer line has the word (they made 21% of
+  the ready lines; after the rule 11%, and those have no alternative).
 - Two cards per note for grammar (few, intense); one for vocabulary (mass immersion).
 - The Terrace House port starts fresh (its 123 reviews were a test run).
