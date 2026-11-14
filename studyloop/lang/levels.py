@@ -56,7 +56,9 @@ def setup(code: str, force: bool = False) -> int:
     if credit := (cfg.get("levels") or {}).get("credit"):
         print(f"  ({credit})")
     from .dictionary import setup_dictionary
+    from .grammar import fetch_lists
     setup_dictionary(cfg, force)
+    fetch_lists(cfg, force)
     try:
         import wordfreq  # noqa: F401
     except ImportError:

@@ -14,11 +14,12 @@ from pathlib import Path
 import yaml
 
 from ..config import load_deck
-from .plan import compute, write_state
+from .plan import compute, grammar_links, write_state
 from .tokens import furigana
 
 SENSES_PER_LANG = 3
-FIELDS = ("id", "type", "text", "word", "reading", "gloss", "audio", "image", "line", "source")
+FIELDS = ("id", "type", "text", "word", "reading", "gloss", "audio", "image", "grammar", "line",
+          "source")
 
 
 def _katakana(s: str) -> bool:
@@ -38,8 +39,11 @@ def _item_yaml(card: dict) -> str:
     out = []
     for i, k in enumerate(FIELDS):
         v = card.get(k, "")
-        val = v if k in ("id", "type", "line") else json.dumps(str(v), ensure_ascii=False)
-        out.append(("- " if i == 0 else "  ") + f"{k}: {val}")
+        if k == "grammar" and not v:
+            continue
+        val = (v if k in ("id", "type", "line") else
+               json.dumps(v if isinstance(v, list) else str(v), ensure_ascii=False))
+        out.append(("- " if not out else "  ") + f"{k}: {val}")
     return "\n".join(out) + "\n"
 
 
@@ -56,7 +60,8 @@ def draft(d, vocab, levels, n: int, current: str | None, assume: list[str],
           source: str | None = None) -> int:
     deck = load_deck(d.path)
     st = compute(d.path, vocab, levels, d.cfg, current, assume,
-                 str(d.brief.get("gloss_language") or "en"))
+                 str(d.brief.get("gloss_language") or "en"), d.notes_dir,
+                 str(d.brief.get("grammar_gate") or "learning"))
     picked = [(k, i) for k, i in st.plan.order
               if not source or st.items[i].source.startswith(source)][:n]   # in plan order
     if not picked:
@@ -91,6 +96,7 @@ def draft(d, vocab, levels, n: int, current: str | None, assume: list[str],
         num += 1
         card = {"id": cid, "type": "sentence", "text": furigana(toks, k), "word": word,
                 "reading": reading, "gloss": "", "audio": it.line.audio, "image": it.line.image,
+                "grammar": grammar_links(it.grammar),
                 "line": it.line.id, "source": f"{title} · {it.line.start[:8]}"}
         by_file[d.path / f"vocabulary__{_slug(title)}.yaml"].append(_item_yaml(card))
         lvl = st.prio.effective_level(k)
@@ -106,6 +112,7 @@ def draft(d, vocab, levels, n: int, current: str | None, assume: list[str],
             fh.write(head + "".join(items))
         print(f"\n→ {f}")
     st = compute(d.path, vocab, levels, d.cfg, current, assume,       # lines now `card:<id>`
-                 str(d.brief.get("gloss_language") or "en"))
+                 str(d.brief.get("gloss_language") or "en"), d.notes_dir,
+                 str(d.brief.get("grammar_gate") or "learning"))
     write_state(st, vocab, levels)
     return 0

@@ -20,8 +20,13 @@ the `lang` extra and, once per language, `asl lang setup <code>` (word lists, di
    dictionary senses. Fill only `gloss:` in the card file: **the sense used in that line**, in
    the gloss language, a few words; slang → say so `(Slang)`; a set phrase (はじめまして) → gloss
    the phrase. Fix the target's reading/furigana if it is wrong. Leave every other field.
-5. **Finish:** `asl lint <deck>` (fix every `!`), then `asl build <deck> -o "<card home>/<deck>.apkg"`.
+5. **Grammar:** `asl lang grammar <deck> <game-gengo.apkg>` once (`--fresh`: all unknown), then
+   `asl lang grammar <deck>` lists rules that miss their own examples. Fix each in its note
+   (`Grammar/<point>.md`): `pattern` regex covering conjugations and casual forms, or `token`
+   `surface/pos/pos2` for particles; set `rule: agent`. A rule that would match inside other
+   words (`さ`, `間`) is too broad: tighten it. Cannot be found in a line → `detect: false`.
+6. **Finish:** `asl lint <deck>` (fix every `!`), then `asl build <deck> -o "<card home>/<deck>.apkg"`.
    Report the ids and the `.apkg` path (import: "Update notetypes" ticked).
-6. **Rejected cards:** the user deletes a card from the file; the next plan marks its line
+7. **Rejected cards:** the user deletes a card from the file; the next plan marks its line
    `rejected` and plans the word elsewhere. Ids are never reused. Never set a word `ignored`
    yourself: the user edits `Vocabulary.md`.

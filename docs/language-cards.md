@@ -262,6 +262,27 @@ tools, never content (book pages, Game Gengo images, JLPT Sensei text stay with 
    Windows (`C:\...`) or WSL (`/mnt/c/...`); both work on either side.
 3. **Grammar ground truth:** `Grammar/` from Game Gengo, `pattern:` detection, grammar links,
    grammar gate for vocabulary.
+   **Built:** `asl lang grammar <deck> <gg.apkg>` → one note per grammar point (221 from 295
+   lessons, grouped by their JLPT Sensei link; status from the deck's reviews, `--fresh` = all
+   unknown) and the lessons as `grammar` cards (`grammar.yaml`, media to `media_dir/gg`). Rules:
+   `pattern` (regex on the text; `全然～ない` → `全然.*?ない`) and/or `token` (`surface/pos/pos2`:
+   `と/助詞/接続助詞`; empty surface = any: `/形容詞`); derived from the forms and the lesson's
+   highlighted span (`rule: auto`), fixed by the agent where `asl lang grammar <deck>` lists a
+   miss or a rule is too broad (`rule: agent`, never re-derived; `detect: false` when no rule
+   can find it). Game Gengo: 146 auto rules found their examples, the agent wrote ~95, 216 of
+   218 pass. The planner detects grammar per line, links it on sentence cards (folded), and
+   gates vocabulary lines on grammar not yet studied (`grammar_gate: learning | planned |
+   off`): on the author's deck 284 lines wait, most for て/で (95) and って (49).
+   **Ground truth = JLPT.** `asl lang setup` caches the JLPT Sensei grammar lists (N5–N1, 848
+   points); `Overview - <Language> Grammar.md` shows the notes per level and the lists as a
+   checklist (ticked = a note covers it). Notes without a link match a JLPT point by form and
+   take its link and level. Each note embeds its JLPT Sensei image (from Game Gengo, or
+   `asl lang grammar <deck> --images` fetches it; vault copies at 600 px). Sentence cards link
+   their grammar with level and image (`[[べきだ]] N3 · should ![[…]]`, folded). Game Gengo's
+   own N5/N4 deck stays the author's grammar deck (`--cards` ports lessons only on request);
+   the community N3 deck (33 screenshot cards, no text) was ported by the agent reading the
+   screenshots: 33 notes, 30 `grammar` cards (front: audio only, the screenshot shows the
+   answer), 3 without audio wait for TTS. Coverage: N5 83/84, N4 127/132, N3 31/182.
 4. **Sync loop:** `asl lang sync`, re-plan, stats (fail by unknown words, length, audio kind,
    sibling card).
 5. **New media:** video + subtitles → clips, subtitle retiming, Whisper and TTS fallbacks.

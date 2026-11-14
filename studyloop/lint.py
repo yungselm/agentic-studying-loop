@@ -186,9 +186,10 @@ def lang_flags(card: dict, ctx: dict | None) -> list[tuple[str, str, str]]:
     out = []
     textv = str(card.get("text") or "")
     spans = TARGET.findall(textv)
-    if len(spans) != 1:
-        what = "target word" if t == "sentence" else "grammar pattern"
-        out.append(("!", "lang", f"`text:` needs exactly one **{what}** (has {len(spans)})"))
+    if t == "sentence" and len(spans) != 1:
+        out.append(("!", "lang", f"`text:` needs exactly one **target word** (has {len(spans)})"))
+    elif t == "grammar" and not spans:      # split patterns (しか…ない) mark several spans
+        out.append(("!", "lang", "`text:` needs the **grammar pattern** marked"))
     need = ("word", "gloss") if t == "sentence" else ("grammar", "meaning", "translation")
     for k in need:
         if not str(card.get(k) or "").strip():

@@ -19,6 +19,7 @@ class Token:
     kana: str = ""    # reading of the surface as it appears (hiragana)
     space: str = ""   # whitespace before the token in the text
     pos: str = ""     # part of speech (UniDic pos1: 名詞, 動詞, 副詞, ...)
+    pos2: str = ""    # finer (UniDic pos2: 格助詞 vs 接続助詞 tells と "and" from と "whenever")
 
 
 def hira(s: str) -> str:
@@ -105,7 +106,7 @@ class UnidicTokenizer:
             else:
                 kind = "word"
             out.append(Token(w.surface, f"{lemma}|{hira(f.lForm or '')}", word, reading, kind,
-                             hira(f.kana or ""), w.white_space or "", pos1))
+                             hira(f.kana or ""), w.white_space or "", pos1, pos2))
         return out
 
     @cache  # noqa: B019  (one tokenizer per run)

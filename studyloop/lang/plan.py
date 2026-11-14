@@ -26,6 +26,7 @@ class Analysed:
     kinds: Counter = field(default_factory=Counter)
     chars: int = 0
     quality: int = 1                  # the source's rank: better audio/images win a word's line
+    grammar: list = field(default_factory=list)     # grammar points (Point) found in the line
 
 
 @dataclass
@@ -33,6 +34,7 @@ class Plan:
     order: list[tuple[str, int]] = field(default_factory=list)   # (lexeme key, line index)
     status: dict[int, str] = field(default_factory=dict)
     remaining: list[set] = field(default_factory=list)    # per line: unknown words left
+    blocked: dict = field(default_factory=dict)            # line -> grammar points it waits for
     first_round: int = 0
 
 
@@ -191,7 +193,8 @@ def existing_cards(deck_dir: Path) -> list[dict]:
 
 
 def compute(deck_dir: Path, vocab: Vocabulary, levels: Levels, cfg: dict, current: str | None,
-            assume: list[str], gloss_lang: str = "en") -> State:
+            assume: list[str], gloss_lang: str = "en", notes_dir: Path | None = None,
+            gate: str = "learning") -> State:
     tok = vocab.tok
     files = sorted((deck_dir / "lines").glob("*.tsv"))
     if not files:
@@ -255,17 +258,33 @@ def compute(deck_dir: Path, vocab: Vocabulary, levels: Levels, cfg: dict, curren
                if it.line.status.startswith(("card:", "rejected:"))}
     excluded = frozenset(i for i in old_ids if items[i].line.id not in cards)
 
+    # grammar: what each line uses; with a gate, a line waits for grammar not yet studied
+    from .grammar import GATE_OK, detect, load_points
+    points = load_points(notes_dir) if notes_dir else []
+    blocked: dict[int, list] = {}
+    if points:
+        for i, it in enumerate(items):
+            it.grammar = detect(points, it.line.text, tok(it.line.text))
+            if gate in GATE_OK:
+                waiting = [p for p in it.grammar if p.status not in GATE_OK[gate]]
+                if waiting:
+                    blocked[i] = waiting
+
     assumed = {k for k in forms if level_of[k] in assume}
     def known(k):
         return vocab.status(k) in COUNTS_AS_KNOWN or k in assumed
 
     prio = Priority(levels, level_of, media, current, int(cfg.get("length_cap") or 10**6))
-    plan = make_plan(items, known, prio, excluded)
+    plan = make_plan(items, known, prio, excluded | frozenset(blocked))
     for i, it in enumerate(items):
         if it.line.id in cards:
             plan.status[i] = f"card:{cards[it.line.id]}"
         elif i in excluded:
             plan.status[i] = f"rejected:{old_ids[i]}"       # the id stays used: never reissued
+        elif i in blocked and plan.status[i] == "rejected":   # waiting for grammar, not rejected
+            plan.status[i] = ("grammar:" + ", ".join(p.title for p in blocked[i])
+                              if plan.remaining[i] else "covered")
+    plan.blocked = blocked
     return State(files, by_src, items, plan, prio, known, assumed, media, cards)
 
 
@@ -330,11 +349,23 @@ def write_state(st: State, vocab: Vocabulary, levels: Levels) -> None:
             idx += 1
         write_lines(f, lines)
     vocab.write(levels.order, rank_of=lambda k: -st.media[k])
+    # sentence cards show the grammar their line uses (folded on the back)
+    from .lines import sync_card_field
+    links = {it.line.id: grammar_links(it.grammar) for it in st.items if it.line.id in st.cards}
+    if changed := sync_card_field(st.files[0].parent.parent, "grammar", links):
+        print(f"Grammar links updated on {len(changed)} card(s).\n")
+
+
+def grammar_links(points: list) -> list[str]:
+    """`[[ちゃいけない]] N5 · must not do ![[image]]`: shown folded on a sentence card's back."""
+    return [" ".join(x for x in (f"[[{p.title}]]", f"{p.level} ·" if p.level else "", p.meaning,
+                                 f"![[{p.image}]]" if p.image else "") if x) for p in points]
 
 
 def run(deck_dir: Path, vocab: Vocabulary, levels: Levels, cfg: dict, current: str | None,
-        assume: list[str], write: bool = True, gloss_lang: str = "en") -> int:
-    st = compute(deck_dir, vocab, levels, cfg, current, assume, gloss_lang)
+        assume: list[str], write: bool = True, gloss_lang: str = "en",
+        notes_dir: Path | None = None, gate: str = "learning") -> int:
+    st = compute(deck_dir, vocab, levels, cfg, current, assume, gloss_lang, notes_dir, gate)
     if write:
         write_state(st, vocab, levels)
     _report(st.items, st.plan, vocab, levels, st.prio, st.known, st.assumed, st.by_src, current, cfg)
@@ -371,6 +402,11 @@ def _report(items, plan, vocab, levels, prio, known, assumed, by_src, current, c
           + (f" · rejected (card deleted): {st['rejected']}" if st['rejected'] else ""))
     print(f"  parked: {st['parked']} ("
           + ", ".join(f"{'4+' if b >= 4 else b} words: {c}" for b, c in sorted(parked.items())) + ")")
+    if plan.blocked:
+        waiting = [i for i, s in plan.status.items() if s.startswith("grammar:")]
+        top = Counter(p.title for i in waiting for p in plan.blocked[i])
+        print(f"  waiting for grammar (not studied yet): {len(waiting)} lines; most needed: "
+              + " · ".join(f"{t} ({c})" for t, c in top.most_common(8)))
     skipped = [i for i, s in plan.status.items() if s.startswith("skipped")]
     waiting = {k for i in skipped for k in plan.remaining[i]}
     kept = sum(1 for i in ready if len(items[i].words) <= 1)

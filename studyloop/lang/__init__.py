@@ -67,6 +67,15 @@ def main(a) -> int:
                           video=a.video, only=a.only,
                           pad=tuple(d.cfg.get("clip_padding") or (0.25, 0.4)),
                           width=int(d.cfg.get("screenshot_width") or 960))
+    if a.lang_cmd == "grammar":
+        from .grammar import check_points, import_game_gengo
+        if a.input:
+            return import_game_gengo(d, a.input, "unknown" if a.fresh else "reviews", cards=a.cards)
+        from .grammar import fetch_images, write_overview
+        write_overview(d)                     # also fills links/levels from the JLPT lists
+        if a.images:
+            fetch_images(d)
+        return check_points(d, tokenizer(d.cfg.get("tokenizer", "")))
     tok = tokenizer(d.cfg.get("tokenizer", ""))
     from .vocab import Vocabulary, seed
     vocab = Vocabulary(d.vocab_path, d.lang, tok)
@@ -90,7 +99,8 @@ def main(a) -> int:
         current = a.level or d.brief.get("level")
         return run(d.path, vocab, levels, d.cfg, str(current) if current else None,
                    a.assume or [], write=not a.dry,
-                   gloss_lang=str(d.brief.get("gloss_language") or "en"))
+                   gloss_lang=str(d.brief.get("gloss_language") or "en"), notes_dir=d.notes_dir,
+                   gate=str(a.gate or d.brief.get("grammar_gate") or "learning"))
     return 1
 
 
@@ -115,6 +125,15 @@ def add_parser(sub) -> None:
     pl.add_argument("--level", help="current level (default: `level:` in Overview.md)")
     pl.add_argument("--assume", action="append", help="treat a level's listed words as known (repeat)")
     pl.add_argument("--dry", action="store_true", help="report only; write nothing")
+    pl.add_argument("--gate", choices=["learning", "planned", "off"],
+                    help="grammar gate (default: `grammar_gate:` in Overview.md, else learning)")
+    gr = ls.add_parser("grammar", help="grammar notes + cards from a Game Gengo deck; or check the rules")
+    gr.add_argument("deck", type=Path)
+    gr.add_argument("input", nargs="?", help="a Game Gengo .apkg (without: check the notes' rules)")
+    gr.add_argument("--fresh", action="store_true", help="every grammar point starts as unknown")
+    gr.add_argument("--cards", action="store_true", help="also write the lessons as grammar cards")
+    gr.add_argument("--images", action="store_true",
+                    help="fetch JLPT Sensei's image for notes with a link but no image")
     dr = ls.add_parser("draft", help="write sentence-card stubs for the next planned lines")
     dr.add_argument("deck", type=Path)
     dr.add_argument("-n", type=int, default=20, help="how many cards (default 20)")

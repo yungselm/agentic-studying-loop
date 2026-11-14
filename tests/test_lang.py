@@ -350,3 +350,84 @@ def test_vocabulary_reads_old_and_new_columns(tmp_path):
     text = old.read_text(encoding="utf-8")
     assert "| word | reading | level | meaning | status | card | source |" in text
     assert Vocabulary(old, "ja", Tok()).entries["住む|"].meaning == "to live"
+
+
+# ---- milestone 3: grammar ground truth ----------------------------------------------------------
+
+def _tok_table(table):
+    """A fake tokenizer: text -> tokens from {surface: (pos, pos2)}, greedy longest match."""
+    def tok(text):
+        out, i = [], 0
+        while i < len(text):
+            for n in range(min(6, len(text) - i), 0, -1):
+                s = text[i:i + n]
+                if s in table or n == 1:
+                    pos, pos2 = table.get(s, ("名詞", ""))
+                    out.append(Token(s, s + "|", s, s, "word", s, "", pos, pos2))
+                    i += n
+                    break
+        return out
+    return tok
+
+
+def test_grammar_forms_and_rules():
+    from studyloop.lang.grammar import _forms, derive_rule
+    assert _forms("全然～ない（ぜんぜん～ない）") == ["全然～ない"]
+    assert _forms("てしまう / ちゃう") == ["てしまう", "ちゃう"]
+    assert _forms("が (ga)") == ["が"]
+    tok = _tok_table({"と": ("助詞", "接続助詞"), "が": ("助詞", "格助詞")})
+    assert derive_rule(["全然～ない"], ["全然わからない"], tok) == ("全然.*?ない", "")
+    # the token inside the marked span decides: と "whenever", not the と elsewhere
+    assert derive_rule(["と"], ["あると行く"], tok, ["ある**と**行く"]) == ("", "と/助詞/接続助詞")
+
+
+def test_grammar_point_matching():
+    from studyloop.lang.grammar import Point
+    tok = _tok_table({"美し": ("形容詞", ""), "さ": ("接尾辞", ""), "が": ("助詞", "格助詞"),
+                      "ください": ("動詞", "")})
+    adj = Point("い adjectives", Path("x"), token="/形容詞")
+    assert adj.matches("美しさ", tok("美しさ")) and not adj.matches("ください", tok("ください"))
+    sa = Point("さ", Path("x"), token="さ/接尾辞")
+    assert sa.matches("美しさ", tok("美しさ")) and not sa.matches("ください", tok("ください"))
+    ga = Point("が", Path("x"), token="が/助詞/格助詞")
+    assert ga.matches("私が", tok("私が"))
+    neg = Point("全然～ない", Path("x"), pattern="全然.*?ない")
+    assert neg.matches("全然 わからない", []) and not neg.matches("わからない", [])
+
+
+def test_load_points_skips_undetectable(tmp_path):
+    from studyloop.lang.grammar import load_points
+    g = tmp_path / "Grammar"
+    g.mkdir()
+    (g / "ちゃいけない.md").write_text("---\ntype: grammar\npattern: (ちゃ|じゃ)いけ\nstatus: known\n---\n# x\n",
+                                       encoding="utf-8")
+    (g / "な adjectives.md").write_text("---\ntype: grammar\ndetect: false\npattern: な\n---\n", encoding="utf-8")
+    pts = load_points(tmp_path)
+    assert [p.title for p in pts] == ["ちゃいけない"] and pts[0].status == "known"
+
+
+def test_grammar_overview_checklist(tmp_path, monkeypatch):
+    import json
+    from types import SimpleNamespace
+
+    from studyloop.lang import grammar as G
+    monkeypatch.setenv("ASL_CACHE", str(tmp_path / "cache"))
+    assert G._norm_forms("間（あいだ）") == ["間"]
+    assert G._norm_forms("ちゃいけない・じゃいけない") == ["ちゃいけない", "じゃいけない"]
+    from studyloop.lang.levels import cache_dir
+    (cache_dir("ja") / "grammar_lists.json").write_text(json.dumps({
+        "N4": [{"link": "https://x/aida/", "grammar": "間（あいだ）", "meaning": "while"},
+               {"link": "https://x/ni-tsuite/", "grammar": "について", "meaning": "about"}]}),
+        encoding="utf-8")
+    notes = tmp_path / "notes"
+    (notes / "Grammar").mkdir(parents=True)
+    (notes / "Grammar" / "間（あいだ）.md").write_text(
+        "---\ntype: grammar\ngrammar: 間（あいだ）\nlevel: N3\nstatus: learning\nlink: ''\n---\n# 間\n",
+        encoding="utf-8")
+    d = SimpleNamespace(notes_dir=notes, lang="ja", cfg={"name": "Japanese"})
+    out = G.write_overview(d).read_text(encoding="utf-8")
+    assert "- [x] [[間（あいだ）]] — while · learning" in out
+    assert "- [ ] [について](https://x/ni-tsuite/) — about" in out
+    assert "| N4 | 1 | 0 | 1 | 1 / 2 |" in out
+    note = (notes / "Grammar" / "間（あいだ）.md").read_text(encoding="utf-8")
+    assert "link: https://x/aida/" in note and "level: N4" in note     # JLPT is the ground truth

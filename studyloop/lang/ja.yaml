@@ -24,3 +24,11 @@ reading_aid: furigana          # cards keep readings as 漢字[かんじ] (Anki'
 reading_fixes:                 # unidic-lite readings that are wrong in everyday speech
   私: わたし
   今日: きょう
+grammar_lists:                 # the JLPT grammar ground truth (checklist in the grammar overview)
+  credit: "JLPT grammar lists from jlptsensei.com"
+  pages:
+    N5: https://jlptsensei.com/jlpt-n5-grammar-list/
+    N4: https://jlptsensei.com/jlpt-n4-grammar-list/
+    N3: https://jlptsensei.com/jlpt-n3-grammar-list/
+    N2: https://jlptsensei.com/jlpt-n2-grammar-list/
+    N1: https://jlptsensei.com/jlpt-n1-grammar-list/
