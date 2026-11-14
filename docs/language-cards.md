@@ -285,6 +285,11 @@ tools, never content (book pages, Game Gengo images, JLPT Sensei text stay with 
    answer), 3 without audio wait for TTS. Coverage: N5 83/84, N4 127/132, N3 31/182.
 4. **Sync loop:** `asl lang sync`, re-plan, stats (fail by unknown words, length, audio kind,
    sibling card).
+   **Built:** `asl lang sync <deck> <export>`: sentence cards (by `asl::id`) raise their word,
+   grammar cards and Game Gengo lessons (link, else form) raise their grammar note:
+   reviewed → learning, mature → known; statuses never go down (hand-set ones stay). Then it
+   re-plans and prints the fail rate per source. Finer stats (length, audio kind, sibling)
+   once there are reviews.
 5. **New media:** video + subtitles → clips, subtitle retiming, Whisper and TTS fallbacks.
    **Started:** a mined deck + its original video (`asl lang add <deck> <x.apkg> --video
    <ep.mp4>`): text and timings from the notes, padded clips (`clip_padding`, never far into

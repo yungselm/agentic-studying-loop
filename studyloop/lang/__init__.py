@@ -89,6 +89,20 @@ def main(a) -> int:
         print(f"Seeded from {c['notes']} studied notes: {c['known']} words known, "
               f"{c['learning']} learning → {d.vocab_path}")
         return 0
+    if a.lang_cmd == "sync":
+        from .plan import run
+        from .sync import sync
+        r = sync(d, vocab, native_path(a.export))
+        changes = {k: v for k, v in r.items() if not k.startswith("_")}
+        print(f"Synced {r['_cards_found']} language cards from {a.export}: "
+              + (", ".join(f"{v} {k}" for k, v in sorted(changes.items())) or "no status changed"))
+        for src, (n, f) in r["_per_source"].items():
+            print(f"  {src}: {n} reviews, fail {f / n:.0%}" if n else f"  {src}: no reviews")
+        print()
+        current = d.brief.get("level")
+        return run(d.path, vocab, levels, d.cfg, str(current) if current else None, [],
+                   gloss_lang=str(d.brief.get("gloss_language") or "en"), notes_dir=d.notes_dir,
+                   gate=str(d.brief.get("grammar_gate") or "learning"))
     if a.lang_cmd == "draft":
         from .draft import draft
         current = a.level or d.brief.get("level")
@@ -134,6 +148,9 @@ def add_parser(sub) -> None:
     gr.add_argument("--cards", action="store_true", help="also write the lessons as grammar cards")
     gr.add_argument("--images", action="store_true",
                     help="fetch JLPT Sensei's image for notes with a link but no image")
+    sy = ls.add_parser("sync", help="statuses from your Anki reviews (a manual .apkg/.colpkg export)")
+    sy.add_argument("deck", type=Path)
+    sy.add_argument("export", help="Anki export with scheduling information")
     dr = ls.add_parser("draft", help="write sentence-card stubs for the next planned lines")
     dr.add_argument("deck", type=Path)
     dr.add_argument("-n", type=int, default=20, help="how many cards (default 20)")

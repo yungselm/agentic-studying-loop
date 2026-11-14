@@ -27,6 +27,9 @@ the `lang` extra and, once per language, `asl lang setup <code>` (word lists, di
    words (`さ`, `間`) is too broad: tighten it. Cannot be found in a line → `detect: false`.
 6. **Finish:** `asl lint <deck>` (fix every `!`), then `asl build <deck> -o "<card home>/<deck>.apkg"`.
    Report the ids and the `.apkg` path (import: "Update notetypes" ticked).
-7. **Rejected cards:** the user deletes a card from the file; the next plan marks its line
+7. **After studying:** the user exports from Anki (with scheduling); `asl lang sync <deck>
+   <export.apkg>` moves words and grammar to learning/known and re-plans. Tell the user what
+   was released and the fail rate per source.
+8. **Rejected cards:** the user deletes a card from the file; the next plan marks its line
    `rejected` and plans the word elsewhere. Ids are never reused. Never set a word `ignored`
    yourself: the user edits `Vocabulary.md`.

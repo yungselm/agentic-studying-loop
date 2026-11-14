@@ -59,6 +59,8 @@ class Note:
     reviewed: bool = False       # a card is in learning/review now (not new, not reset)
     mature: bool = False         # a card in review with interval >= 21 days
     suspended: bool = False      # every card suspended
+    reviews: int = 0             # review-phase answers (all cards of the note)
+    fails: int = 0               # of those, Again
 
 
 @dataclass
@@ -130,6 +132,13 @@ def read_export(path: Path) -> Export:
         state: dict[int, list[tuple[int, int, int]]] = {}
         for nid, ctype, queue, ivl in con.execute("select nid, type, queue, ivl from cards"):
             state.setdefault(nid, []).append((ctype, queue, ivl))
+        rev: dict[int, tuple[int, int]] = {}
+        try:
+            for nid, n, f in con.execute("select c.nid, count(*), sum(r.ease = 1) from revlog r "
+                                         "join cards c on c.id = r.cid where r.type = 1 group by c.nid"):
+                rev[nid] = (n, f or 0)
+        except sqlite3.OperationalError:
+            pass
         ex = Export(path)
         for nid, mid, flds, tags in con.execute("select id, mid, flds, tags from notes order by id"):
             name, fnames = models.get(mid, ("?", []))
@@ -139,7 +148,8 @@ def read_export(path: Path) -> Export:
                 nid, name, dict(zip(fnames, vals)), tags.split(),
                 reviewed=any(t in (1, 2, 3) for t, _, _ in cards),
                 mature=any(t == 2 and ivl >= 21 for t, _, ivl in cards),
-                suspended=bool(cards) and all(q == -1 for _, q, _ in cards)))
+                suspended=bool(cards) and all(q == -1 for _, q, _ in cards),
+                reviews=rev.get(nid, (0, 0))[0], fails=rev.get(nid, (0, 0))[1]))
     finally:
         con.close()
         shutil.rmtree(tmp, ignore_errors=True)

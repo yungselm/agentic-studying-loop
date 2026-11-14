@@ -431,3 +431,47 @@ def test_grammar_overview_checklist(tmp_path, monkeypatch):
     assert "| N4 | 1 | 0 | 1 | 1 / 2 |" in out
     note = (notes / "Grammar" / "間（あいだ）.md").read_text(encoding="utf-8")
     assert "link: https://x/aida/" in note and "level: N4" in note     # JLPT is the ground truth
+
+
+def test_sync_raises_statuses_from_reviews(tmp_path):
+    import shutil
+    import sqlite3
+    from types import SimpleNamespace
+
+    from studyloop import config
+    from studyloop.build import build
+    from studyloop.lang.sync import sync
+    from studyloop.lang.vocab import Entry
+    d = _lang_deck(tmp_path, SENTENCE.split("- id: ja-001")[0])
+    (d / "grammar.yaml").write_text((d / "grammar.yaml").read_text(encoding="utf-8")
+                                    + '  note: "[[じゃだめ]]"\n', encoding="utf-8")
+    notes = tmp_path / "notes"
+    (notes / "Grammar").mkdir(parents=True)
+    (notes / "Grammar" / "じゃだめ.md").write_text(
+        "---\ntype: grammar\ngrammar: じゃだめ\nstatus: unknown\n---\n# じゃだめ\n", encoding="utf-8")
+    out = tmp_path / "ja.apkg"
+    build(config.resolve_inputs([str(d)]), out)
+    # study it: every card mature, one review answered Again
+    work = tmp_path / "x"
+    with zipfile.ZipFile(out) as z:
+        z.extractall(work)
+    con = sqlite3.connect(work / "collection.anki2")
+    con.execute("update cards set type = 2, queue = 2, ivl = 30")
+    cid = con.execute("select id from cards limit 1").fetchone()[0]
+    con.execute("insert into revlog values (1, ?, -1, 1, 30, 10, 2500, 5000, 1)", (cid,))
+    con.commit()
+    con.close()
+    studied = tmp_path / "studied.apkg"
+    with zipfile.ZipFile(studied, "w") as z:
+        for f in work.iterdir():
+            z.write(f, f.name)
+    shutil.rmtree(work)
+
+    class Tok:
+        def key_for(self, w):
+            return f"{w}|"
+    vocab = SimpleNamespace(tok=Tok(), entries={"住む|": Entry("住む", "すむ", status="planned")})
+    r = sync(SimpleNamespace(path=d, notes_dir=notes), vocab, studied)
+    assert vocab.entries["住む|"].status == "known"
+    assert "status: known" in (notes / "Grammar" / "じゃだめ.md").read_text(encoding="utf-8")
+    assert r["_cards_found"] == 2 and sum(n for n, _ in r["_per_source"].values()) == 1
