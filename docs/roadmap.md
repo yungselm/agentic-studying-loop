@@ -31,11 +31,18 @@ questions. Image occlusion is left out: quick to make by hand, hard to generate.
   seed the standards; then reuse before writing: match a note against unstudied cards
   (e.g. 34k AnKing notes) and propose "unsuspend these, write those".
 
-### 3. Language cards
-Collect the author's inputs and favourite sets first, then design. Starting ideas: a sentence
-card (cloze/translation, audio, screenshot); a subtitle miner (`.srt` → i+1 sentences); stats
-on sentence length, word frequency, unknown words. AnKing's term → definition cards (9.8% fail)
-show where plain vocab cards struggle.
+### 3. Language cards (designed: [language-cards.md](language-cards.md))
+Grammar first from native sentences (Game Gengo structure), then i+1 vocabulary cards (audio +
+screenshot front, one target word glossed). Known words and grammar points live in the vault
+and order the cards; a language is a topic (grammar book PDF/URL + media sources). Built on the
+author's Japanese decks: 1 unknown word fails 20% vs 23% for 2+ (Shirokuma, 3.4k reviews).
+Opt-in: `[lang]` extra + separate skill.
+- [ ] Import + plan report on Terrace House OND 1 (no cards yet).
+- [ ] `sentence` and `grammar` card types; first ~50 Terrace House cards.
+- [ ] Grammar ground truth from Game Gengo; grammar gate.
+- [ ] `asl lang sync` from reviews; stats.
+- [ ] Video + subtitles input; Whisper / TTS fallbacks.
+- [ ] Italian from *Praxis-Grammatik Italienisch* as the second language.
 
 ### 2b. Topics from books and links (done)
 A brief in the deck's `Overview.md` (goal, `builds_on`, `notes:` flag, sources) and a sources map
