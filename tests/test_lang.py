@@ -503,3 +503,40 @@ def test_readd_from_other_input_keeps_cards(tmp_path):
     cues = [Line("sk3-0002", "00:01:36.180", "", "シロクマくん　暇だから　何か問題出してよ"),
             Line("sk3-0003", "00:01:36.400", "", "いいよ")]
     assert _match_old_ids(padded, cues) == {"sk3-0001": "sk3-0002"}
+
+
+def test_tts_fills_missing_audio(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from studyloop.cards import load_file
+    from studyloop.lang import tts
+    d = _lang_deck(tmp_path, SENTENCE.split("- id: ja-001")[0])
+    g = d / "grammar.yaml"
+    g.write_text(g.read_text(encoding="utf-8").replace("  audio: c1.mp3\n", ""), encoding="utf-8")
+    spoken = []
+
+    def fake(text, out, cfg):
+        spoken.append(text)
+        out.write_bytes(b"ID3")
+        return True
+    monkeypatch.setitem(tts.ENGINES, "fake", fake)
+    deck = SimpleNamespace(path=d, media_dir=tmp_path / "media", cfg={"tts": {"engines": ["fake"]}})
+    assert tts.fill_audio(deck) == 0
+    card = load_file(g)[0]
+    assert card["audio"] == "tts_jag-001.mp3" and card["tts"] == "fake"
+    assert spoken == ["こんなところで死んじゃダメなんです"]                # plain text, no furigana
+    assert (tmp_path / "media" / "tts" / "tts_jag-001.mp3").exists()
+    assert load_file(d / "vocabulary__th.yaml")[0]["audio"] == "c1.mp3"     # native audio untouched
+
+
+def test_clean_lists_and_deletes_unused_media(tmp_path):
+    from types import SimpleNamespace
+
+    from studyloop.lang.clean import clean
+    d = _lang_deck(tmp_path, SENTENCE.split("- id: ja-001")[0])
+    media = tmp_path / "media"
+    (media / "old").mkdir()
+    (media / "old" / "stale.mp3").write_bytes(b"x")
+    clean(SimpleNamespace(path=d, media_dir=media), delete=True)
+    assert not (media / "old").exists()
+    assert (media / "th1" / "c1.mp3").exists() and (media / "th1" / "c1.jpg").exists()   # used by cards

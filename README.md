@@ -24,6 +24,7 @@ Pick your path based on:
 | Anki cards with a typing editor, written by hand in simple text files. No AI involved. | [Install](#install) → [Cards without an agent](#cards-without-an-agent) |
 | The full loop: an AI agent turns what you learn in a project into notes and cards. | [Install](#install) → [The full loop](#the-full-loop) |
 | Notes and cards from lectures, books or links, no code project needed. | [Install](#install) → [Lectures and books](#lectures-and-books) |
+| A language: sentence cards from shows you watch, one new word each, grammar first. | [Install](#install) → [Languages](#languages) |
 | The full loop, but you're not comfortable with the terminal: Claude sets it up for you. | [Let Claude set it up](#let-claude-set-it-up) |
 | You're an AI agent asked to set this up. | [For agents](#for-agents) |
 
@@ -292,6 +293,25 @@ After each part the agent checks the cards (`asl check` compiles and runs code c
 `<deck>.apkg` in the card home; import it again after every batch and Anki updates the cards in
 place.
 
+## Languages
+
+For learning a language from native media (opt-in: `uv tool install "agentic-studying-loop[lang] @ …"`,
+then `asl lang setup ja` once for word lists, dictionary and grammar lists). Cards: a native
+line with audio and a screenshot, **one new word** glossed on the back; grammar cards in the
+Game Gengo layout. Your vault keeps the ground truth: `Vocabulary.md` (every word, level,
+meaning, status) and one note per grammar point with an overview against the JLPT lists.
+
+```bash
+asl lang add  "<deck>" episode01.mp4 --title "Show 1" --key sh1   # subtitles next to the video
+asl lang plan "<deck>"                       # which lines are one-new-word cards, which wait
+asl lang draft "<deck>" -n 20                # card stubs; the agent writes the glosses
+asl lang sync "<deck>" export.apkg           # after studying: statuses from your reviews
+```
+
+Say *"make cards from this episode"* in Claude Code (skill `language-cards`). Design, evidence
+and all commands: [language cards](docs/language-cards.md). Japanese is configured
+(`studyloop/lang/ja.yaml`); other languages need their own config.
+
 ## Modes
 
 | mode | code | notes | cards |
@@ -331,7 +351,7 @@ root, where Claude Code expects a plugin. See [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## Docs
 
-[Card format](docs/card-format.md) · [Writing a pack](docs/writing-a-pack.md) (also possible
+[Card format](docs/card-format.md) · [Language cards](docs/language-cards.md) · [Writing a pack](docs/writing-a-pack.md) (also possible
 without cloning) · [Migrating from rust-lang-kata](docs/migrating-from-rust-lang-kata.md) ·
 [Roadmap](docs/roadmap.md)
 

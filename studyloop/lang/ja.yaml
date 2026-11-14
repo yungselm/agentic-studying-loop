@@ -33,3 +33,8 @@ grammar_lists:                 # the JLPT grammar ground truth (checklist in the
     N3: https://jlptsensei.com/jlpt-n3-grammar-list/
     N2: https://jlptsensei.com/jlpt-n2-grammar-list/
     N1: https://jlptsensei.com/jlpt-n1-grammar-list/
+tts:                           # fallback audio (`asl lang tts`), engines tried in order
+  engines: [voicevox, edge]
+  voicevox_url: http://127.0.0.1:50021   # a running VOICEVOX engine (offline, best Japanese)
+  voicevox_speaker: 3
+  edge_voice: ja-JP-NanamiNeural         # edge-tts: online; the text goes to Microsoft

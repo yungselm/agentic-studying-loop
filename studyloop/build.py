@@ -232,6 +232,8 @@ def make_note(deck, f, card, models, find_file=lambda _n: None,
     if card.get("std"):
         tags.append(f"asl::std::v{card['std']}")
     tags.append(f"asl::type::{card['type']}")
+    if card.get("tts"):
+        tags.append("asl::tts")                 # audio from text-to-speech, not native
     lang = lang_for(deck, f, card)
     media = {} if media is None else media
 

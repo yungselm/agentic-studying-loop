@@ -1,7 +1,9 @@
 # Language cards (design)
 
-Status: **milestones 1–2 built** (`asl lang setup / add / seed / plan / draft`, `sentence` and
-`grammar` card types, skill `language-cards`); first Terrace House cards next. Roadmap §3.
+Status: **milestones 1–4 built, 5 mostly** (`asl lang setup / add / seed / plan / draft / grammar /
+sync / tts / clean`, `sentence` and `grammar` card types, skill `language-cards`), tested on the
+author's Japanese vault (Terrace House, Shirokuma, Game Gengo N3). Next: Italian (milestone 6),
+then Whisper, card preferences, and the author's fresh start. Roadmap §3.
 Test case: port *Terrace House OND 1* (962 subs2srs notes, Japanese) into the new card types.
 
 ## Principles
@@ -302,7 +304,12 @@ tools, never content (book pages, Game Gengo images, JLPT Sensei text stay with 
    the 489 mined notes. Re-importing a source from another input keeps its cards: lines are
    matched by start time (±0.6 s: movies2anki padded by 0.25 s) and text, cards' `line:` is
    renumbered, and a line with a card or rejection that cannot be matched stops the import.
-   Still open: Whisper check, TTS.
+   **TTS fallback** (`asl lang tts <deck>`): every card without `audio:` gets a clip from the
+   first working engine in `tts.engines` (VOICEVOX if its local engine runs, else edge-tts:
+   online, the text goes to Microsoft); cards get `tts: <engine>`, the build tags `asl::tts`.
+   First use: the 3 N3 points without native audio. `asl lang clean <deck>` lists media no
+   line or card uses (left by re-imports; `--delete` removes them, all can be cut again).
+   Still open: Whisper check.
 6. **Second language:** Italian from *Praxis-Grammatik Italienisch* + media, proving the
    book → grammar notes → media sentence path.
 

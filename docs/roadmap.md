@@ -41,8 +41,12 @@ Opt-in: `[lang]` extra + separate skill.
 - [x] `sentence` and `grammar` card types; first ~50 Terrace House cards.
 - [x] Grammar ground truth from Game Gengo (+ JLPT checklist, images, N3 port); grammar gate.
 - [x] `asl lang sync` from reviews (fail rate per source; more stats once reviewed).
-- [ ] Video + subtitles input; Whisper / TTS fallbacks.
-- [ ] Italian from *Praxis-Grammatik Italienisch* as the second language.
+- [x] Video + subtitles input (and re-cutting mined decks from their video); TTS fallback
+  (VOICEVOX / edge-tts); `asl lang clean` for unused media.
+- [ ] Whisper: check clips against their subtitle (cut short, extra talkers), word-exact
+  speaker splits, subtitles for media without them.
+- [ ] Italian from *Praxis-Grammatik Italienisch* as the second language (next session: the
+  author organises the book PDF and example media first).
 - [ ] Card preferences and quality checks the user decides (which source or card kind wins a
   word, minimum audio/image quality, Whisper check), designed together after the pipeline.
 - [ ] The author's real start: a fresh topic from all their sources (Terrace House, Shirokuma,

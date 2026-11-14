@@ -26,6 +26,7 @@ the `lang` extra and, once per language, `asl lang setup <code>` (word lists, di
    (`Grammar/<point>.md`): `pattern` regex covering conjugations and casual forms, or `token`
    `surface/pos/pos2` for particles; set `rule: agent`. A rule that would match inside other
    words (`さ`, `間`) is too broad: tighten it. Cannot be found in a line → `detect: false`.
+   Cards without native audio (book examples, decks without clips): `asl lang tts <deck>`.
 6. **Finish:** `asl lint <deck>` (fix every `!`), then `asl build <deck> -o "<card home>/<deck>.apkg"`.
    Report the ids and the `.apkg` path (import: "Update notetypes" ticked).
 7. **After studying:** the user exports from Anki (with scheduling); `asl lang sync <deck>

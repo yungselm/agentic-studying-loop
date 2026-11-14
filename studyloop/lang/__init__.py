@@ -68,6 +68,12 @@ def main(a) -> int:
                           pad=tuple(d.cfg.get("clip_padding") or (0.25, 0.4)),
                           width=int(d.cfg.get("screenshot_width") or 960),
                           subs=a.subs, keep_re=d.cfg.get("subtitle_keep") or "")
+    if a.lang_cmd == "clean":
+        from .clean import clean
+        return clean(d, a.delete)
+    if a.lang_cmd == "tts":
+        from .tts import fill_audio
+        return fill_audio(d)
     if a.lang_cmd == "grammar":
         from .grammar import check_points, import_game_gengo
         if a.input:
@@ -150,6 +156,11 @@ def add_parser(sub) -> None:
     gr.add_argument("--cards", action="store_true", help="also write the lessons as grammar cards")
     gr.add_argument("--images", action="store_true",
                     help="fetch JLPT Sensei's image for notes with a link but no image")
+    cl = ls.add_parser("clean", help="list (or --delete) media no line or card uses")
+    cl.add_argument("deck", type=Path)
+    cl.add_argument("--delete", action="store_true", help="remove them")
+    tt = ls.add_parser("tts", help="give cards without native audio a text-to-speech clip")
+    tt.add_argument("deck", type=Path)
     sy = ls.add_parser("sync", help="statuses from your Anki reviews (a manual .apkg/.colpkg export)")
     sy.add_argument("deck", type=Path)
     sy.add_argument("export", help="Anki export with scheduling information")
