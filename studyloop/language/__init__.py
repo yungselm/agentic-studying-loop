@@ -1,16 +1,19 @@
 """Language topics: sentence mining, a vocabulary ground truth in the vault, i+1 planning.
 
-Opt-in: needs the `lang` extra (tokenizer, frequency data) and `asl lang setup <code>`.
-Design: docs/language-cards.md. Modules, in the order a source flows through them:
+The pipeline every language shares; what differs per language is a `Language` (language.py)
+from a language module (language_ja). Opt-in: the `lang` extra plus the language's own
+(`lang-ja`), then `asl lang setup <code>`. Design: docs/language-cards.md. Modules, in the
+order a source flows through them:
 
-  setup       a language's config (<code>.yaml), cache, `asl lang setup`
+  language    what a language provides (tokenizer, levels, dictionary, TTS, grammar lists)
+  setup       find the deck's language, the download cache, `asl lang setup`
   lines       sources -> lines/<key>.tsv: mined .apkg, video + subtitles; clips, screenshots
   audio       ffmpeg (padding, speaker splits); Anki exports are read by core.reviews
-  tokens      tokenizer, furigana       levels      word levels (lists, frequency estimate)
+  tokens      tokens, plain text, the **target**   levels   word levels (lists, frequency)
   vocab       Vocabulary.md, seeding from exports, meanings
   grammar     grammar rules (pattern / token) and their check
-  gamegengo   grammar notes (+ cards) from a Game Gengo deck
-  overview    the official grammar lists as a checklist; images on the notes
+  overview    the official grammar lists as a checklist against the grammar notes
+  new         a new language deck (`asl topic --lang`)
   plan        the i+1 planner and its report    draft    card stubs in plan order
   cardtypes   sentence + grammar cards: fields, lint
   cardfile    card items, in-place field edits   notefile  note frontmatter
@@ -23,13 +26,15 @@ from pathlib import Path
 
 from ..core.config import load_deck, native_path
 from ..core.registry import Command, DeckKind, Module, Registry
+from .language import Language
 
 
 @dataclass
 class LangDeck:
     path: Path
     lang: str
-    cfg: dict            # language config (lang/<code>.yaml)
+    language: Language
+    cfg: dict            # the language's config (<code>.yaml)
     brief: dict          # Overview.md frontmatter
     media_dir: Path
     notes_dir: Path
@@ -41,7 +46,7 @@ class LangDeck:
 
 def open_deck(folder: Path) -> LangDeck:
     from ..core.vault import split_frontmatter
-    from .setup import lang_config
+    from .setup import get_language
     deck = load_deck(Path(folder).expanduser())
     lang = deck.cfg.get("lang")
     if not lang:
@@ -57,7 +62,8 @@ def open_deck(folder: Path) -> LangDeck:
     if isinstance(notes, str) and notes.strip():
         p = native_path(notes)
         notes_dir = p if p.is_absolute() else (deck.path / p)
-    return LangDeck(deck.path, lang, lang_config(lang), brief,
+    language = get_language(lang)
+    return LangDeck(deck.path, lang, language, language.config, brief,
                     native_path(media), notes_dir.resolve())
 
 
@@ -68,9 +74,7 @@ def _key_from_title(title: str) -> str:
 
 
 def main(a) -> int:
-    from .levels import Levels
     from .setup import setup
-    from .tokens import tokenizer
     if a.lang_cmd == "setup":
         return setup(a.code, a.force)
     d = open_deck(a.deck)
@@ -82,7 +86,7 @@ def main(a) -> int:
                           video=a.video, only=a.only,
                           pad=tuple(d.cfg.get("clip_padding") or (0.25, 0.4)),
                           width=int(d.cfg.get("screenshot_width") or 960),
-                          subs=a.subs, keep_re=d.cfg.get("subtitle_keep") or "")
+                          subs=a.subs, keep_re=d.cfg.get("subtitle_keep") or "", lang=d.lang)
     if a.lang_cmd == "clean":
         from .clean import clean
         return clean(d, a.delete)
@@ -90,19 +94,18 @@ def main(a) -> int:
         from .tts import fill_audio
         return fill_audio(d)
     if a.lang_cmd == "grammar":
-        from .gamegengo import import_game_gengo
         from .grammar import check_points
         if a.input:
-            return import_game_gengo(d, a.input, "unknown" if a.fresh else "reviews", cards=a.cards)
-        from .overview import fetch_images, write_overview
-        write_overview(d)                     # also fills links/levels from the JLPT lists
+            return d.language.import_grammar(d, a.input, "unknown" if a.fresh else "reviews", a.cards)
+        from .overview import write_overview
+        write_overview(d)                     # also fills links/levels from the official lists
         if a.images:
-            fetch_images(d)
-        return check_points(d, tokenizer(d.cfg.get("tokenizer", "")))
-    tok = tokenizer(d.cfg.get("tokenizer", ""))
+            d.language.grammar_images(d)
+        return check_points(d, d.language.tokenizer())
+    tok = d.language.tokenizer()
     from .vocab import Vocabulary, seed
     vocab = Vocabulary(d.vocab_path, d.lang, tok)
-    levels = Levels(d.cfg)
+    levels = d.language.levels()
     if a.lang_cmd == "seed":
         exports = [native_path(p) for p in (a.exports or d.brief.get("known_from") or [])]
         if not exports:
@@ -171,7 +174,7 @@ def add_parser(lg) -> None:
     gr.add_argument("--fresh", action="store_true", help="every grammar point starts as unknown")
     gr.add_argument("--cards", action="store_true", help="also write the lessons as grammar cards")
     gr.add_argument("--images", action="store_true",
-                    help="fetch JLPT Sensei's image for notes with a link but no image")
+                    help="an image for each grammar note without one (Japanese: from JLPT Sensei)")
     cl = ls.add_parser("clean", help="list (or --delete) media no line or card uses")
     cl.add_argument("deck", type=Path)
     cl.add_argument("--delete", action="store_true", help="remove them")
@@ -207,4 +210,4 @@ def register(reg: Registry) -> None:
 
 
 MODULE = Module("language", register, skills=("language-cards",), extra="lang",
-                needs=("fugashi", "unidic_lite", "wordfreq", "imageio_ffmpeg", "edge_tts"))
+                needs=("wordfreq", "imageio_ffmpeg", "edge_tts"))

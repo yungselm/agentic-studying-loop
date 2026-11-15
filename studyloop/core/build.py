@@ -142,7 +142,7 @@ def build_models(renames) -> dict[str, genanki.Model]:
                 text = text.replace(f'"{old}"', f'"{new}"')
             return text
         if t.model_id not in by_id:
-            by_id[t.model_id] = t.model(template, css)
+            by_id[t.model_id] = t.model(template, css + t.css)
         out[t.name] = by_id[t.model_id]
     return out
 

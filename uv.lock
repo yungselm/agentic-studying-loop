@@ -25,6 +25,11 @@ dev = [
 ]
 lang = [
     { name = "edge-tts" },
+    { name = "imageio-ffmpeg" },
+    { name = "wordfreq" },
+]
+lang-ja = [
+    { name = "edge-tts" },
     { name = "fugashi" },
     { name = "imageio-ffmpeg" },
     { name = "unidic-lite" },
@@ -33,20 +38,21 @@ lang = [
 
 [package.metadata]
 requires-dist = [
+    { name = "agentic-studying-loop", extras = ["lang"], marker = "extra == 'lang-ja'" },
     { name = "build", marker = "extra == 'dev'" },
     { name = "edge-tts", marker = "extra == 'lang'", specifier = ">=6.1" },
-    { name = "fugashi", marker = "extra == 'lang'", specifier = ">=1.3" },
+    { name = "fugashi", marker = "extra == 'lang-ja'", specifier = ">=1.3" },
     { name = "genanki", specifier = ">=0.13" },
     { name = "imageio-ffmpeg", marker = "extra == 'lang'", specifier = ">=0.5" },
     { name = "pypdf", specifier = ">=4" },
     { name = "pytest", specifier = ">=7" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "ruff", specifier = ">=0.4" },
-    { name = "unidic-lite", marker = "extra == 'lang'", specifier = ">=1.0.8" },
+    { name = "unidic-lite", marker = "extra == 'lang-ja'", specifier = ">=1.0.8" },
     { name = "wordfreq", marker = "extra == 'lang'", specifier = ">=3.1" },
     { name = "zstandard", specifier = ">=0.21" },
 ]
-provides-extras = ["dev", "lang"]
+provides-extras = ["dev", "lang", "lang-ja"]
 
 [[package]]
 name = "aiohappyeyeballs"

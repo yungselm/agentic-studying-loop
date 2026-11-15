@@ -9,20 +9,32 @@ import math
 import statistics
 
 from .setup import cache_dir
-from .tokens import hira
 
 NONE = "—"
 
 
 class Levels:
-    """Look up a word's level; estimate unlisted words from frequency rank."""
+    """Look up a word's level; estimate unlisted words from frequency rank. A language
+    subclasses it to match its own spellings (the three hooks below)."""
+
+    def normalize_reading(self, s: str) -> str:
+        """Readings as the tokenizer writes them (Japanese: katakana -> hiragana)."""
+        return s
+
+    def variant(self, form: str) -> str:
+        """A spelling-independent key ("" = none; Japanese: kanji without okurigana)."""
+        return ""
+
+    def reading_only(self, form: str) -> bool:
+        """The form is written as it is read, so a listed reading matches it (Japanese: kana)."""
+        return False
 
     def __init__(self, cfg: dict):
         lv = cfg.get("levels") or {}
         self.order: list[str] = list(lv.get("order") or [])
         self.by_word: dict[str, str] = {}
-        self.by_kana: dict[str, str] = {}
-        self.by_skeleton: dict[tuple[str, str], str] = {}   # (kanji only, reading): 付き合う = 付合う
+        self.by_reading: dict[str, str] = {}
+        self.by_variant: dict[tuple[str, str], str] = {}    # (variant, reading): 付き合う = 付合う
         d = cache_dir(cfg["code"])
         missing = [lvl for lvl in self.order if not (d / f"level_{lvl}.csv").exists()]
         if missing:
@@ -30,13 +42,14 @@ class Levels:
         for lvl in reversed(self.order):          # easiest level wins: written last
             text = (d / f"level_{lvl}.csv").read_text(encoding="utf-8-sig")
             for row in csv.DictReader(io.StringIO(text)):
-                expr, reading = (row.get("expression") or "").strip(), hira((row.get("reading") or "").strip())
+                expr = (row.get("expression") or "").strip()
+                reading = self.normalize_reading((row.get("reading") or "").strip())
                 for form in filter(None, (s.strip() for s in expr.replace("；", ";").split(";"))):
                     self.by_word[form] = lvl
-                    if reading and (sk := _skeleton(form)):
-                        self.by_skeleton[(sk, reading)] = lvl
+                    if reading and (v := self.variant(form)):
+                        self.by_variant[(v, reading)] = lvl
                 if reading:
-                    self.by_kana[reading] = lvl
+                    self.by_reading[reading] = lvl
         self.rank: dict[str, int] = {}
         if cfg.get("frequency") == "wordfreq":
             try:
@@ -59,10 +72,10 @@ class Levels:
             if f in self.by_word:
                 return self.by_word[f]
         for f in forms:
-            if (sk := _skeleton(f)) and (sk, reading) in self.by_skeleton:
-                return self.by_skeleton[(sk, reading)]
-        if all(_is_kana(f) for f in forms) and reading in self.by_kana:
-            return self.by_kana[reading]
+            if (v := self.variant(f)) and (v, reading) in self.by_variant:
+                return self.by_variant[(v, reading)]
+        if all(self.reading_only(f) for f in forms) and reading in self.by_reading:
+            return self.by_reading[reading]
         return None
 
     def frequency_rank(self, forms: list[str]) -> int | None:
@@ -92,10 +105,24 @@ class Levels:
         return max(0, i - cur)
 
 
-def _skeleton(s: str) -> str:
-    """The kanji of a word without its kana (okurigana): 付き合う, 付合う -> 付合."""
-    return "".join(c for c in s if not _is_kana(c))
-
-
-def _is_kana(s: str) -> bool:
-    return all("ぁ" <= c <= "ゖ" or "ァ" <= c <= "ヺ" or c == "ー" for c in s)
+def download_lists(cfg: dict, force: bool = False) -> None:
+    """The level lists (`levels: lists:` in the language config) into the cache."""
+    import urllib.request
+    lists = (cfg.get("levels") or {}).get("lists") or {}
+    d = cache_dir(cfg["code"])
+    for level, url in lists.items():
+        out = d / f"level_{level}.csv"
+        if out.exists() and not force:
+            print(f"  {level}: cached ({out})")
+            continue
+        req = urllib.request.Request(url, headers={"User-Agent": "agentic-studying-loop"})
+        with urllib.request.urlopen(req, timeout=60) as r:
+            out.write_bytes(r.read())
+        print(f"  {level}: downloaded → {out}")
+    if credit := (cfg.get("levels") or {}).get("credit"):
+        print(f"  ({credit})")
+    if cfg.get("frequency") == "wordfreq":
+        try:
+            import wordfreq  # noqa: F401
+        except ImportError:
+            print("  ! wordfreq missing: pip install wordfreq (frequency estimates are skipped)")

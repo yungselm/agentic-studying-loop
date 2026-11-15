@@ -36,7 +36,7 @@ Grammar first from native sentences (Game Gengo structure), then i+1 vocabulary 
 screenshot front, one target word glossed). Known words and grammar points live in the vault
 and order the cards; a language is a topic (grammar book PDF/URL + media sources). Built on the
 author's Japanese decks: 1 unknown word fails 20% vs 23% for 2+ (Shirokuma, 3.4k reviews).
-Opt-in: `[lang]` extra + separate skill.
+Opt-in: `[lang-ja]` extra (shared `[lang]` + Japanese) + separate skill.
 - [x] Import + plan report on Terrace House OND 1 (no cards yet): `asl lang setup/add/seed/plan`.
 - [x] `sentence` and `grammar` card types; first ~50 Terrace House cards.
 - [x] Grammar ground truth from Game Gengo (+ JLPT checklist, images, N3 port); grammar gate.
@@ -45,8 +45,8 @@ Opt-in: `[lang]` extra + separate skill.
   (VOICEVOX / edge-tts); `asl lang clean` for unused media.
 - [ ] Whisper: check clips against their subtitle (cut short, extra talkers), word-exact
   speaker splits, subtitles for media without them.
-- [ ] Italian as the second language: a language config (tokenizer, CEFR word levels,
-  dictionary) and an episode with Italian subtitles; the grammar book (*Praxis-Grammatik
+- [ ] Italian as the second language: a `language_it` module like `language_ja` (tokenizer, CEFR
+  word levels, dictionary, `it.yaml`) and an episode with Italian subtitles; the grammar book (*Praxis-Grammatik
   Italienisch*) later, once found. Postponed by the author.
 - [ ] Card preferences and quality checks the user decides (which source or card kind wins a
   word, minimum audio/image quality, Whisper check), designed together after the pipeline.

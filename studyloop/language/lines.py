@@ -176,9 +176,10 @@ def parse_subs(path: Path) -> list[tuple[str, str, str]]:
     return out
 
 
-def find_subs(video: Path) -> Path | None:
-    for cand in (video.with_suffix(".ja.srt"), video.with_suffix(".ja.ass"), video.with_suffix(".srt"),
-                 video.with_suffix(".ass")):
+def find_subs(video: Path, lang: str = "") -> Path | None:
+    """`<video>.<lang>.srt/.ass` first, then `<video>.srt/.ass`."""
+    tagged = (video.with_suffix(f".{lang}.srt"), video.with_suffix(f".{lang}.ass")) if lang else ()
+    for cand in (*tagged, video.with_suffix(".srt"), video.with_suffix(".ass")):
         if cand.is_file():
             return cand
     return None
@@ -302,13 +303,13 @@ def _match_old_ids(old: list[Line], new: list[Line], tol: float = 0.6) -> dict[s
 def add_source(deck_dir: Path, media_dir: Path, inp: Path, key: str, title: str,
                label_re: str, strip_re: str = "", video: Path | None = None,
                only: str | None = None, pad: tuple[float, float] = (0.25, 0.4),
-               width: int = 960, subs: Path | None = None, keep_re: str = "") -> int:
+               width: int = 960, subs: Path | None = None, keep_re: str = "", lang: str = "") -> int:
     from ..core.config import native_path
     raw_inp, inp = str(inp), native_path(inp)
     ex = None
     if inp.suffix.lower() in VIDEO:              # a video + its subtitle file
         video = inp
-        subs = native_path(subs) if subs else find_subs(video)
+        subs = native_path(subs) if subs else find_subs(video, lang)
         if not subs or not subs.is_file():
             raise SystemExit(f"{video}: no subtitles next to it (.srt/.ass); pass --subs")
         lines, media, stats = import_subs(video, subs, key, label_re, strip_re, keep_re)

@@ -116,6 +116,7 @@ class CardType:
     cloze: bool = False                     # an Anki cloze note type
     default_limits: dict = {}               # studyloop.yaml `limits: <name>:` defaults
     limits_name: str | None = None          # use another type's limits (timeline: concept)
+    css: str = ""                           # appended to the shared style.css for this type
 
     def prepare(self, card: dict) -> dict:
         """Right after loading (timeline: shuffle the steps into a question)."""
@@ -192,6 +193,7 @@ class Registry:
         self.card_types: dict[str, CardType] = {}
         self.lint_rules: list[LintRule] = []
         self.commands: dict[str, tuple[Module, Command]] = {}
+        self.provides: dict[str, dict[str, tuple[Module, Any]]] = {}
         self._current: Module | None = None
 
     def add_deck_kind(self, k: DeckKind) -> None:
@@ -208,6 +210,16 @@ class Registry:
     def add_command(self, c: Command) -> None:
         self._unique(self.commands, c.name, "command")
         self.commands[c.name] = (self._current, c)
+
+    def provide(self, point: str, name: str, obj: Any) -> None:
+        """An extension point a module defines for others (the language module's "language":
+        language_ja provides "ja"). Core never looks inside."""
+        table = self.provides.setdefault(point, {})
+        self._unique(table, name, point)
+        table[name] = (self._current, obj)
+
+    def provided(self, point: str) -> dict[str, tuple[Module, Any]]:
+        return self.provides.get(point, {})
 
     def card_type(self, name: str) -> CardType:
         if name not in self.card_types:

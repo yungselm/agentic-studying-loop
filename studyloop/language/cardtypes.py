@@ -6,15 +6,16 @@ import html
 import re
 from pathlib import Path
 
-from ..core.config import ANKI, Deck
+from ..core.config import Deck
 from ..core.registry import CardType, Flag, Template
 
-TEMPLATES = ANKI / "templates"                 # moves into the language module in step 5
+TEMPLATES = Path(__file__).resolve().parent / "anki"
 TARGET = re.compile(r"\*\*(.+?)\*\*", re.S)
 
 
 class _LangCard(CardType):
     templates_dir = TEMPLATES
+    css = (TEMPLATES / "style.css").read_text(encoding="utf-8")
 
     def front(self, card):
         return str(card.get("text") or "")
@@ -63,17 +64,18 @@ def lang_context(deck: Deck) -> dict | None:
     if not deck.cfg.get("lang"):
         return None
     from ..core.build import media_index
-    from .setup import lang_config
+    from .language import Language
+    from .setup import get_language
     try:
-        cfg = lang_config(deck.cfg["lang"])
-    except SystemExit:
-        cfg = {}
-    return {"cap": int(cfg.get("length_cap") or 10**6), "media": media_index(deck),
+        lang = get_language(deck.cfg["lang"])
+        cap, length = lang.config.get("length_cap"), lang.text_length
+    except SystemExit:                    # not installed: lint the rest, skip the length cap
+        cap, length = None, Language().text_length
+    return {"cap": int(cap or 10**6), "length": length, "media": media_index(deck),
             "has_media_dir": bool(deck.cfg.get("media_dir"))}
 
 
 def lang_flags(card: dict, ctx: dict | None) -> list[Flag]:
-    from .tokens import plain_text
     t = card["type"]
     if ctx is None:
         return [Flag("!", "lang", f"a {t} card needs a language deck (`lang:` and `media_dir:` in deck.yaml)")]
@@ -90,7 +92,7 @@ def lang_flags(card: dict, ctx: dict | None) -> list[Flag]:
             out.append(Flag("!", "lang", f"no `{k}:`"))
     if t == "sentence" and not str(card.get("reading") or "").strip():
         out.append(Flag("~", "lang", "no `reading:` for the target word"))
-    n = len(re.sub(r"[\s、。！？!?…‥・「」『』“”\"'（）()~〜―-]", "", plain_text(textv)))
+    n = ctx["length"](textv)
     if n > ctx["cap"]:
         out.append(Flag("~", "size", f"sentence {n} chars > cap {ctx['cap']} (longer lines fail more)"))
     for k in ("audio", "image"):

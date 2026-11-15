@@ -1,6 +1,6 @@
 # Japanese: how `asl lang` reads, levels and orders it.
 name: Japanese
-tokenizer: unidic            # fugashi + unidic-lite (pip extra: agentic-studying-loop[lang])
+tokenizer: unidic            # fugashi + unidic-lite (pip extra: agentic-studying-loop[lang-ja])
 frequency: wordfreq          # general word frequency (wordfreq's Japanese list)
 clip_padding: [0.25, 0.4]     # s before/after a line when cutting from video
 screenshot_width: 960        # px, at most (screenshots from video)
@@ -26,6 +26,8 @@ reading_fixes:                 # unidic-lite readings that are wrong in everyday
   私: わたし
   今日: きょう
 grammar_lists:                 # the JLPT grammar ground truth (checklist in the grammar overview)
+  name: JLPT                    # "JLPT points covered" in the overview
+  source: the JLPT lists (JLPT Sensei)
   credit: "JLPT grammar lists from jlptsensei.com"
   pages:
     N5: https://jlptsensei.com/jlpt-n5-grammar-list/

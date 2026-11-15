@@ -211,7 +211,7 @@ The grammar phase runs the same loop over grammar points (vocabulary relaxed: th
 full translation). Only `ready` lines become cards and only built cards enter Anki: the deck
 grows at the front instead of being reordered (Anki keeps a new card's position once imported).
 
-## Tools (per language in `studyloop/lang/<code>.yaml`)
+## Tools (per language: a module like `studyloop/language_ja/`, with its `<code>.yaml`)
 
 | Step | Japanese | Others |
 |---|---|---|
@@ -223,7 +223,8 @@ grows at the front instead of being reordered (Anki keeps a new card's position 
 | No subtitles | faster-whisper | faster-whisper |
 | TTS fallback | VOICEVOX | Piper / edge-tts |
 
-**Packaging:** `uv tool install "agentic-studying-loop[lang]"` (Python deps); ffmpeg external;
+**Packaging:** `uv tool install "agentic-studying-loop[lang-ja]"` (the shared `lang` deps plus
+Japanese; other languages get their own extra); ffmpeg from PATH or `imageio-ffmpeg`;
 `asl lang setup <code>` downloads dictionary, tokenizer data and frequency lists into a cache.
 The `language-cards` skill ships in its own plugin in the same marketplace. The repo ships
 tools, never content (book pages, Game Gengo images, JLPT Sensei text stay with the user).

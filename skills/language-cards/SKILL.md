@@ -7,7 +7,7 @@ description: Make one-new-word sentence cards (audio + screenshot, target word g
 Deck kind **language**: cards are `sentence` and `grammar` only; commands are `asl lang …`, then
 `asl lint` and `asl build` (no `asl fix`/`asl check`: ids come from `asl lang draft`).
 Design and rules: `docs/language-cards.md` in the agentic-studying-loop repo. Needs `asl` with
-the `lang` extra and, once per language, `asl lang setup <code>` (word lists, dictionary).
+the language's extra (`lang-ja`) and, once per language, `asl lang setup <code>` (word lists, dictionary).
 
 1. **New language?** Ask one question at a time: the goal, the gloss language, the current level
    (JLPT/CEFR), which Anki exports show what they know, grammar sources (book PDF, URL, deck),

@@ -167,40 +167,37 @@ def fill_meanings(vocab: Vocabulary, glosses: dict[str, str], cfg: dict, gloss_l
     for k, g in glosses.items():
         if k in vocab.entries:
             vocab.entries[k].meaning = g
-    if all(e.meaning for k, e in vocab.entries.items() if k not in glosses) or not cfg.get("dictionary"):
+    if all(e.meaning for k, e in vocab.entries.items() if k not in glosses):
         return
-    from .dictionary import ISO2, Dictionary
-    try:
-        dic = Dictionary(cfg)
-    except SystemExit:
+    dic = _dictionary(cfg)
+    if dic is None:
         return
-    codes = list(dict.fromkeys([ISO2.get(gloss_lang, gloss_lang), "eng"]))
     for k, e in vocab.entries.items():
         if e.meaning or k in glosses:
             continue
         lemma = k.split("|")[0]                      # dictionary form: なん -> 何
         hits = dic.lookup(lemma, e.reading) or dic.lookup(e.word, e.reading)
-        for code in codes:
-            sense = next((sn for h in hits[:1] for sn in h["s"] if sn["gloss"].get(code)), None)
-            if sense:
-                e.meaning = "; ".join(sense["gloss"][code][:3])
-                break
+        if m := dic.meaning(hits, [gloss_lang, "en"]):
+            e.meaning = m
+
+
+def _dictionary(cfg: dict):
+    """The language's dictionary, or None (none configured, or not downloaded yet)."""
+    from .setup import get_language
+    try:
+        return get_language(cfg["code"]).dictionary()
+    except SystemExit:
+        return None
 
 
 def interjections(forms: dict, level_of: dict, levels, cfg: dict) -> set[str]:
-    if not cfg.get("dictionary"):
-        return set()
-    from .dictionary import Dictionary
-    try:
-        dic = Dictionary(cfg)
-    except SystemExit:
+    dic = _dictionary(cfg)
+    if dic is None:
         return set()
     out = set()
     for k, fc in forms.items():
         if level_of.get(k, NONE).lstrip("~") in levels.order and not level_of[k].startswith("~"):
             continue                                   # on a list (なるほど N4): a word to learn
-        entries = [e for (w, _) in fc for e in dic.lookup(w)[:1]]
-        if entries and all(sn["pos"] and all("interjection" in p for p in sn["pos"])
-                           for e in entries for sn in e["s"] if sn["gloss"].get("eng")):
+        if dic.interjection([e for (w, _) in fc for e in dic.lookup(w)[:1]]):
             out.add(k)
     return out

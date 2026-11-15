@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from dataclasses import replace
 from pathlib import Path
 
 import yaml
@@ -15,13 +14,8 @@ import yaml
 from ..core.config import load_deck
 from .cardfile import card_item
 from .plan import compute, grammar_links, write_state
-from .tokens import furigana
 
 SENSES_PER_LANG = 3
-
-
-def _katakana(s: str) -> bool:
-    return bool(s) and all("ァ" <= c <= "ヺ" or c == "ー" for c in s)
 
 
 def _slug(s: str) -> str:
@@ -53,13 +47,8 @@ def draft(d, vocab, levels, n: int, current: str | None, assume: list[str],
     if not picked:
         print("Nothing ready: every one-new-word line has a card, or is parked.")
         return 0
-    dic = None
-    if d.cfg.get("dictionary"):
-        from .dictionary import Dictionary
-        dic = Dictionary(d.cfg)
-    from .dictionary import senses_text
+    dic = d.language.dictionary()
     langs = list(dict.fromkeys([str(d.brief.get("gloss_language") or "en"), "en"]))
-    fixes = d.cfg.get("reading_fixes") or {}
     prefix = deck.cfg.get("prefix") or d.lang
     num = _next_number(deck, prefix, st)
     by_file: dict[Path, list[str]] = defaultdict(list)
@@ -69,18 +58,16 @@ def draft(d, vocab, levels, n: int, current: str | None, assume: list[str],
         it, e = st.items[i], vocab.entries[k]
         meta = _source_meta(d.path, it.source)
         title = str(meta.get("title") or it.source)
-        toks = [replace(t, kana=fixes.get(t.surface, t.kana)) for t in vocab.tok(it.line.text)]
+        toks = vocab.tok(it.line.text)
         tgt = next((t for t in toks if t.key == k), None)
         word = tgt.word if tgt else e.word        # as spelled in this line: 撮る, not 取る
-        reading = fixes.get(word, tgt.reading if tgt else e.reading)
-        if _katakana(word):                       # シーン: its reading is itself, not しーん
-            reading = word
+        reading = d.language.reading(word, tgt, e.reading)
         entries = dic.lookup(word, reading, tgt.pos if tgt else "") if dic else []
-        if entries and reading not in entries[0]["r"]:
-            reading = entries[0]["r"][0]
+        if entries and reading not in dic.readings(entries[0]):
+            reading = dic.readings(entries[0])[0]
         cid = f"{prefix}-{num:03d}"
         num += 1
-        card = {"id": cid, "type": "sentence", "text": furigana(toks, k), "word": word,
+        card = {"id": cid, "type": "sentence", "text": d.language.annotate(toks, k), "word": word,
                 "reading": reading, "gloss": "", "audio": it.line.audio, "image": it.line.image,
                 "grammar": grammar_links(it.grammar),
                 "line": it.line.id, "source": f"{title} · {it.line.start[:8]}"}
@@ -88,7 +75,7 @@ def draft(d, vocab, levels, n: int, current: str | None, assume: list[str],
         lvl = st.prio.effective_level(k)
         print(f"{cid}  {word}【{reading}】 {lvl}  {it.line.text}")
         if entries:
-            print("\n".join("    " + ln for ln in senses_text(entries[0], langs, SENSES_PER_LANG).splitlines()))
+            print("\n".join("    " + ln for ln in dic.senses_text(entries[0], langs, SENSES_PER_LANG).splitlines()))
         else:
             print("    (not in the dictionary: gloss from the context)")
     for f, items in by_file.items():

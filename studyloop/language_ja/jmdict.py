@@ -11,7 +11,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from .setup import cache_dir
+from ..language.setup import cache_dir
 
 XML_LANG = "{http://www.w3.org/XML/1998/namespace}lang"
 POS_EN = {"名詞": "noun", "動詞": "verb", "形容詞": "adjective (keiyoushi)", "副詞": "adverb",
@@ -78,7 +78,9 @@ def build_index(xml_gz: Path, db: Path) -> int:
     return n
 
 
-class Dictionary:
+class JMdict:
+    """The language module's Dictionary for Japanese; entries are JMdict's (k, r, s, ...)."""
+
     def __init__(self, cfg: dict):
         db = _db_path(cfg["code"])
         if not db.exists():
@@ -100,6 +102,25 @@ class Dictionary:
                                 kana_word and not e.get("uk"),       # なん: 何 (kana), not 難
                                 not e["_common"]))
         return out
+
+    def readings(self, entry: dict) -> list[str]:
+        return entry["r"]
+
+    def senses_text(self, entry: dict, langs: list[str], limit: int = 6) -> str:
+        return senses_text(entry, langs, limit)
+
+    def meaning(self, entries: list[dict], langs: list[str]) -> str | None:
+        """The first entry's first sense in the first of `langs` that has one (3 glosses)."""
+        for code in dict.fromkeys(ISO2.get(lg, lg) for lg in langs):
+            sense = next((sn for h in entries[:1] for sn in h["s"] if sn["gloss"].get(code)), None)
+            if sense:
+                return "; ".join(sense["gloss"][code][:3])
+        return None
+
+    def interjection(self, entries: list[dict]) -> bool:
+        """Every English sense of these entries is an interjection (そう, ええ: not a target)."""
+        return bool(entries) and all(sn["pos"] and all("interjection" in p for p in sn["pos"])
+                                     for e in entries for sn in e["s"] if sn["gloss"].get("eng"))
 
 
 def senses_text(entry: dict, langs: list[str], limit: int = 6) -> str:

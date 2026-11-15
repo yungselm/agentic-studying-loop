@@ -313,7 +313,7 @@ place.
 
 ## Languages
 
-For learning a language from native media (opt-in: `uv tool install "agentic-studying-loop[lang] @ …"`,
+For learning a language from native media (opt-in, per language: `uv tool install "agentic-studying-loop[lang-ja] @ …"`,
 then `asl lang setup ja` once for word lists, dictionary and grammar lists). Cards: a native
 line with audio and a screenshot, **one new word** glossed on the back; grammar cards in the
 Game Gengo layout. Your vault keeps the ground truth: `Vocabulary.md` (every word, level,
@@ -327,8 +327,9 @@ asl lang sync "<deck>" export.apkg           # after studying: statuses from you
 ```
 
 Say *"make cards from this episode"* in Claude Code (skill `language-cards`). Design, evidence
-and all commands: [language cards](docs/language-cards.md). Japanese is configured
-(`studyloop/lang/ja.yaml`); other languages need their own config.
+and all commands: [language cards](docs/language-cards.md). Japanese is a module
+(`studyloop/language_ja/`: tokenizer, levels, dictionary, `ja.yaml`); another language is one more
+module like it, on the same pipeline.
 
 ## Modes
 
