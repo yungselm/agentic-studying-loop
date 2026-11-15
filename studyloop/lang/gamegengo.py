@@ -8,7 +8,7 @@ import html
 import re
 from pathlib import Path
 
-from .apkg import read_export
+from ..core.reviews import read_export
 from .cardfile import card_item
 from .grammar import _forms, check_points, derive_rule
 from .notefile import embed_image, read_note, write_note

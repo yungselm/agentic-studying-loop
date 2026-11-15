@@ -7,7 +7,7 @@ from pathlib import Path
 import genanki
 import pytest
 
-from studyloop.lang import apkg as A
+from studyloop.core import reviews as R
 from studyloop.lang import levels as LV
 from studyloop.lang.lines import import_apkg, read_lines, split_speakers, write_lines
 from studyloop.lang.plan import Analysed, _mark_names, make_plan
@@ -86,8 +86,8 @@ def test_zstd_export_media_map(tmp_path):
     p = tmp_path / "x.apkg"
     p.write_bytes(buf.getvalue())
     with zipfile.ZipFile(p) as zf:
-        assert A._media_map(zf) == {"clip.mp3": "0"}
-    ex = A.Export(p, media={"clip.mp3": "0"})
+        assert R._media_map(zf) == {"clip.mp3": "0"}
+    ex = R.ReviewData(p, media={"clip.mp3": "0"})
     assert ex.read_media("clip.mp3") == b"ID3"
 
 

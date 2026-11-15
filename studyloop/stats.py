@@ -26,11 +26,7 @@ import datetime as dt
 import html
 import json
 import re
-import shutil
-import sqlite3
 import statistics as st
-import tempfile
-import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -39,6 +35,7 @@ import yaml
 from . import cards as C
 from .build import CLOZE_MODEL_ID, CODE_MODEL_ID, CONCEPT_MODEL_ID
 from .config import Home, find_home
+from .core.reviews import ReviewData, read_export
 
 TIMER_MS = 60000
 CODE_BINS = [0, 40, 80, 120, 160, 250, 10**9]
@@ -48,55 +45,21 @@ GAP_BINS = [0, 10, 20, 40, 80, 10**9]
 MIN_BIN_ANSWERS = 60
 
 
-# ---- reading the export ---------------------------------------------------------
-
-def open_collection(path: Path) -> tuple[sqlite3.Connection, Path]:
-    tmp = Path(tempfile.mkdtemp())
-    with zipfile.ZipFile(path) as z:
-        names = set(z.namelist())
-        for name in ("collection.anki21b", "collection.anki21", "collection.anki2"):
-            if name in names:
-                raw = z.read(name)
-                break
-        else:
-            raise SystemExit(f"{path}: no collection inside; is this an Anki export?")
-    if name.endswith("21b"):
-        try:
-            import zstandard
-        except ImportError as e:
-            raise SystemExit("This export is zstd-compressed: pip install zstandard") from e
-        raw = zstandard.ZstdDecompressor().stream_reader(raw).read()
-    db = tmp / "collection.sqlite"
-    db.write_bytes(raw)
-    return sqlite3.connect(db), tmp
-
+# ---- our cards in the export ---------------------------------------------------
 
 ASL_MODEL_NAMES = {"Code Editor Card": "code", "Concept Card": "concept",
                    "Rust Concept Card": "concept", "Cloze Card": "cloze"}
 
 
-def model_kinds(con) -> dict[int, str]:
+def model_kinds(rd: ReviewData) -> dict[int, str]:
     """Notetype id -> card kind for the engine's (and rust-lang-kata's) note types,
     matched by id or, if Anki renumbered them on import, by name."""
-    try:
-        names = dict(con.execute("select id, name from notetypes"))
-    except sqlite3.OperationalError:
-        models = json.loads(con.execute("select models from col").fetchone()[0])
-        names = {int(k): v["name"] for k, v in models.items()}
-    kinds = {mid: ASL_MODEL_NAMES[n] for mid, n in names.items() if n in ASL_MODEL_NAMES}
+    kinds = {mid: ASL_MODEL_NAMES[nt.name] for mid, nt in rd.note_types.items()
+             if nt.name in ASL_MODEL_NAMES}
     kinds.setdefault(CODE_MODEL_ID, "code")
     kinds.setdefault(CONCEPT_MODEL_ID, "concept")
     kinds.setdefault(CLOZE_MODEL_ID, "cloze")
     return kinds
-
-
-def deck_names(con) -> dict[int, str]:
-    try:
-        return {did: name.replace("\x1f", "::")
-                for did, name in con.execute("select id, name from decks")}
-    except sqlite3.OperationalError:
-        decks = json.loads(con.execute("select decks from col").fetchone()[0])
-        return {int(k): v["name"] for k, v in decks.items()}
 
 
 def _strip(s: str) -> str:
@@ -151,25 +114,22 @@ class Card:
         return st.median(a[1] for a in self.answers) if self.answers else None
 
 
-def load_cards(con, deck_prefix: str | None) -> list[Card]:
-    decks = deck_names(con)
-    kinds = model_kinds(con)
-    notes = {nid: (mid, tags, flds.split("\x1f"))
-             for nid, mid, tags, flds in con.execute("select id, mid, tags, flds from notes")}
+def load_cards(rd: ReviewData, deck_prefix: str | None) -> list[Card]:
+    kinds = model_kinds(rd)
+    notes = {n.id: n for n in rd.notes}
     out: dict[int, Card] = {}
-    rows = con.execute("select id, nid, did, odid, ivl, lapses, queue, type, data, ord from cards")
-    for cid, nid, did, odid, ivl, lapses, queue, ctype, data, ord_ in rows:
-        deck = decks.get(odid or did, "?")
+    for c in rd.cards:
+        cid, deck, ord_ = c.id, c.deck, c.ord
         if deck_prefix and not (deck == deck_prefix or deck.startswith(deck_prefix + "::")):
             continue
-        mid, tags, f = notes[nid]
-        tagl = tags.split()
+        note = notes[c.nid]
+        f, tagl = note.values, note.tags
         kind = next((t.split("::")[-1] for t in tagl if t.startswith("asl::type::")), None)
-        kind = kind or kinds.get(mid)
+        kind = kind or kinds.get(note.mid)
         if not kind:
             continue                    # not one of our cards (other decks in a .colpkg)
         try:
-            mem = json.loads(data) if data else {}
+            mem = json.loads(c.data) if c.data else {}
         except json.JSONDecodeError:
             mem = {}
         if kind == "code":
@@ -191,12 +151,12 @@ def load_cards(con, deck_prefix: str | None) -> list[Card]:
             card_id=next((t.split("::")[-1] for t in tagl if t.startswith("asl::id::")), ""),
             std=next((t.split("::")[-1] for t in tagl if t.startswith("asl::std::")), ""),
             front=_strip(f[0])[:90].replace("\n", " "),
-            created=dt.datetime.fromtimestamp(nid / 1000), ivl=ivl, lapses=lapses,
-            queue=queue, ctype=ctype, difficulty=mem.get("d"), stability=mem.get("s"),
+            created=dt.datetime.fromtimestamp(c.nid / 1000), ivl=c.ivl, lapses=c.lapses,
+            queue=c.queue, ctype=c.type, difficulty=mem.get("d"), stability=mem.get("s"),
             measures=m)
-    for cid, ease, ms, rtype in con.execute("select cid, ease, time, type from revlog"):
-        if cid in out and rtype in (0, 1, 2):
-            out[cid].answers.append((ease, ms, rtype))
+    for r in rd.revlog:
+        if r.cid in out and r.type in (0, 1, 2):
+            out[r.cid].answers.append((r.ease, r.ms, r.type))
     return list(out.values())
 
 
@@ -454,12 +414,7 @@ def write_csv(cards: list[Card], p: Path):
 
 def stats(export: Path, deck: str | None, home_dir: Path | None, mark: bool) -> int:
     home = find_home(home_dir or Path.cwd())
-    con, tmp = open_collection(export)
-    try:
-        cards = load_cards(con, deck)
-    finally:
-        con.close()
-        shutil.rmtree(tmp, ignore_errors=True)
+    cards = load_cards(read_export(export), deck)
     if not cards:
         raise SystemExit("No study-loop cards matched" + (f" deck '{deck}'" if deck else "") + ".")
     out_dir = (home.path / "evidence") if home.path else Path.cwd()

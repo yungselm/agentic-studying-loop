@@ -8,7 +8,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from .apkg import read_export
+from ..core.reviews import read_export
 from .levels import NONE
 
 STATUSES = ["known", "learning", "planned", "unknown", "ignored"]

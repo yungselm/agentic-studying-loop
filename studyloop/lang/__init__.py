@@ -5,7 +5,7 @@ Design: docs/language-cards.md. Modules, in the order a source flows through the
 
   setup       a language's config (<code>.yaml), cache, `asl lang setup`
   lines       sources -> lines/<key>.tsv: mined .apkg, video + subtitles; clips, screenshots
-  apkg, audio reading Anki exports; ffmpeg (padding, speaker splits)
+  audio       ffmpeg (padding, speaker splits); Anki exports are read by core.reviews
   tokens      tokenizer, furigana       levels      word levels (lists, frequency estimate)
   vocab       Vocabulary.md, seeding from exports, meanings
   grammar     grammar rules (pattern / token) and their check

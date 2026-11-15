@@ -13,7 +13,7 @@ from pathlib import Path
 
 import yaml
 
-from .apkg import read_export
+from ..core.reviews import read_export
 
 COLUMNS = ["id", "start", "end", "text", "speaker", "audio", "image", "status"]
 _TIME = re.compile(r"(\d+)\.(\d\d)\.(\d\d)[.,](\d{3})-(\d+)\.(\d\d)\.(\d\d)[.,](\d{3})")

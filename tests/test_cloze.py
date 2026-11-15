@@ -8,6 +8,7 @@ from pathlib import Path
 from studyloop import cards as C
 from studyloop import config, lint, stats
 from studyloop.build import build
+from studyloop.core.reviews import read_export
 
 PNG = bytes.fromhex("89504e470d0a1a0a0000000d4948445200000001000000010806000000"
                     "1f15c4890000000d49444154789c6360000002000100e221bc330000000049454e44ae426082")
@@ -100,9 +101,8 @@ def test_build_cloze_note(tmp_path):
     assert any(m["name"] == "Cloze Card" and m["type"] == 1 for m in models.values())
 
     # stats reads the measures back per card (its own gap)
-    scon, tmp = stats.open_collection(out)
     got = sorted((c.measures["gap_chars"], c.measures["gaps"], c.measures["hook"])
-                 for c in stats.load_cards(scon, None))
+                 for c in stats.load_cards(read_export(out), None))
     assert got == [(3, 3, 1), (4, 3, 1), (7, 3, 1)], got   # $\\log C$ shows 4 chars
 
 

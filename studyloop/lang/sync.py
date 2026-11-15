@@ -12,7 +12,7 @@ from pathlib import Path
 
 from ..cards import load_file
 from ..config import load_deck
-from .apkg import read_export
+from ..core.reviews import read_export
 from .vocab import RANK
 
 GRAMMAR_RANK = {"unknown": 0, "planned": 1, "learning": 2, "known": 3}
