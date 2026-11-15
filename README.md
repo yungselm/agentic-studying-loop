@@ -368,7 +368,7 @@ root, where Claude Code expects a plugin. See [CONTRIBUTING.md](CONTRIBUTING.md)
 
 [Card format](docs/card-format.md) · [Language cards](docs/language-cards.md) · [Writing a pack](docs/writing-a-pack.md) (also possible
 without cloning) · [Migrating from rust-lang-kata](docs/migrating-from-rust-lang-kata.md) ·
-[Roadmap](docs/roadmap.md)
+[Roadmap](docs/roadmap.md) · [Architecture](docs/architecture.md)
 
 v0.1. The starter standards rest on one learner's data. Packs, card types and anonymised
 `asl stats` tables are welcome. MIT license; vendors CodeMirror 5 (MIT).
