@@ -45,8 +45,9 @@ Opt-in: `[lang]` extra + separate skill.
   (VOICEVOX / edge-tts); `asl lang clean` for unused media.
 - [ ] Whisper: check clips against their subtitle (cut short, extra talkers), word-exact
   speaker splits, subtitles for media without them.
-- [ ] Italian from *Praxis-Grammatik Italienisch* as the second language (next session: the
-  author organises the book PDF and example media first).
+- [ ] Italian as the second language: a language config (tokenizer, CEFR word levels,
+  dictionary) and an episode with Italian subtitles; the grammar book (*Praxis-Grammatik
+  Italienisch*) later, once found. Postponed by the author.
 - [ ] Card preferences and quality checks the user decides (which source or card kind wins a
   word, minimum audio/image quality, Whisper check), designed together after the pipeline.
 - [ ] The author's real start: a fresh topic from all their sources (Terrace House, Shirokuma,
