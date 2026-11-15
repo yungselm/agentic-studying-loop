@@ -68,6 +68,8 @@ def load_file(path: str | Path) -> list[dict]:
     comment_ids = _comment_ids(text)
     if len(comment_ids) != len(cards):
         comment_ids = [None] * len(cards)
+    from .registry import registry
+    types = registry().card_types
     out = []
     for i, (card, cid) in enumerate(zip(cards, comment_ids)):
         card = dict(card)
@@ -76,9 +78,9 @@ def load_file(path: str | Path) -> list[dict]:
             card["id"] = cid
         card["_file"] = path
         card["_index"] = i
-        if card["type"] == "timeline":
+        if card["type"] in types:           # unknown types: `asl lint` says so
             try:
-                card = expand_timeline(card)
+                card = types[card["type"]].prepare(card)
             except ValueError as e:
                 raise CardFileError(f"{path.name}: {e}") from None
         out.append(card)
@@ -233,20 +235,16 @@ def gap_answers(text: str | None) -> dict[int, int]:
 
 
 def measures(card: dict) -> dict:
-    """Numbers the standards limit, per card type."""
-    if card.get("type") == "cloze":
-        g = gap_answers(card.get("text"))
-        return {"gaps": len(g), "gap_chars": max(g.values(), default=0),
-                "hook": int(bool(str(card.get("hook") or "").strip()))}
-    if card.get("type", "code") == "code":
-        t = typed(card.get("starter"), card.get("solution"))
-        return {"typed_chars": sum(map(len, t)), "typed_lines": len(t)}
-    a = EMBED.sub("", card.get("answer") or "")       # an image is not answer text
-    return {"answer_chars": len(plain(a)), "bold_chars": len(bold_lead(a))}
+    """Numbers the standards limit: the card type's `measures`."""
+    from .registry import registry
+    t = registry().card_types.get(card.get("type", "code"))
+    return t.measures(card) if t else {}
 
 
 def label(card: dict) -> str:
-    front = card.get("instruction") or card.get("question") or card.get("text") or "?"
+    from .registry import registry
+    t = registry().card_types.get(card.get("type", "code"))
+    front = (t.front(card) if t else "") or "?"
     first = next((ln.strip() for ln in str(front).splitlines() if ln.strip()), "?")
     cid = card.get("id") or f"#{card['_index']}"
     return f"{cid} {first[:60]}"

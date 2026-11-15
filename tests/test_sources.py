@@ -122,12 +122,12 @@ def test_read_one_part(tmp_path, capsys):
 
 
 def test_pdf_page_link_is_a_valid_source(tmp_path):
-    from studyloop.core import lint
+    from studyloop.core.cardtypes import vault_flags
+    from studyloop.core.vault import vault_for
     d = topic(tmp_path)
     deck = config.load_deck(d)
     card = {"source": "[[Tour.pdf#page=4]]", "_file": d / "a.yaml"}
-    from studyloop.core.vault import vault_for
-    assert lint.vault_flags(card, (), vault_for(deck.path)) == []
+    assert vault_flags(card, (), vault_for(deck.path)) == []
 
 
 def lectures(tmp: Path) -> tuple[Path, Path]:

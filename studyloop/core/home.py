@@ -1,0 +1,91 @@
+"""The card home: a folder (in your vault, if you keep one) with studyloop.yaml, your
+standards and the evidence from your reviews.
+
+    asl init-home <card home> [--pack rust --pack python] [--vault <folder> | --no-vault]
+    asl install-skills [<.claude/skills folder>]
+
+init-home copies the defaults there; from then on they evolve with your own review data."""
+from __future__ import annotations
+
+import os
+import re
+import shutil
+from pathlib import Path
+
+from .config import PKG, find_pack, read_keep, write_keep
+
+TEMPLATES = PKG / "templates"
+
+
+def _copy_new(src: Path, dst: Path) -> bool:
+    if dst.exists():
+        return False
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(src, dst)
+    return True
+
+
+def init_home(home: Path, packs: list[str], vault: Path | str | None = None) -> None:
+    """`vault`: the notes folder cards link into, `"none"` for cards only, None: leave as is."""
+    home = home.expanduser().resolve()
+    made = []
+    if _copy_new(TEMPLATES / "card-home" / "studyloop.yaml", home / "studyloop.yaml"):
+        made.append("studyloop.yaml")
+    if vault is not None:
+        made.append(f"vault: {set_vault(home, vault)}")
+    for name in ("core.md",):
+        if _copy_new(PKG / "standards" / name, home / "standards" / name):
+            made.append(f"standards/{name}")
+    if _copy_new(TEMPLATES / "card-home" / "preferences.md", home / "standards" / "preferences.md"):
+        made.append("standards/preferences.md")
+    for p in packs:
+        if _copy_new(find_pack(p) / "standards.md", home / "standards" / f"{p}.md"):
+            made.append(f"standards/{p}.md")
+    (home / "evidence").mkdir(parents=True, exist_ok=True)
+    print(f"Card home {home}: " + (", ".join(made) if made else "already set up, nothing changed."))
+
+
+def set_vault(home: Path, vault: Path | str) -> str:
+    """Write `vault:` into the card home's studyloop.yaml (relative when the vault holds the
+    home, so the vault can move or sync between Windows and WSL). Returns the value written."""
+    if str(vault) == "none":
+        value = "none"
+    else:
+        v = Path(vault).expanduser().resolve()
+        if not v.is_dir():
+            raise SystemExit(f"Vault folder not found: {v}")
+        value = Path(os.path.relpath(v, home)).as_posix() if home.is_relative_to(v) else str(v)
+    p = home / "studyloop.yaml"
+    text, fmt = read_keep(p)
+    line = f"vault: {_yaml_str(value)}"
+    if re.search(r"^vault:.*$", text, re.M):
+        text = re.sub(r"^vault:.*$", lambda _m: line, text, count=1, flags=re.M)
+    elif re.search(r"^# vault:.*$", text, re.M):          # the template's placeholder
+        text = re.sub(r"^# vault:.*$", lambda _m: line, text, count=1, flags=re.M)
+    else:
+        text = text.rstrip("\n") + f"\n\n{line}\n"
+    write_keep(p, text, fmt)
+    return value
+
+
+def _yaml_str(s: str | None) -> str:
+    return '""' if s is None else '"' + str(s).replace("\\", "/").replace('"', "'") + '"'
+
+
+def skills_dir() -> Path:
+    """skills/ sits at the repo root (where the Claude Code plugin expects it) and
+    is installed alongside the package as `studyloop_skills`."""
+    import studyloop_skills
+    return Path(studyloop_skills.__path__[0])
+
+
+def install_skills(target: Path) -> None:
+    """Copy the skills into a .claude/skills folder (for use without the plugin)."""
+    target = target.expanduser().resolve()
+    for skill in sorted(skills_dir().iterdir()):
+        if (skill / "SKILL.md").is_file():
+            dst = target / skill.name
+            if dst.exists():
+                shutil.rmtree(dst)
+            shutil.copytree(skill, dst)
+            print(f"  {dst}")

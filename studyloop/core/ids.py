@@ -6,7 +6,7 @@
       - `id:` for every card without one (<prefix>-NNN, never reusing retired_ids)
       - `std: <standards_version>` on those new cards (from studyloop.yaml)
       - a row in Overview.md for every card that has none (status `draft`)
-      - the sources map in Overview.md, if `asl sources` wrote one
+      - whatever the deck kind adds (topic: the sources map in Overview.md)
 
 So an agent can write a card without id/std/index row and let `asl fix` add them.
 
@@ -169,8 +169,8 @@ def _source_short(card: dict) -> str:
 
 
 def fix_index(deck: Deck) -> int:
-    if deck.kind == "language":
-        return 0                          # language decks: thousands of cards, no index rows
+    if not deck.kind_spec.card_index:
+        return 0                          # e.g. language decks: thousands of cards, no index rows
     ov = deck.path / "Overview.md"
     if not ov.is_file():
         return 0
@@ -217,8 +217,7 @@ def ids(groups, fix: bool) -> int:
         print(f"{deck.path.name}: " + (f"kind: {kind} written, " if kind else "")
               + f"id/std/guid written on {total} card(s), "
               f"{rows} Overview.md row(s) added.")
-        from ..sources import BEGIN, build_map
-        ov = deck.path / "Overview.md"
-        if ov.is_file() and BEGIN in ov.read_text(encoding="utf-8"):
-            build_map(deck, quiet=True)         # refresh the sources map's status
+        after = deck.kind_spec.after_fix
+        if after:
+            after(deck)                         # e.g. topic: refresh the sources map's status
     return 0

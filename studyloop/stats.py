@@ -33,8 +33,8 @@ from pathlib import Path
 import yaml
 
 from .core import cards as C
-from .core.build import CLOZE_MODEL_ID, CODE_MODEL_ID, CONCEPT_MODEL_ID
 from .core.config import Home, find_home
+from .core.registry import Command, Module, Registry, registry
 from .core.reviews import ReviewData, read_export
 
 TIMER_MS = 60000
@@ -47,18 +47,20 @@ MIN_BIN_ANSWERS = 60
 
 # ---- our cards in the export ---------------------------------------------------
 
-ASL_MODEL_NAMES = {"Code Editor Card": "code", "Concept Card": "concept",
-                   "Rust Concept Card": "concept", "Cloze Card": "cloze"}
+LEGACY_MODEL_NAMES = {"Rust Concept Card": "concept"}      # rust-lang-kata decks
 
 
 def model_kinds(rd: ReviewData) -> dict[int, str]:
-    """Notetype id -> card kind for the engine's (and rust-lang-kata's) note types,
-    matched by id or, if Anki renumbered them on import, by name."""
-    kinds = {mid: ASL_MODEL_NAMES[nt.name] for mid, nt in rd.note_types.items()
-             if nt.name in ASL_MODEL_NAMES}
-    kinds.setdefault(CODE_MODEL_ID, "code")
-    kinds.setdefault(CONCEPT_MODEL_ID, "concept")
-    kinds.setdefault(CLOZE_MODEL_ID, "cloze")
+    """Notetype id -> card kind for the registered card types' note types (and
+    rust-lang-kata's), matched by id or, if Anki renumbered them on import, by name.
+    Types sharing a model (timeline -> concept) count as the first; tags tell them apart."""
+    names, ids = dict(LEGACY_MODEL_NAMES), {}
+    for t in registry().card_types.values():
+        names.setdefault(t.model_name, t.name)
+        ids.setdefault(t.model_id, t.name)
+    kinds = {mid: names[nt.name] for mid, nt in rd.note_types.items() if nt.name in names}
+    for mid, kind in ids.items():
+        kinds.setdefault(mid, kind)
     return kinds
 
 
@@ -437,3 +439,21 @@ def stats(export: Path, deck: str | None, home_dir: Path | None, mark: bool) -> 
         sp.write_text(yaml.safe_dump(state, sort_keys=False, allow_unicode=True), encoding="utf-8")
         print(f"Marked refreshed for {key} in {sp}.")
     return 0
+
+
+# ---- the module ----------------------------------------------------------------------
+
+def _stats_args(p):
+    p.add_argument("export")
+    p.add_argument("--deck", help="only this deck and its subdecks")
+    p.add_argument("--home", type=Path, help="card home (default: search upwards from cwd)")
+    p.add_argument("--mark-refreshed", action="store_true",
+                   help="record this export as the baseline for the next refresh")
+
+
+def register(reg: Registry) -> None:
+    reg.add_command(Command("stats", "analyse a manual Anki export (.apkg/.colpkg)", _stats_args,
+                            lambda a: stats(Path(a.export), a.deck, a.home, a.mark_refreshed)))
+
+
+MODULE = Module("analysis", register, skills=("refresh-standards",))

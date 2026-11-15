@@ -309,3 +309,23 @@ def test_vault_setting(tmp_path, capsys):
     main(["init-home", str(home), "--vault", str(v)])
     assert 'vault: ".."' in (home / "studyloop.yaml").read_text(encoding="utf-8")   # relative
     assert vault_for(deck) == v.resolve()
+
+
+def test_registry_modules_and_plain_decks(tmp_path, capsys):
+    from studyloop.core import registry as R
+    reg = R.registry()
+    assert list(reg.modules)[0] == "core"
+    assert set(reg.modules) >= {"core", "analysis", "language", "notes", "projects", "sources"}
+    assert set(reg.deck_kinds) == {"plain", "language", "project", "topic"}
+    assert set(reg.card_types) == {"code", "concept", "timeline", "cloze", "sentence", "grammar"}
+    assert reg.missing(R.Module("x", lambda r: None, needs=("no_such_module_xyz",))) == ["no_such_module_xyz"]
+
+    def twice(r):
+        r.add_card_type(reg.card_types["cloze"])
+    with pytest.raises(SystemExit, match="two modules register the card type `cloze`"):
+        R.load([R.Module("core", lambda r: None), R.Module("a", twice), R.Module("b", twice)])
+
+    d = make_deck(tmp_path, "- id: t-001\n  type: concept\n  question: Q?\n  answer: '**A.**'\n",
+                  "kind: plain\ndeck: T\nprefix: t\n")
+    assert lint.lint(config.resolve_inputs([str(d)])) == 0
+    assert build(config.resolve_inputs([str(d)]), tmp_path / "x.apkg") == 0

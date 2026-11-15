@@ -30,6 +30,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .core.registry import Command, Module, Registry
 from .core.vault import split_frontmatter, vault_for
 
 BUDGET = 250
@@ -322,3 +323,22 @@ def notes(inputs: list[str], vault: Path | None = None, quiet: bool = False,
     else:
         print(f"OK - {len(targets)} note(s) pass.")
     return 1 if hard else 0
+
+
+# ---- the module ----------------------------------------------------------------------
+
+def _notes_args(p):
+    p.add_argument("inputs", nargs="*", help="folders or .md files (default: from ./CLAUDE.md)")
+    p.add_argument("--vault", type=Path, help="vault root for links (default: the card home's "
+                   "`vault:`, else the folder with .obsidian)")
+    p.add_argument("-q", "--quiet", action="store_true", help="only print problems (!)")
+    p.add_argument("--budget", type=int, default=250,
+                   help="visible prose words per note before a hint (default 250)")
+
+
+def register(reg: Registry) -> None:
+    reg.add_command(Command("notes", "check study notes: tl;dr, diagram, budget, links", _notes_args,
+                            lambda a: notes(a.inputs, a.vault, a.quiet, a.budget)))
+
+
+MODULE = Module("notes", register, skills=("study-note",))

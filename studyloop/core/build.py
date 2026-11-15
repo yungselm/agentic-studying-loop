@@ -30,14 +30,10 @@ import genanki
 
 from . import cards as C
 from .config import ANKI, Deck, all_packs, load_pack
+from .registry import NoteContext, registry
 from .vault import vault_for as vault_of
 from .vault import vault_index
 
-CODE_MODEL_ID = 1607392319       # same ids as rust-lang-kata, so its decks can migrate
-CONCEPT_MODEL_ID = 1607392321
-CLOZE_MODEL_ID = 1607392323
-SENTENCE_MODEL_ID = 1607392325   # language: one target word, listening front
-GRAMMAR_MODEL_ID = 1607392327    # language: grammar point; Listening + optional Reading card
 TPL = ANKI / "templates"
 VENDOR = ANKI / "vendor"
 
@@ -134,52 +130,21 @@ def stage_media(tmp: Path) -> tuple[list[str], dict[str, str]]:
     return paths, renames
 
 
-def _tpl(name: str, renames: dict[str, str]) -> str:
-    t = (TPL / name).read_text(encoding="utf-8")
-    for old, new in renames.items():
-        t = t.replace(f'"{old}"', f'"{new}"')
-    return t
-
-
-def build_models(renames):
+def build_models(renames) -> dict[str, genanki.Model]:
+    """card type -> its Anki note type; types sharing a model_id share one model."""
     css = (TPL / "style.css").read_text(encoding="utf-8")
-    code = genanki.Model(
-        CODE_MODEL_ID, "Code Editor Card",
-        fields=[{"name": n} for n in ("Instruction", "StarterCode", "Solution", "Lang",
-                                      "Notes", "Source", "Walkthrough")],
-        templates=[{"name": "Code Card", "qfmt": _tpl("front.html", renames),
-                    "afmt": _tpl("back.html", renames)}],
-        css=css, sort_field_index=0)
-    concept = genanki.Model(
-        CONCEPT_MODEL_ID, "Concept Card",
-        fields=[{"name": n} for n in ("Question", "Answer", "Code", "Lang", "Source")],
-        templates=[{"name": "Concept Card", "qfmt": _tpl("front_concept.html", renames),
-                    "afmt": _tpl("back_concept.html", renames)}],
-        css=css, sort_field_index=0)
-    cloze = genanki.Model(
-        CLOZE_MODEL_ID, "Cloze Card",
-        fields=[{"name": n} for n in ("Text", "Extra", "Hook", "Source")],
-        templates=[{"name": "Cloze Card", "qfmt": _tpl("front_cloze.html", renames),
-                    "afmt": _tpl("back_cloze.html", renames)}],
-        css=css, sort_field_index=0, model_type=genanki.Model.CLOZE)
-    sentence = genanki.Model(
-        SENTENCE_MODEL_ID, "Sentence Card",
-        fields=[{"name": n} for n in ("Text", "Word", "Reading", "Gloss", "Audio", "Image",
-                                      "Grammar", "Source")],
-        templates=[{"name": "Listening", "qfmt": _tpl("front_sentence.html", renames),
-                    "afmt": _tpl("back_sentence.html", renames)}],
-        css=css, sort_field_index=0)
-    grammar = genanki.Model(
-        GRAMMAR_MODEL_ID, "Grammar Card",
-        fields=[{"name": n} for n in ("Text", "Grammar", "Meaning", "Translation", "Audio",
-                                      "Image", "Notes", "Source", "ReadCard")],
-        templates=[{"name": "Listening", "qfmt": _tpl("front_sentence.html", renames),
-                    "afmt": _tpl("back_grammar.html", renames)},
-                   {"name": "Reading", "qfmt": _tpl("front_grammar_read.html", renames),
-                    "afmt": _tpl("back_grammar.html", renames)}],
-        css=css, sort_field_index=0)
-    return {"code": code, "concept": concept, "cloze": cloze, "sentence": sentence,
-            "grammar": grammar}
+    by_id: dict[int, genanki.Model] = {}
+    out = {}
+    for t in registry().card_types.values():
+        def template(name, _dir=t.templates_dir):
+            text = (_dir / name).read_text(encoding="utf-8")
+            for old, new in renames.items():
+                text = text.replace(f'"{old}"', f'"{new}"')
+            return text
+        if t.model_id not in by_id:
+            by_id[t.model_id] = t.model(template, css)
+        out[t.name] = by_id[t.model_id]
+    return out
 
 
 # ---- decks, guids, notes -------------------------------------------------------------
@@ -214,7 +179,7 @@ def guid(deck: Deck, f: Path, card: dict) -> str:
     return genanki.guid_for(deck.name, f.stem, kind, front)
 
 
-def lang_for(deck: Deck, f: Path, card: dict) -> str:
+def pack_mode(deck: Deck, f: Path, card: dict) -> str:
     pack = card.get("pack") or deck.file_opts(f).get("pack") or deck.pack
     if not pack:
         return "text/plain"
@@ -224,9 +189,47 @@ def lang_for(deck: Deck, f: Path, card: dict) -> str:
         return pack
 
 
+class Note(NoteContext):
+    """How card types render fields: vault links, math, media, code for the editor."""
+
+    def __init__(self, deck: Deck, file: Path, card: dict, find_file, media: dict[str, Path]):
+        self.deck, self.file = deck, file
+        self.pack_mode = pack_mode(deck, file, card)
+        self.find_file, self.files = find_file, media
+
+    def text(self, s) -> str:
+        return text(s)
+
+    def rich(self, s) -> str:
+        return vault_links(text(str(s or "").strip("\n"), math=True), self.find_file, self.files)
+
+    def code(self, s) -> str:
+        return b64(s)
+
+    def source(self, card: dict) -> str:
+        return vault_links(text(card.get("source", "")), self.find_file, self.files)
+
+    def media(self, name, kind: str) -> str:
+        name = str(name or "").strip()
+        if not name:
+            return ""
+        f = self.find_file(name)
+        if f:
+            self.files.setdefault(f.name, f)
+        return f"[sound:{html.escape(name)}]" if kind == "audio" else f'<img src="{html.escape(name)}">'
+
+    def links(self, v) -> str:
+        items = v if isinstance(v, list) else ([v] if v else [])
+        return " · ".join(vault_links(text(str(i)), self.find_file, self.files) for i in items)
+
+
 def make_note(deck, f, card, models, find_file=lambda _n: None,
               media: dict[str, Path] | None = None) -> genanki.Note:
-    tags = [str(t).replace(" ", "_") for t in card.get("tags", [])]
+    t = registry().card_types.get(card["type"])
+    if t is None:
+        raise SystemExit(f"{f.name}: {C.label(card)}: unknown card type `{card['type']}` "
+                         "(`asl lint` lists the installed ones)")
+    tags = [str(x).replace(" ", "_") for x in card.get("tags", [])]
     if card.get("id"):
         tags.append(f"asl::id::{card['id']}")
     if card.get("std"):
@@ -234,56 +237,10 @@ def make_note(deck, f, card, models, find_file=lambda _n: None,
     tags.append(f"asl::type::{card['type']}")
     if card.get("tts"):
         tags.append("asl::tts")                 # audio from text-to-speech, not native
-    lang = lang_for(deck, f, card)
-    media = {} if media is None else media
-
-    def field(s):          # vault text: $math$, ![[images]], [[links]]
-        return vault_links(text(str(s or "").strip("\n"), math=True), find_file, media)
-
-    source = vault_links(text(card.get("source", "")), find_file, media)
-
-    def media_file(name, kind):          # language cards: clips and screenshots from media_dir
-        name = str(name or "").strip()
-        if not name:
-            return ""
-        f = find_file(name)
-        if f:
-            media.setdefault(f.name, f)
-        return f"[sound:{html.escape(name)}]" if kind == "audio" else f'<img src="{html.escape(name)}">'
-
-    def links(v):
-        items = v if isinstance(v, list) else ([v] if v else [])
-        return " · ".join(vault_links(text(str(i)), find_file, media) for i in items)
-
-    if card["type"] == "sentence":
-        fields = [text(card.get("text")), text(card.get("word")), text(card.get("reading")),
-                  text(card.get("gloss")), media_file(card.get("audio"), "audio"),
-                  media_file(card.get("image"), "image"), links(card.get("grammar")), source]
-        return genanki.Note(model=models["sentence"], fields=fields, guid=guid(deck, f, card), tags=tags)
-    if card["type"] == "grammar":
-        read = "read" in (deck.file_opts(f).get("cards") or deck.cfg.get("cards") or ["listen", "read"])
-        notes = links(card.get("note")) + (f'<br><a href="{html.escape(str(card["link"]))}">'
-                                            f"{html.escape(str(card['link']))}</a>" if card.get("link") else "")
-        fields = [text(card.get("text")), text(card.get("grammar")), text(card.get("meaning")),
-                  text(card.get("translation")), media_file(card.get("audio"), "audio"),
-                  media_file(card.get("image"), "image"), notes, source, "y" if read else ""]
-        return genanki.Note(model=models["grammar"], fields=fields, guid=guid(deck, f, card), tags=tags)
-    if card["type"] == "code":
-        fields = [text(str(card["instruction"]).rstrip("\n")), b64(card.get("starter", "")),
-                  b64(card.get("solution", "")), lang, text(card.get("notes", "")),
-                  text(card.get("source", "")), b64(card.get("walkthrough", ""))]
-        model = models["code"]
-    elif card["type"] == "cloze":
-        fields = [field(C.cloze_text(card.get("text"))), field(card.get("extra")),
-                  field(card.get("hook")), source]
-        model = models["cloze"]
-        if str(card.get("hook") or "").strip():
-            tags.append("asl::hook")
-    else:
-        fields = [field(card["question"]), field(card.get("answer")),
-                  b64(card.get("code", "")), lang, source]
-        model = models["concept"]
-    return genanki.Note(model=model, fields=fields, guid=guid(deck, f, card), tags=tags)
+    ctx = Note(deck, f, card, find_file, {} if media is None else media)
+    fields = t.to_fields(card, ctx)
+    return genanki.Note(model=models[t.name], fields=fields, guid=guid(deck, f, card),
+                        tags=tags + t.tags(card))
 
 
 # ---- deck options presets (patched into the package after genanki) -----------
@@ -434,7 +391,7 @@ def build(groups: list[tuple[Deck, list[Path]]], out: Path) -> int:
                                      f"{guids[note.guid]} — ids must be unique.")
                 guids[note.guid] = f"{C.label(card)} ({f.name})"
                 anki_decks[name].add_note(note)
-                if deck.kind == "language" and card.get("id"):
+                if deck.kind_spec.order_by_id and card.get("id"):
                     positions[note.guid] = id_number(card["id"])
                 total += 1
                 anki_cards += len(note.cards)

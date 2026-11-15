@@ -1,11 +1,11 @@
-"""Checks for project decks (a deck folder with profile.md or `repo:` in deck.yaml).
+"""Lint rule for project decks (`kind: project`: code from a repo, see profile.md).
 
-  [frame]    a code card shows no enclosing function / type
   [header]   a code section doesn't start with `<comment> <path>  (<role>)` matching profile.md
   [excerpt]  an unchecked (`check: false`) card's code isn't verbatim from the repo
-  [index]    a card has no row in Overview.md (or a row has no card)
   [std]      a card doesn't record the standards version it was written under
   [source]   `source:` points at a file/name the repo no longer has (drift hint)
+  [repo]     deck.yaml's `repo:` isn't there; [index] no Overview.md card index
+(The context frame, [frame], is the code card's own check: `!` in project decks.)
 """
 from __future__ import annotations
 
@@ -13,12 +13,9 @@ import re
 from pathlib import Path
 
 from .core.config import Deck
+from .core.registry import DeckSummary, Flag, LintContext, LintRule
 
 ROW = re.compile(r"^\|\s*`([^`]+)`\s*\|\s*([^|]+?)\s*\|")
-
-
-def is_project(deck: Deck) -> bool:
-    return bool(deck.cfg.get("repo")) or (deck.path / "profile.md").is_file()
 
 
 def repo_dir(deck: Deck) -> Path | None:
@@ -80,24 +77,19 @@ def excerpt_problem(lines: list[str], source: list[str], cp: str) -> str | None:
     return None
 
 
-def check_card(deck: Deck, card: dict, lint_cfg: dict, checked: bool,
-               roles: dict[str, str], repo: Path | None) -> list[tuple[str, str, str]]:
+def card_flags(card: dict, ctx: LintContext) -> list[Flag]:
+    roles = ctx.once("project.roles", lambda: file_roles(ctx.deck))
+    repo = ctx.once("project.repo", lambda: _existing_repo(ctx.deck))
+    checked = ctx.deck.checked(ctx.file)
     out = []
-    project = is_project(deck)
-    cp = lint_cfg.get("comment_prefix")
-    if project and not card.get("std"):
-        out.append(("~", "std", "no `std:` (standards version the card was written under)"))
+    cp = ctx.pack.get("comment_prefix")
+    if not card.get("std"):
+        out.append(Flag("~", "std", "no `std:` (standards version the card was written under)"))
     if repo is not None:
         out += source_flags(card, repo)
-    if card["type"] != "code":
+    if card["type"] != "code" or not cp:
         return out
     sol = card.get("solution") or ""
-    frame = lint_cfg.get("frame")
-    if frame and not re.search(frame, sol, re.M):
-        out.append(("!" if project else "~", "frame",
-                    "no enclosing function/type visible (context frame, standards §2a)"))
-    if not (project and cp):
-        return out
     secs = sections(sol, cp)
     hr = header_re(cp)
 
@@ -152,20 +144,19 @@ def source_flags(card: dict, repo: Path) -> list[tuple[str, str, str]]:
     return []
 
 
-def check_index(deck: Deck, card_ids: list[str]) -> list[tuple[str, str, str]]:
-    if deck.kind == "language":
-        return []          # language decks: lines/*.tsv and Vocabulary.md are the index
-    ov = deck.path / "Overview.md"
-    if not ov.is_file():
-        return [("~", "index", "no Overview.md card index in this deck")] if is_project(deck) else []
-    text = ov.read_text(encoding="utf-8")
-    out = [("!", "index", f"{cid} has no row in Overview.md")
-           for cid in card_ids if not re.search(rf"(?<![\w-]){re.escape(cid)}(?![\w-])", text)]
-    listed = set()
-    for prefix in deck.prefixes():
-        listed |= set(re.findall(rf"^\|\s*({re.escape(prefix)}-\d+)\s*\|", text, re.M))
-    if listed:
-        retired = {str(i) for i in deck.cfg.get("retired_ids") or []}
-        out += [("~", "index", f"Overview.md row {cid} has no card (add it to retired_ids?)")
-                for cid in sorted(listed - set(card_ids) - retired)]
+def _existing_repo(deck: Deck) -> Path | None:
+    r = repo_dir(deck)
+    return r if r is not None and r.is_dir() else None
+
+
+def deck_flags(deck: Deck, summary: DeckSummary) -> list[Flag]:
+    out = []
+    repo = repo_dir(deck)
+    if repo is not None and not repo.is_dir():
+        out.append(Flag("!", "repo", f"repo path in deck.yaml not found: {repo}"))
+    if summary.whole and not (deck.path / "Overview.md").is_file():
+        out.append(Flag("~", "index", "no Overview.md card index in this deck"))
     return out
+
+
+RULE = LintRule("project", kinds=("project",), card=card_flags, deck=deck_flags)

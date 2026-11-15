@@ -566,7 +566,7 @@ def test_mix_flags_follow_the_brief(tmp_path):
     from collections import Counter
 
     from studyloop.core.config import load_deck
-    from studyloop.core.lint import mix_flags
+    from studyloop.sources import mix_flags
     d = tmp_path / "t"
     d.mkdir()
     (d / "deck.yaml").write_text("deck: T\nprefix: t\n", encoding="utf-8")

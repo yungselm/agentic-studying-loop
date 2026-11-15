@@ -20,6 +20,7 @@ from pathlib import Path
 
 from . import cards as C
 from .config import Deck, load_pack
+from .registry import registry
 
 
 @dataclass
@@ -47,15 +48,15 @@ def collect(groups: list[tuple[Deck, list[Path]]]) -> tuple[dict[str, list[Item]
                 pack = card.get("pack") or deck.file_opts(f).get("pack") or deck.pack
                 if not pack or card.get("check") is False:
                     continue
+                t = registry().card_types.get(card["type"])
+                if t is None:
+                    continue                    # unknown type: `asl lint` says so
                 tag = _ident(str(card.get("id") or f"{f.stem}_{card['_index']}"))
                 lbl = f"{C.label(card)} ({f.name})"
-                if card["type"] == "code" and card.get("solution"):
+                for b in t.code_blocks(card):
+                    prefix = "sol" if b.kind == "solution" else "ex"
                     by_pack.setdefault(pack, []).append(
-                        Item(f"sol_{tag}", lbl, "solution", card["solution"],
-                             card.get("tests") or ""))
-                elif card["type"] != "code" and card.get("code"):
-                    by_pack.setdefault(pack, []).append(
-                        Item(f"ex_{tag}", lbl, "example", card["code"]))
+                        Item(f"{prefix}_{tag}", lbl, b.kind, b.code, b.tests))
     return by_pack, skipped
 
 

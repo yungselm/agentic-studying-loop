@@ -12,6 +12,7 @@ Design: docs/language-cards.md. Modules, in the order a source flows through the
   gamegengo   grammar notes (+ cards) from a Game Gengo deck
   overview    the official grammar lists as a checklist; images on the notes
   plan        the i+1 planner and its report    draft    card stubs in plan order
+  cardtypes   sentence + grammar cards: fields, lint
   cardfile    card items, in-place field edits   notefile  note frontmatter
   sync        statuses from Anki reviews    tts    fallback audio    clean    unused media"""
 from __future__ import annotations
@@ -21,6 +22,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from ..core.config import load_deck, native_path
+from ..core.registry import Command, DeckKind, Module, Registry
 
 
 @dataclass
@@ -139,8 +141,8 @@ def main(a) -> int:
     return 1
 
 
-def add_parser(sub) -> None:
-    lg = sub.add_parser("lang", help="language topics: import media, seed vocabulary, plan i+1 cards")
+def add_parser(lg) -> None:
+    """The `asl lang …` subcommands, on the `lang` parser."""
     ls = lg.add_subparsers(dest="lang_cmd", required=True)
     s = ls.add_parser("setup", help="download level lists for a language (e.g. ja)")
     s.add_argument("code")
@@ -184,3 +186,25 @@ def add_parser(sub) -> None:
     dr.add_argument("--level", help="current level (default: `level:` in Overview.md)")
     dr.add_argument("--assume", action="append", help="treat a level's listed words as known")
     dr.add_argument("--source", help="only lines of sources whose key starts with this (e.g. sk)")
+
+
+# ---- the module ----------------------------------------------------------------------
+
+LANGUAGE = DeckKind(
+    "language", what="a language from native media", skills="language-cards",
+    card_types=("sentence", "grammar"), detect=lambda d: bool(d.cfg.get("lang")),
+    card_index=False,          # thousands of cards: lines/*.tsv and Vocabulary.md are the index
+    order_by_id=True)          # new cards in the planner's order across all subdecks
+
+
+def register(reg: Registry) -> None:
+    from .cardtypes import LANG_TYPES
+    reg.add_deck_kind(LANGUAGE)
+    for t in LANG_TYPES:
+        reg.add_card_type(t)
+    reg.add_command(Command("lang", "language topics: import media, seed vocabulary, plan i+1 cards",
+                            add_parser, main))
+
+
+MODULE = Module("language", register, skills=("language-cards",), extra="lang",
+                needs=("fugashi", "unidic_lite", "wordfreq", "imageio_ffmpeg", "edge_tts"))

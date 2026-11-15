@@ -11,12 +11,6 @@ import yaml
 PKG = Path(__file__).resolve().parent      # everything the tool ships lives in the package
 ANKI = PKG / "anki"                         # note-type templates + vendored CodeMirror
 
-DEFAULT_LIMITS = {
-    "code": {"typed_chars_target": 80, "typed_chars_max": 120},
-    "concept": {"answer_chars_target": 250, "answer_chars_max": 300,
-                "bold_chars_target": 120, "bold_chars_max": 150},
-    "cloze": {"gap_chars_target": 20, "gap_chars_max": 80},
-}
 DEFAULT_REFRESH = {"mature_share": 0.5, "step_share": 0.25, "min_review_answers": 1000,
                    "min_card_age_days": 30, "mature_ivl_days": 21}
 DEFAULT_PRESET = {"new_per_day": 14, "order": "random"}
@@ -80,7 +74,10 @@ class Home:
 
     @property
     def limits(self) -> dict:
-        lim = {k: dict(v) for k, v in DEFAULT_LIMITS.items()}
+        """Per card type: studyloop.yaml `limits:` over the card types' defaults."""
+        from .registry import registry
+        lim = {t.name: dict(t.default_limits) for t in registry().card_types.values()
+               if t.default_limits}
         for kind, vals in (self.cfg.get("limits") or {}).items():
             lim.setdefault(kind, {}).update(vals or {})
         return lim
@@ -102,18 +99,6 @@ def find_home(start: Path) -> Home:
     return Home(None, {})
 
 
-# Deck kinds: what a deck is for decides the skills, commands and card types. deck.yaml says
-# which (`kind:`); decks made before that are detected (`Deck.detected_kinds`).
-DECK_KINDS = {
-    "project": {"what": "code in a repo", "skills": "the mode in the project's CLAUDE.md, "
-                "write-cards, study-note", "cards": ("code", "concept", "timeline", "cloze")},
-    "topic": {"what": "lectures, books, links", "skills": "study-source -> study-note -> write-cards",
-              "cards": ("cloze", "concept", "timeline", "code")},
-    "language": {"what": "a language from native media", "skills": "language-cards",
-                 "cards": ("sentence", "grammar")},
-}
-
-
 @dataclass
 class Deck:
     """A folder of card files plus its deck.yaml."""
@@ -122,19 +107,25 @@ class Deck:
 
     @property
     def kind(self) -> str:
-        """`kind:` from deck.yaml, else the first detected kind."""
+        """`kind:` from deck.yaml (what a deck is for decides the skills, commands and card
+        types), else the first detected kind."""
+        from .registry import registry
         k = self.cfg.get("kind")
-        return k if k in DECK_KINDS else self.detected_kinds()[0]
+        return k if k in registry().deck_kinds else self.detected_kinds()[0]
 
     def detected_kinds(self) -> list[str]:
-        """What a deck without `kind:` looks like: `lang:` → language, `repo:` or a profile.md →
-        project; neither → topic. Two at once is ambiguous: lint asks for `kind:`."""
-        out = []
-        if self.cfg.get("lang"):
-            out.append("language")
-        if self.cfg.get("repo") or (self.path / "profile.md").is_file():
-            out.append("project")
-        return out or ["topic"]
+        """What a deck without `kind:` (made before it) looks like, by each kind's `detect`;
+        none → the fallback kind (topic), else plain. Two at once: lint asks for `kind:`."""
+        from .registry import registry
+        kinds = registry().deck_kinds.values()
+        out = [k.name for k in kinds if k.detect and k.detect(self)]
+        return out or [k.name for k in kinds if k.fallback][:1] or ["plain"]
+
+    @property
+    def kind_spec(self):
+        """The registered DeckKind of this deck."""
+        from .registry import registry
+        return registry().deck_kinds[self.kind]
 
     @property
     def name(self) -> str:
