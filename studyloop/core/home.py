@@ -89,3 +89,10 @@ def install_skills(target: Path) -> None:
                 shutil.rmtree(dst)
             shutil.copytree(skill, dst)
             print(f"  {dst}")
+
+
+def render(tpl: str, **kw) -> str:
+    """A template with `{{key}}` placeholders (deck.yaml, Overview.md of new decks)."""
+    for k, v in kw.items():
+        tpl = tpl.replace("{{" + k + "}}", str(v))
+    return tpl

@@ -64,3 +64,20 @@ def vault_index(vault: Path) -> tuple[dict[str, Path], dict[str, Path]]:
             for a in [al] if isinstance(al, str) else al:
                 notes.setdefault(str(a).lower(), p)
     return notes, files
+
+
+def vault_rel(p: Path, vault: Path | None) -> str:
+    """A path as the vault sees it (relative), else absolute."""
+    try:
+        return p.relative_to(vault).as_posix() if vault else p.as_posix()
+    except ValueError:
+        return p.as_posix()
+
+
+def resolve_in(base: Path, s: str) -> Path:
+    """A path the user typed: absolute, relative to the current folder if it exists there,
+    else relative to `base` (the vault)."""
+    p = Path(s).expanduser()
+    if p.is_absolute():
+        return p.resolve()
+    return (Path.cwd() / p).resolve() if (Path.cwd() / p).exists() else (base / p).resolve()

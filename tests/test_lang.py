@@ -547,7 +547,7 @@ def test_clean_lists_and_deletes_unused_media(tmp_path):
 
 def test_kinds_route_decks(tmp_path, capsys):
     from studyloop.core import config, lint
-    from studyloop.project import init_topic
+    from studyloop.sources.topic import init_topic
     home = tmp_path / "v" / "Anki cards"
     (tmp_path / "v" / ".obsidian").mkdir(parents=True)
     lang = init_topic("Nihongo", home, [], None, False, None, "python", None, [], lang="ja",

@@ -209,5 +209,5 @@ def register(reg: Registry) -> None:
                             add_parser, main))
 
 
-MODULE = Module("language", register, skills=("language-cards",), extra="lang",
+MODULE = Module("language", register, skills=("language-cards",), extra="lang", requires=("sources",),
                 needs=("wordfreq", "imageio_ffmpeg", "edge_tts"))

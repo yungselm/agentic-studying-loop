@@ -2,7 +2,7 @@
 import textwrap
 from pathlib import Path
 
-from studyloop import notes as N
+from studyloop.notes import check as N
 
 REPO = Path(__file__).resolve().parent.parent
 

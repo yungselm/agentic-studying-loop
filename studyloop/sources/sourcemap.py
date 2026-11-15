@@ -27,19 +27,16 @@ from __future__ import annotations
 import json
 import logging
 import re
-from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .core import cards as C
-from .core.config import Deck, read_keep, write_keep
-from .core.registry import Command, DeckKind, LintRule, Module, Registry
-from .core.vault import split_frontmatter, vault_for, vault_index
+from ..core import cards as C
+from ..core.budget import DEFAULT_BATCH, TOKENS_PER_WORD, short, split, tokens, word_limit
+from ..core.config import Deck, read_keep, write_keep
+from ..core.vault import split_frontmatter, vault_for, vault_index
 
 BEGIN, END = "<!-- asl:sources -->", "<!-- asl:sources:end -->"
 CACHE = ".asl-sources.json"
-TOKENS_PER_WORD = 1.35
-DEFAULT_BATCH = 12000
 SKIP = re.compile(r"^(cover|half title|title page|copyright( page)?|(table of )?contents|index|"
                   r"dedication|acknowledg(e)?ments|from the publisher|about the authors?|colophon|"
                   r"other books.*|praise for.*)$", re.I)
@@ -285,20 +282,13 @@ def scan_md(src: Source) -> list[int]:
 
 def attach_words(src: Source, words: list[int], batch: int) -> None:
     """Word counts per part; a part over the batch without sections gets page chunks."""
-    limit = batch / TOKENS_PER_WORD
+    limit = word_limit(batch)
     for p in src.parts:
         for r in [p, *p.children]:
             r.words = sum(words[r.first - 1:r.last])
         if p.children or p.words <= limit:
             continue
-        a, acc = p.first, 0
-        for pg in range(p.first, p.last + 1):
-            w = words[pg - 1]
-            if acc and acc + w > limit:
-                p.children.append(_chunk(p, a, pg - 1, acc, src.unit))
-                a, acc = pg, 0
-            acc += w
-        p.children.append(_chunk(p, a, p.last, acc, src.unit))
+        p.children += [_chunk(p, a, b, w, src.unit) for a, b, w in split(words, p.first, p.last, limit)]
 
 
 def _chunk(p: Part, a: int, b: int, words: int, unit: str) -> Part:
@@ -417,12 +407,6 @@ def _count_md(src: Source, notes: list[str], cards: list[str]) -> None:
 
 # ---- the map --------------------------------------------------------------
 
-def _k(n: int | None) -> str:
-    if n is None:
-        return "?"
-    return f"{n / 1000:.1f}k" if n >= 1000 else str(n)
-
-
 def _status(p: Part) -> str:
     bits = ([f"notes {p.notes}"] if p.notes else []) + ([f"cards {p.cards}"] if p.cards else [])
     return " · ".join(bits) or "todo"
@@ -458,15 +442,15 @@ def render(deck: Deck, meta: dict, sources: list[Source]) -> str:
             if p.words is not None and p.words * TOKENS_PER_WORD > batch:
                 rows += p.children
             for r in rows:
-                tok = None if r.words is None else int(r.words * TOKENS_PER_WORD)
+                tok = None if r.words is None else tokens(r.words)
                 title = r.title.replace("|", "/")
                 title = ("↳ " if r.depth else "") + (title[:45] + "…" if len(title) > 46 else title)
                 est = ""
                 if rate and r.words and not r.cards and (r is not p or len(rows) == 1):
                     est = f" (~{rate * r.words / 1000:.0f} cards)"
                 big = " ⚠ split" if tok and tok > batch and not (r is p and len(rows) > 1) else ""
-                lines.append(f"| {r.id} | {title} | {r.first}–{r.last} | {_k(r.words)} | "
-                             f"{_k(tok)}{big} | {_status(r)}{est} |")
+                lines.append(f"| {r.id} | {title} | {r.first}–{r.last} | {short(r.words)} | "
+                             f"{short(tok)}{big} | {_status(r)}{est} |")
         lines.append("")
     return "\n".join(lines + [END])
 
@@ -541,82 +525,3 @@ def sources(groups, read: str | None = None) -> int:
         if build_map(deck) is None:
             print(f"{deck.path.name}: no `sources:` in Overview.md's frontmatter; nothing to map.")
     return 0
-
-
-# ---- the module: topic decks -------------------------------------------------------------
-
-def mix_flags(deck: Deck, kinds: Counter) -> list[tuple[str, str, str]]:
-    """Topic decks: the brief's `cards: {code: 0.3}` sets the share of code cards; far off -> note.
-    Without it, a topic deck that is mostly code cards gets the reminder to decide."""
-    if deck.kind != "topic" or sum(kinds.values()) < 10:
-        return []
-    ov = deck.path / "Overview.md"
-    brief = split_frontmatter(ov.read_text(encoding="utf-8"))[0] if ov.is_file() else {}
-    total, code = sum(kinds.values()), kinds["code"] / sum(kinds.values())
-    want = (brief.get("cards") or {}).get("code") if isinstance(brief.get("cards"), dict) else None
-    if want is None:
-        return [("~", "mix", f"{code:.0%} code cards and no `cards:` in the brief: set e.g. "
-                 "`cards: {code: 0.3}` in Overview.md (books about code) or `{code: 0}`")] if code > 0.4 else []
-    if abs(code - float(want)) > 0.15:
-        return [("~", "mix", f"{code:.0%} code cards ({kinds['code']} of {total}); the brief says "
-                 f"{float(want):.0%} (`cards:` in Overview.md)")]
-    return []
-
-
-def _refresh_map(deck: Deck) -> None:
-    """After `asl fix`: the sources map's status follows the new cards' `source:` links."""
-    ov = deck.path / "Overview.md"
-    if ov.is_file() and BEGIN in ov.read_text(encoding="utf-8"):
-        build_map(deck, quiet=True)
-
-
-TOPIC = DeckKind(
-    "topic", what="lectures, books, links", skills="study-source -> study-note -> write-cards",
-    card_types=("cloze", "concept", "timeline", "code"), fallback=True, after_fix=_refresh_map)
-
-
-def _sources_args(p):
-    p.add_argument("inputs", nargs="*")
-    p.add_argument("--read", metavar="PART", help="print the text of one part, e.g. tour.3")
-
-
-def _sources(a):
-    from .core.config import resolve_inputs
-    return sources(resolve_inputs(a.inputs), a.read)
-
-
-def _topic_args(p):
-    p.add_argument("name", help='e.g. "CS231n" or "C++"')
-    p.add_argument("--home", type=Path, required=True, help="card home in your vault")
-    p.add_argument("--sources", action="append", default=[],
-                   help="a folder of PDFs, a file or a URL (repeat for more)")
-    p.add_argument("--notes", help="vault folder for this topic's study notes")
-    p.add_argument("--no-notes", action="store_true", help="cards straight from the sources")
-    p.add_argument("--prefix", help="card id prefix (default: from the name)")
-    p.add_argument("--pack", default="python", help="code highlighting/checker (default python)")
-    p.add_argument("--goal", help="what the topic is for; steers what gets carded")
-    p.add_argument("--builds-on", action="append", default=[], help="what you know already")
-    p.add_argument("--lang", help="a language deck instead (e.g. ja): sentence and grammar cards")
-    p.add_argument("--media", help="language decks: folder outside the vault for clips/screenshots")
-    p.add_argument("--level", help="language decks: current level (JLPT / CEFR)")
-    p.add_argument("--gloss", help="language decks: gloss language (default en)")
-
-
-def _topic(a):
-    from .project import init_topic  # moves here in step 6
-    init_topic(a.name, a.home, a.sources, a.notes, a.no_notes, a.prefix, a.pack, a.goal,
-               a.builds_on, a.lang, a.media, a.level, a.gloss)
-    return 0
-
-
-def register(reg: Registry) -> None:
-    reg.add_deck_kind(TOPIC)
-    reg.add_lint_rule(LintRule("mix", kinds=("topic",),
-                               deck=lambda deck, s: mix_flags(deck, s.types)))
-    reg.add_command(Command("sources", "map a topic's books/links into parts (Overview.md)",
-                            _sources_args, _sources))
-    reg.add_command(Command("topic", "start a topic from lectures, books or links (no code repo)",
-                            _topic_args, _topic))
-
-
-MODULE = Module("sources", register, skills=("study-source",))

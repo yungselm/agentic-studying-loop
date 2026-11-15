@@ -5,9 +5,9 @@ from pathlib import Path
 
 import pypdf
 
-from studyloop import sources
 from studyloop.core import config
 from studyloop.core.cli import main
+from studyloop.sources import sourcemap as sources
 
 
 def book(path: Path) -> None:
