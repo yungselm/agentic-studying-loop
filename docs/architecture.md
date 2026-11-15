@@ -81,8 +81,11 @@ class Module:
 | `Analysis` | `run(table, ctx) → Section` | retention per source note |
 | command | `register(subparsers)` | `asl lang …` |
 
-Deck kinds are tried in order: `language` (`lang:`), `project` (`repo:` or a `profile.md`),
-`topic` (the default from `sources`). If no module claims a deck, core still lints and builds
+A deck states its kind: `asl init`, `asl topic` and `asl topic --lang` write `kind:` into
+`deck.yaml`, so nothing depends on the order modules load in. Decks without `kind:` (made
+before this) are detected from their keys: `lang:` → `language`, `repo:` or a `profile.md` →
+`project`, else `topic`. If two kinds claim the same deck, `asl lint` says so and asks for an
+explicit `kind:` instead of guessing. If no module claims a deck, core still lints and builds
 it as a plain deck: cards only.
 
 Packs keep their own mechanism (`pack.yaml` + `checker.py`, found through `ASL_PACKS`). On a
@@ -91,8 +94,11 @@ language in `deck.yaml`).
 
 ## The vault is optional
 
-A vault is a folder of markdown, nothing more. Core finds it from `vault:` in `studyloop.yaml`,
-else the nearest folder with `.obsidian`, else there is none. With a vault, build and lint
+A vault is a folder of markdown, nothing more. The user is asked once, when the card home is
+set up: do you keep notes in a folder of markdown (Obsidian or any other), and where? The
+answer goes into `studyloop.yaml` as `vault: <path>` or `vault: none` (`asl init-home --vault
+<path>` / `--no-vault`); `none` means the question never comes again. Card homes from before
+this have no `vault:`; for them core falls back to the nearest folder with `.obsidian`. With a vault, build and lint
 resolve `[[wikilinks]]` and `![[images]]`; without one, link resolution is off and cards build
 anyway. The card home can be any folder. Obsidian is supported, never required.
 
@@ -197,7 +203,8 @@ Each step keeps the tests green and is its own commit.
 
 1. **One Anki export reader** in core (`core/reviews`), replacing `stats.open_collection` /
    `load_cards` and `lang/apkg.read_export`.
-2. **Rename** the card-level `lang:` to `pack:`; `asl fix` migrates card files.
+2. **Rename** the card-level `lang:` to `pack:`; `asl fix` migrates card files and writes
+   `kind:` into each `deck.yaml` that lacks it.
 3. **`core/` package**: move card files, config, ids, lint, build, check; the vault becomes
    optional (`vault:` setting).
 4. **Registry and extension points**; core registers its card types through them.
