@@ -344,10 +344,12 @@ module like it, on the same pipeline.
 
 Whenever you like: in Anki, File → Export → *Anki Deck Package* with *Include
 scheduling information*, then ask the agent to *refresh my standards*, or run
-`asl stats export.apkg --home "<card home>"`. The report says whether a refresh is due (default:
+`asl stats export.apkg --home "<card home>"` (with the `analysis` extra: `uv tool install
+"agentic-studying-loop[analysis] @ …"`). The report says whether a refresh is due (default:
 half the deck mature, then every further 25%), and shows fail rates by card size, leeches, hard
-decks, and whether the last rule change helped. The agent proposes edits to your standards; you
-approve them.
+decks, and whether the last rule change helped; the agent reads a short summary of it. The
+agent proposes edits to your standards; you approve them. Each section is an analysis
+(`studyloop/analysis/bundled.py`); a new one is one class.
 
 ## Examples
 

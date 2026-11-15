@@ -155,10 +155,12 @@ not a fork of the pipeline.
 ## Review data and analysis
 
 Core reads an Anki export (`.apkg` / `.colpkg`) into one `ReviewData` (cards, notes, revlog,
-decks, note types) and joins it back to the card files through each card's GUID. Every review
-then carries its card's deck, type, `std` version, tags, size measures, `source:` note and
-source part. Grouping by any of those answers "which lecture / chapter / note was weak". Both
-`analysis` and `asl lang sync` use this reader.
+decks, note types, GUIDs); both `analysis` and `asl lang sync` use this reader. `analysis` makes
+one row per Anki card, measured from the export as studied (a cloze note's gaps are separate
+cards with their own sizes, and decks without card files still count), and joins it back to the
+card files of the card home by GUID: card file, tags, `source:` and its `[[note]]`. Grouping by
+those answers "which lecture / note was weak". (The sources-map part a card counts for is left
+out until an analysis needs it: it would need the sources module.)
 
 `analysis` turns the joined table into a pandas DataFrame and runs every registered analysis:
 
@@ -185,10 +187,12 @@ class Suggestion:                  # what refresh-standards acts on
     confidence: str                # low | medium | high (bin sizes, effect size)
 ```
 
-The report goes to `evidence/<date>-report.md` with figures beside it, so it renders in
-Obsidian and in any markdown viewer. The current `asl stats` (size bins, timer share, leeches,
-standards versions) becomes the first set of analyses. New ones (graphs, weak topics) are
-added without touching the skill: it only reads `summary` and `suggestions`.
+`asl stats` writes `evidence/<date>-<deck>-report.md` (every section, figures as `.svg` beside
+it, so it renders in Obsidian and any markdown viewer) for the user, and `-summary.md` (each
+section's summary and the suggestions that change something) for the agent. The bundled
+analyses (`analysis/bundled.py`) are the earlier `asl stats` report, one section each. New ones
+(graphs, weak topics) register with `reg.provide("analysis", name, obj)` and need no change to
+the skill: it only reads the summary.
 
 ## Tests and CI
 

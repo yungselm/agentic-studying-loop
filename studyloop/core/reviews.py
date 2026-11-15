@@ -53,6 +53,7 @@ class Note:
     values: list[str]        # field values in note type order
     fields: dict[str, str]   # the same, by field name
     tags: list[str]
+    guid: str = ""           # the build's GUID: joins a note back to its card file
     reviewed: bool = False   # a card is in learning/review now (not new, not reset)
     mature: bool = False     # a card in review with interval >= 21 days
     suspended: bool = False  # every card suspended
@@ -105,7 +106,7 @@ def read_export(path: Path) -> ReviewData:
         with contextlib.suppress(sqlite3.OperationalError):     # exports without a revlog
             rd.revlog = [Review(*r) for r in con.execute(
                 "select id, cid, ease, time, type from revlog order by id")]
-        rows = con.execute("select id, mid, flds, tags from notes order by id").fetchall()
+        rows = con.execute("select id, mid, flds, tags, guid from notes order by id").fetchall()
     rd.notes = _notes(rows, rd)
     with zipfile.ZipFile(path) as z:
         rd.media = _media_map(z)
@@ -124,13 +125,13 @@ def _notes(rows, rd: ReviewData) -> list[Note]:
             n[0] += 1
             n[1] += r.ease == 1
     out = []
-    for nid, mid, flds, tags in rows:
+    for nid, mid, flds, tags, guid in rows:
         nt = rd.note_types.get(mid, NoteType(mid, "?", []))
         vals = flds.split("\x1f")
         cards = by_note.get(nid, [])
         reviews, fails = rev.get(nid, (0, 0))
         out.append(Note(
-            nid, mid, nt.name, vals, dict(zip(nt.fields, vals)), tags.split(),
+            nid, mid, nt.name, vals, dict(zip(nt.fields, vals)), tags.split(), guid,
             reviewed=any(c.type in (1, 2, 3) for c in cards),
             mature=any(c.type == 2 and c.ivl >= MATURE_IVL for c in cards),
             suspended=bool(cards) and all(c.queue == -1 for c in cards),

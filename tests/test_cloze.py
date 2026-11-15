@@ -5,7 +5,7 @@ import textwrap
 import zipfile
 from pathlib import Path
 
-from studyloop import stats
+from studyloop.analysis.table import load_cards
 from studyloop.core import cards as C
 from studyloop.core import config, lint
 from studyloop.core.build import build
@@ -103,7 +103,7 @@ def test_build_cloze_note(tmp_path):
 
     # stats reads the measures back per card (its own gap)
     got = sorted((c.measures["gap_chars"], c.measures["gaps"], c.measures["hook"])
-                 for c in stats.load_cards(read_export(out), None))
+                 for c in load_cards(read_export(out), None))
     assert got == [(3, 3, 1), (4, 3, 1), (7, 3, 1)], got   # $\\log C$ shows 4 chars
 
 

@@ -16,7 +16,8 @@ adding or renaming one, run `uv sync` (or reinstall) so `asl` finds it. `skills/
 `.claude-plugin/` are the Claude Code plugin and are also shipped with the tool for
 `asl install-skills`. `examples/` and `example-vault/` are documentation and test fixtures.
 
-Most wanted: new packs (docs/writing-a-pack.md), card types, better stats heuristics, and evidence
+Most wanted: new packs (docs/writing-a-pack.md), card types, analyses of review data
+(`studyloop/analysis/`: a class with `run(data) -> Section`), and evidence
 from your own reviews (open an issue with your `asl stats` report's tables; no card text needed).
 Keep markdown for agents short: every line in a mode or skill costs context in every session that
 loads it.
