@@ -4,7 +4,7 @@ import textwrap
 
 import pytest
 
-from studyloop.cli import main
+from studyloop.core.cli import main
 
 pytestmark = pytest.mark.skipif(not (shutil.which("g++") or shutil.which("clang++")),
                                 reason="no C++ compiler")

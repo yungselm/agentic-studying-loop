@@ -37,7 +37,7 @@ def _safe(title: str) -> str:
 
 def import_game_gengo(d, apkg: Path, statuses: str = "reviews", key: str = "gg",
                       cards: bool = False) -> int:
-    from ..config import native_path
+    from ..core.config import native_path
     from .tokens import tokenizer
     tok = tokenizer(d.cfg.get("tokenizer", ""))
     ex = read_export(native_path(apkg))

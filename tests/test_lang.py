@@ -231,7 +231,7 @@ SENTENCE = '''\
 
 
 def test_lang_lint(tmp_path, capsys):
-    from studyloop import config, lint
+    from studyloop.core import config, lint
     d = _lang_deck(tmp_path, SENTENCE)
     assert lint.lint(config.resolve_inputs([str(d)])) == 1
     out = capsys.readouterr().out
@@ -244,8 +244,8 @@ def test_lang_build(tmp_path):
     import json
     import sqlite3
 
-    from studyloop import config
-    from studyloop.build import build
+    from studyloop.core import config
+    from studyloop.core.build import build
     d = _lang_deck(tmp_path, SENTENCE.split("- id: ja-001")[0])
     out = tmp_path / "ja.apkg"
     assert build(config.resolve_inputs([str(d)]), out) == 0
@@ -272,7 +272,7 @@ def test_lang_build(tmp_path):
 def test_native_path_windows_and_wsl():
     import os
 
-    from studyloop.config import native_path
+    from studyloop.core.config import native_path
     if os.name == "nt":
         assert str(native_path("/mnt/c/x/y")) == "C:\\x\\y"
     elif Path("/mnt/c").is_dir():
@@ -438,8 +438,8 @@ def test_sync_raises_statuses_from_reviews(tmp_path):
     import sqlite3
     from types import SimpleNamespace
 
-    from studyloop import config
-    from studyloop.build import build
+    from studyloop.core import config
+    from studyloop.core.build import build
     from studyloop.lang.sync import sync
     from studyloop.lang.vocab import Entry
     d = _lang_deck(tmp_path, SENTENCE.split("- id: ja-001")[0])
@@ -508,7 +508,7 @@ def test_readd_from_other_input_keeps_cards(tmp_path):
 def test_tts_fills_missing_audio(tmp_path, monkeypatch):
     from types import SimpleNamespace
 
-    from studyloop.cards import load_file
+    from studyloop.core.cards import load_file
     from studyloop.lang import tts
     d = _lang_deck(tmp_path, SENTENCE.split("- id: ja-001")[0])
     g = d / "grammar.yaml"
@@ -543,7 +543,7 @@ def test_clean_lists_and_deletes_unused_media(tmp_path):
 
 
 def test_kinds_route_decks(tmp_path, capsys):
-    from studyloop import config, lint
+    from studyloop.core import config, lint
     from studyloop.project import init_topic
     home = tmp_path / "v" / "Anki cards"
     (tmp_path / "v" / ".obsidian").mkdir(parents=True)
@@ -565,8 +565,8 @@ def test_kinds_route_decks(tmp_path, capsys):
 def test_mix_flags_follow_the_brief(tmp_path):
     from collections import Counter
 
-    from studyloop.config import load_deck
-    from studyloop.lint import mix_flags
+    from studyloop.core.config import load_deck
+    from studyloop.core.lint import mix_flags
     d = tmp_path / "t"
     d.mkdir()
     (d / "deck.yaml").write_text("deck: T\nprefix: t\n", encoding="utf-8")

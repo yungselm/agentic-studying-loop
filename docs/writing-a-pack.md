@@ -1,6 +1,6 @@
 # Writing a pack
 
-A pack teaches the engine one language. Bundled packs live in `studyloop/packs/`. You can also
+A pack teaches the engine one language. Bundled packs live in `studyloop/core/packs/`. You can also
 keep your own packs anywhere, without cloning this repo: put them in a folder and list it in the
 `ASL_PACKS` environment variable (several folders separated by `;` on Windows, `:` elsewhere).
 `asl packs` shows what it finds.
@@ -45,11 +45,11 @@ def run(items, workdir, opts) -> int:   # 0 = everything passed
 - `opts`: `pack.yaml` plus `{"fast": bool}` (skip slow linters).
 
 Generate one project with every card isolated (a module per card), run the linter and the tests,
-print what failed with the card's label. See `studyloop/packs/rust/checker.py` and `studyloop/packs/python/checker.py`.
+print what failed with the card's label. See `studyloop/core/packs/rust/checker.py` and `studyloop/core/packs/python/checker.py`.
 
 ## standards.md
 
 Keep it short: formatter, edition/version, comment syntax for elisions / location headers /
 `uses:` hints / stubs, where third-party code goes, and language-specific card shapes that work.
 
-To contribute a pack, add it under `studyloop/packs/` with a small example deck in `examples/` and open a PR.
+To contribute a pack, add it under `studyloop/core/packs/` with a small example deck in `examples/` and open a PR.

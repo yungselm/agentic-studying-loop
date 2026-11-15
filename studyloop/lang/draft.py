@@ -12,7 +12,7 @@ from pathlib import Path
 
 import yaml
 
-from ..config import load_deck
+from ..core.config import load_deck
 from .cardfile import card_item
 from .plan import compute, grammar_links, write_state
 from .tokens import furigana
@@ -35,7 +35,7 @@ def _source_meta(deck_dir: Path, key: str) -> dict:
 
 def _next_number(deck, prefix: str, st) -> int:
     """After every id in use, retired, or remembered by a rejected line (never reissued)."""
-    from ..ids import _num, used_ids
+    from ..core.ids import _num, used_ids
     ids = set(used_ids(deck, []))
     ids |= {ln.status.split(":", 1)[1] for lines in st.by_src.values() for ln in lines
             if ln.status.startswith(("card:", "rejected:"))}

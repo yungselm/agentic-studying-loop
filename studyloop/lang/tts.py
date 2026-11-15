@@ -71,8 +71,8 @@ def synthesize(text: str, out: Path, cfg: dict) -> str | None:
 
 def fill_audio(d) -> int:
     """Every sentence/grammar card without `audio:` gets a TTS clip (media_dir/tts/<id>.mp3)."""
-    from ..cards import load_file
-    from ..config import load_deck
+    from ..core.cards import load_file
+    from ..core.config import load_deck
     from .cardfile import edit_cards
     deck = load_deck(d.path)
     done, failed, changes = [], [], {}

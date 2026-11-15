@@ -10,8 +10,8 @@ import re
 from collections import Counter
 from pathlib import Path
 
-from ..cards import load_file
-from ..config import load_deck
+from ..core.cards import load_file
+from ..core.config import load_deck
 from ..core.reviews import read_export
 from .vocab import RANK
 
@@ -27,7 +27,7 @@ def _asl_id(note) -> str | None:
 
 
 def sync(d, vocab, export: Path) -> dict:
-    from ..notes import split_frontmatter
+    from ..core.vault import split_frontmatter
     from .notefile import update_note
     from .overview import _norm_forms
     ex = read_export(export)

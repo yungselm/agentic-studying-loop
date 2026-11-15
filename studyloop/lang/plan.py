@@ -186,8 +186,8 @@ def source_quality(meta: Path) -> int:
 
 
 def existing_cards(deck_dir: Path) -> list[dict]:
-    from ..cards import load_file
-    from ..config import load_deck
+    from ..core.cards import load_file
+    from ..core.config import load_deck
     deck = load_deck(deck_dir)
     return [c for f in deck.files() for c in load_file(f) if c.get("type") == "sentence"]
 

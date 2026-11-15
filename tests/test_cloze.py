@@ -5,9 +5,10 @@ import textwrap
 import zipfile
 from pathlib import Path
 
-from studyloop import cards as C
-from studyloop import config, lint, stats
-from studyloop.build import build
+from studyloop import stats
+from studyloop.core import cards as C
+from studyloop.core import config, lint
+from studyloop.core.build import build
 from studyloop.core.reviews import read_export
 
 PNG = bytes.fromhex("89504e470d0a1a0a0000000d4948445200000001000000010806000000"

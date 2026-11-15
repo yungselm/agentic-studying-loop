@@ -303,7 +303,7 @@ def add_source(deck_dir: Path, media_dir: Path, inp: Path, key: str, title: str,
                label_re: str, strip_re: str = "", video: Path | None = None,
                only: str | None = None, pad: tuple[float, float] = (0.25, 0.4),
                width: int = 960, subs: Path | None = None, keep_re: str = "") -> int:
-    from ..config import native_path
+    from ..core.config import native_path
     raw_inp, inp = str(inp), native_path(inp)
     ex = None
     if inp.suffix.lower() in VIDEO:              # a video + its subtitle file

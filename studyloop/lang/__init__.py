@@ -20,7 +20,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..config import load_deck, native_path
+from ..core.config import load_deck, native_path
 
 
 @dataclass
@@ -38,7 +38,7 @@ class LangDeck:
 
 
 def open_deck(folder: Path) -> LangDeck:
-    from ..notes import split_frontmatter
+    from ..core.vault import split_frontmatter
     from .setup import lang_config
     deck = load_deck(Path(folder).expanduser())
     lang = deck.cfg.get("lang")

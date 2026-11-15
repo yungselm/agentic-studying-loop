@@ -6,8 +6,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from ..cards import load_file
-from ..config import load_deck
+from ..core.cards import load_file
+from ..core.config import load_deck
 from .lines import read_lines
 
 EMBED = re.compile(r"!\[\[([^\]|#]+)")

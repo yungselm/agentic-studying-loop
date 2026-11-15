@@ -26,10 +26,10 @@ import re
 from collections import Counter
 from pathlib import Path
 
+from .. import project_lint as P
 from . import cards as C
-from . import notes as N
-from . import project_lint as P
 from .config import DECK_KINDS, Deck, find_home, load_pack
+from .vault import split_frontmatter, vault_for, vault_index
 
 XREF = re.compile(r"\b(like the previous|the previous card|as (above|before)|like it|"
                   r"same as the previous|see the (other|previous))\b", re.I)
@@ -100,7 +100,7 @@ def vault_flags(card: dict, fields, vault: Path | None) -> list[tuple[str, str, 
     if vault is None:
         return []
     out = []
-    notes, files = N.vault_index(vault)
+    notes, files = vault_index(vault)
     for m in WIKI.finditer(str(card.get("source") or "")):
         target = m.group(2).split("#")[0].strip().lower()
         if target not in notes and target not in files:     # a note, or a file (book.pdf#page=4)
@@ -172,7 +172,7 @@ def mix_flags(deck: Deck, kinds: Counter) -> list[tuple[str, str, str]]:
     if deck.kind != "topic" or sum(kinds.values()) < 10:
         return []
     ov = deck.path / "Overview.md"
-    brief = N.split_frontmatter(ov.read_text(encoding="utf-8"))[0] if ov.is_file() else {}
+    brief = split_frontmatter(ov.read_text(encoding="utf-8"))[0] if ov.is_file() else {}
     total, code = sum(kinds.values()), kinds["code"] / sum(kinds.values())
     want = (brief.get("cards") or {}).get("code") if isinstance(brief.get("cards"), dict) else None
     if want is None:
@@ -205,8 +205,8 @@ TARGET = re.compile(r"\*\*(.+?)\*\*", re.S)
 def lang_context(deck: Deck) -> dict | None:
     if not deck.cfg.get("lang"):
         return None
+    from ..lang.setup import lang_config
     from .build import media_index
-    from .lang.setup import lang_config
     try:
         cfg = lang_config(deck.cfg["lang"])
     except SystemExit:
@@ -217,7 +217,7 @@ def lang_context(deck: Deck) -> dict | None:
 
 def lang_flags(card: dict, ctx: dict | None) -> list[tuple[str, str, str]]:
     """Sentence and grammar cards (docs/language-cards.md)."""
-    from .lang.tokens import plain_text
+    from ..lang.tokens import plain_text
     t = card["type"]
     if ctx is None:
         return [("!", "lang", f"a {t} card needs a language deck (`lang:` and `media_dir:` in deck.yaml)")]
@@ -264,7 +264,7 @@ def lint(groups: list[tuple[Deck, list[Path]]], quiet: bool = False,
 
     for deck, files in groups:
         lim = find_home(deck.path).limits
-        vault = N.card_vault(deck.path)
+        vault = vault_for(deck.path)
         roles, repo = P.file_roles(deck), P.repo_dir(deck)
         if repo is not None and not repo.is_dir():
             report("!", "repo", deck.path.name, f"repo path in deck.yaml not found: {repo}")

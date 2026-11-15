@@ -217,7 +217,7 @@ def ids(groups, fix: bool) -> int:
         print(f"{deck.path.name}: " + (f"kind: {kind} written, " if kind else "")
               + f"id/std/guid written on {total} card(s), "
               f"{rows} Overview.md row(s) added.")
-        from .sources import BEGIN, build_map
+        from ..sources import BEGIN, build_map
         ov = deck.path / "Overview.md"
         if ov.is_file() and BEGIN in ov.read_text(encoding="utf-8"):
             build_map(deck, quiet=True)         # refresh the sources map's status

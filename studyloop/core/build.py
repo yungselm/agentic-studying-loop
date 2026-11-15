@@ -30,8 +30,8 @@ import genanki
 
 from . import cards as C
 from .config import ANKI, Deck, all_packs, load_pack
-from .notes import card_vault as vault_of
-from .notes import vault_index
+from .vault import vault_for as vault_of
+from .vault import vault_index
 
 CODE_MODEL_ID = 1607392319       # same ids as rust-lang-kata, so its decks can migrate
 CONCEPT_MODEL_ID = 1607392321

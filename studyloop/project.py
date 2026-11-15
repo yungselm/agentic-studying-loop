@@ -17,11 +17,12 @@ import re
 import shutil
 from pathlib import Path
 
-from .config import PKG, find_pack, read_keep, write_keep
+from .core.config import PKG, find_pack, read_keep, write_keep
 
 BEGIN, MODE, END = "<!-- studyloop:begin -->", "<!-- studyloop:mode -->", "<!-- studyloop:end -->"
 MODES = ["teacher", "mentor", "coworker", "on-demand"]
-TEMPLATES = PKG / "templates"
+HERE = Path(__file__).resolve().parent
+TEMPLATES = HERE / "templates"
 
 
 def _copy_new(src: Path, dst: Path) -> bool:
@@ -32,11 +33,14 @@ def _copy_new(src: Path, dst: Path) -> bool:
     return True
 
 
-def init_home(home: Path, packs: list[str]) -> None:
+def init_home(home: Path, packs: list[str], vault: Path | str | None = None) -> None:
+    """`vault`: the notes folder cards link into, `"none"` for cards only, None: leave as is."""
     home = home.expanduser().resolve()
     made = []
     if _copy_new(TEMPLATES / "card-home" / "studyloop.yaml", home / "studyloop.yaml"):
         made.append("studyloop.yaml")
+    if vault is not None:
+        made.append(f"vault: {set_vault(home, vault)}")
     for name in ("core.md",):
         if _copy_new(PKG / "standards" / name, home / "standards" / name):
             made.append(f"standards/{name}")
@@ -47,6 +51,29 @@ def init_home(home: Path, packs: list[str]) -> None:
             made.append(f"standards/{p}.md")
     (home / "evidence").mkdir(parents=True, exist_ok=True)
     print(f"Card home {home}: " + (", ".join(made) if made else "already set up, nothing changed."))
+
+
+def set_vault(home: Path, vault: Path | str) -> str:
+    """Write `vault:` into the card home's studyloop.yaml (relative when the vault holds the
+    home, so the vault can move or sync between Windows and WSL). Returns the value written."""
+    if str(vault) == "none":
+        value = "none"
+    else:
+        v = Path(vault).expanduser().resolve()
+        if not v.is_dir():
+            raise SystemExit(f"Vault folder not found: {v}")
+        value = Path(os.path.relpath(v, home)).as_posix() if home.is_relative_to(v) else str(v)
+    p = home / "studyloop.yaml"
+    text, fmt = read_keep(p)
+    line = f"vault: {_yaml_str(value)}"
+    if re.search(r"^vault:.*$", text, re.M):
+        text = re.sub(r"^vault:.*$", lambda _m: line, text, count=1, flags=re.M)
+    elif re.search(r"^# vault:.*$", text, re.M):          # the template's placeholder
+        text = re.sub(r"^# vault:.*$", lambda _m: line, text, count=1, flags=re.M)
+    else:
+        text = text.rstrip("\n") + f"\n\n{line}\n"
+    write_keep(p, text, fmt)
+    return value
 
 
 def _render(tpl: str, **kw) -> str:
@@ -112,13 +139,13 @@ def init_topic(name: str, home: Path, sources: list[str], notes: str | None, no_
                gloss: str | None = None) -> Path:
     """A deck for a topic without a code repo (lectures, books, links), or with `lang` a language
     deck, plus the topics block in the CLAUDE.md of the folder that holds the card home."""
-    from . import notes as N
+    from .core.vault import vault_for
     home = home.expanduser().resolve()
     if lang:
         return _init_language(name, home, lang, media, notes, prefix, goal, level, gloss)
     find_pack(pack)
     init_home(home, [pack])
-    vault = N.card_vault(home) or home.parent
+    vault = vault_for(home) or home.parent
     plain = name.lower().replace("+", "p").replace("#", "sharp")       # C++ -> cpp, C# -> csharp
     slug = re.sub(r"[^a-z0-9_]+", "_", plain).strip("_") or "topic"
     prefix = prefix or (re.sub(r"[^a-z0-9]", "", plain)[:3] or "top")
@@ -147,21 +174,21 @@ def init_topic(name: str, home: Path, sources: list[str], notes: str | None, no_
         print(f"  created {out}")
     write_topics_block(home)
     if sources:
-        from .config import load_deck
+        from .core.config import load_deck
         from .sources import build_map
         build_map(load_deck(deck_dir))
     return deck_dir
 
 
 def _init_language(name, home, lang, media, notes, prefix, goal, level, gloss) -> Path:
-    from . import notes as N
+    from .core.vault import vault_for
     from .lang.setup import lang_config
     lang_config(lang)                                   # known language?
     if not media:
         raise SystemExit("A language deck needs --media: a folder OUTSIDE the vault for clips "
                          "and screenshots (e.g. C:\\AnkiMedia\\japanese)")
     init_home(home, [])
-    vault = N.card_vault(home) or home.parent
+    vault = vault_for(home) or home.parent
     slug = re.sub(r"[^a-z0-9_]+", "_", name.lower()).strip("_") or lang
     deck_dir = home / slug
     notes_dir = _resolve_in(vault, notes) if notes else vault / name
@@ -190,7 +217,7 @@ TOPICS_BEGIN, TOPICS_END = "<!-- studyloop:topics:begin -->", "<!-- studyloop:to
 def write_topics_block(home: Path) -> None:
     """CLAUDE.md next to the card home: where topics live, so an agent started anywhere
     in the studying folder finds them without being told paths."""
-    from .config import DECK_KINDS, load_deck
+    from .core.config import DECK_KINDS, load_deck
     decks = [load_deck(d) for d in sorted(home.iterdir()) if (d / "deck.yaml").is_file()]
     topics = [d for d in decks if d.kind != "project"]     # projects have their own block
 
@@ -234,13 +261,13 @@ def write_topics_block(home: Path) -> None:
 
 
 def _topic_name(d: Path) -> str:
-    from .notes import split_frontmatter
+    from .core.vault import split_frontmatter
     meta, _ = split_frontmatter((d / "Overview.md").read_text(encoding="utf-8"))
     return str(meta.get("project") or "")
 
 
 def _block(settings: str, mode: str) -> str:
-    body = (PKG / "modes" / f"{mode}.md").read_text(encoding="utf-8").strip()
+    body = (HERE / "modes" / f"{mode}.md").read_text(encoding="utf-8").strip()
     return "\n".join([
         BEGIN,
         "## Study loop ([agentic-studying-loop](https://github.com/yungselm/agentic-studying-loop))",

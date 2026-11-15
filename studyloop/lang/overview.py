@@ -7,7 +7,7 @@ import json
 import re
 from pathlib import Path
 
-from ..notes import split_frontmatter
+from ..core.vault import split_frontmatter
 from .notefile import embed_image, read_note, update_note, write_note
 from .setup import cache_dir
 

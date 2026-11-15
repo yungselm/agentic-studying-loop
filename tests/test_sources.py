@@ -5,8 +5,9 @@ from pathlib import Path
 
 import pypdf
 
-from studyloop import config, sources
-from studyloop.cli import main
+from studyloop import sources
+from studyloop.core import config
+from studyloop.core.cli import main
 
 
 def book(path: Path) -> None:
@@ -121,12 +122,12 @@ def test_read_one_part(tmp_path, capsys):
 
 
 def test_pdf_page_link_is_a_valid_source(tmp_path):
-    from studyloop import lint
+    from studyloop.core import lint
     d = topic(tmp_path)
     deck = config.load_deck(d)
     card = {"source": "[[Tour.pdf#page=4]]", "_file": d / "a.yaml"}
-    from studyloop import notes as N
-    assert lint.vault_flags(card, (), N.card_vault(deck.path)) == []
+    from studyloop.core.vault import vault_for
+    assert lint.vault_flags(card, (), vault_for(deck.path)) == []
 
 
 def lectures(tmp: Path) -> tuple[Path, Path]:

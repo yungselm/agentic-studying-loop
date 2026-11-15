@@ -162,7 +162,7 @@ deck with an in-card code editor (on flip, lines that differ from the solution t
    ```
 
    The two spaces of indentation matter. More card types and fields: [card format](docs/card-format.md);
-   the rules for cards that stick: [standards](studyloop/standards/core.md).
+   the rules for cards that stick: [standards](studyloop/core/standards/core.md).
 
 3. **Check and build** (in the terminal, in the folder that contains `my-cards`):
 
@@ -241,11 +241,14 @@ anything outside the project and the chosen notes folder.
    projects check `cargo clippy --version`. Check that Anki is installed; if not, give the user the
    link and wait.
 2. **Install:** `uv tool install "agentic-studying-loop @ https://github.com/yungselm/agentic-studying-loop/archive/refs/heads/master.zip"`, then `asl packs`.
-3. **Ask the user** (one question at a time): where the notes vault is (an Obsidian vault or any
-   folder; suggest one inside their documents), and which mode: `teacher` (user writes all code),
+3. **Ask the user** (one question at a time): whether they keep notes in a folder of markdown
+   (an Obsidian vault or any folder; suggest one inside their documents) or want cards only, and
+   which mode: `teacher` (user writes all code),
    `mentor`, `coworker`, `on-demand` (see Modes). Use a 2–4 letter id prefix derived from the project
    name; the pack follows the project's language (`rust`, `python` or `cpp`).
-4. **Connect:** a code project → `asl init <project> --home "<vault>/Anki cards" --notes
+4. **Card home:** `asl init-home "<vault>/Anki cards" --vault "<vault>"`; cards only →
+   `asl init-home "<folder>" --no-vault`. Asked once: the answer stays in `studyloop.yaml`.
+   **Connect:** a code project → `asl init <project> --home "<vault>/Anki cards" --notes
    "<vault>/<project>" --pack <pack> --prefix <prefix> --mode <mode>`. Lectures, books or links
    (no code) → `asl topic "<name>" --home "<vault>/Anki cards" --sources "<folder|file|url>"
    --notes "<vault>/<topic>"` (or `--no-notes`); first ask for the goal, what the user already

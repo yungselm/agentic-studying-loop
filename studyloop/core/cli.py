@@ -71,6 +71,10 @@ def _main(argv=None) -> int:
     h = sub.add_parser("init-home", help="create a card home in your vault")
     h.add_argument("home", type=Path)
     h.add_argument("--pack", action="append", default=[])
+    hv = h.add_mutually_exclusive_group()
+    hv.add_argument("--vault", type=Path, help="your notes folder (Obsidian or any markdown); "
+                    "cards link into it")
+    hv.add_argument("--no-vault", action="store_true", help="no notes folder: cards only")
 
     p = sub.add_parser("init", help="connect a project: deck folder + CLAUDE.md block")
     p.add_argument("project", type=Path)
@@ -106,7 +110,7 @@ def _main(argv=None) -> int:
 
     sub.add_parser("packs", help="list available packs")
 
-    from .lang import add_parser as add_lang_parser
+    from ..lang import add_parser as add_lang_parser
     add_lang_parser(sub)
 
     a = ap.parse_args(argv)
@@ -121,40 +125,40 @@ def _main(argv=None) -> int:
         return lint(config.resolve_inputs(a.inputs), a.quiet,
                     frozenset(k.strip() for k in a.skip.split(",") if k.strip()))
     if a.cmd == "notes":
-        from .notes import notes
+        from ..notes import notes
         return notes(a.inputs, a.vault, a.quiet, a.budget)
     if a.cmd in ("ids", "fix"):
         from .ids import ids
         return ids(config.resolve_inputs(a.inputs), a.cmd == "fix" or a.fix)
     if a.cmd == "sources":
-        from .sources import sources
+        from ..sources import sources
         return sources(config.resolve_inputs(a.inputs), a.read)
     if a.cmd == "stats":
-        from .stats import stats
+        from ..stats import stats
         return stats(Path(a.export), a.deck, a.home, a.mark_refreshed)
     if a.cmd == "init-home":
-        from .project import init_home
-        init_home(a.home, a.pack)
+        from ..project import init_home
+        init_home(a.home, a.pack, "none" if a.no_vault else a.vault)
         return 0
     if a.cmd == "init":
-        from .project import init_project
+        from ..project import init_project
         init_project(a.project, a.home, a.pack, a.prefix, a.mode, a.notes, a.name)
         return 0
     if a.cmd == "topic":
-        from .project import init_topic
+        from ..project import init_topic
         init_topic(a.name, a.home, a.sources, a.notes, a.no_notes, a.prefix, a.pack, a.goal,
                    a.builds_on, a.lang, a.media, a.level, a.gloss)
         return 0
     if a.cmd == "mode":
-        from .project import set_mode
+        from ..project import set_mode
         set_mode(a.project, a.mode)
         return 0
     if a.cmd == "install-skills":
-        from .project import install_skills
+        from ..project import install_skills
         install_skills(a.target)
         return 0
     if a.cmd == "lang":
-        from .lang import main as lang_main
+        from ..lang import main as lang_main
         return lang_main(a)
     if a.cmd == "packs":
         for d in config.all_packs():

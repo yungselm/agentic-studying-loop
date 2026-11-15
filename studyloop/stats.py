@@ -32,9 +32,9 @@ from pathlib import Path
 
 import yaml
 
-from . import cards as C
-from .build import CLOZE_MODEL_ID, CODE_MODEL_ID, CONCEPT_MODEL_ID
-from .config import Home, find_home
+from .core import cards as C
+from .core.build import CLOZE_MODEL_ID, CODE_MODEL_ID, CONCEPT_MODEL_ID
+from .core.config import Home, find_home
 from .core.reviews import ReviewData, read_export
 
 TIMER_MS = 60000

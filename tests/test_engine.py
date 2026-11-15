@@ -6,9 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from studyloop import cards as C
-from studyloop import config, ids, lint, stats
-from studyloop.build import build
+from studyloop import stats
+from studyloop.core import cards as C
+from studyloop.core import config, ids, lint
+from studyloop.core.build import build
 
 REPO = Path(__file__).resolve().parent.parent
 
@@ -189,7 +190,7 @@ def _concept(q):
 def test_fix_legacy_migration_keeps_every_id_and_guid(tmp_path):
     body = "".join(f"# rlk-00{i}\n{_concept(f'Q{i}?')}\n" for i in range(1, 5))
     d = make_deck(tmp_path, body, "deck: K\npack: python\nprefix: rlk\nguid: legacy-kata\n")
-    from studyloop.build import guid
+    from studyloop.core.build import guid
     deck = config.load_deck(d)
     before = [guid(deck, d / "a.yaml", c) for c in C.load_file(d / "a.yaml")]
     assert _fix(d) == ["rlk-001", "rlk-002", "rlk-003", "rlk-004"]
@@ -231,7 +232,7 @@ def test_retired_card_comment_is_not_inherited(tmp_path):
 
 
 def test_text_bold_never_inside_code():
-    from studyloop.build import text
+    from studyloop.core.build import text
     assert text("`x ** 2` and `-(x ** 2)`") == "<code>x ** 2</code> and <code>-(x ** 2)</code>"
     assert text("**`**kwargs` is a dict.**") == "<strong><code>**kwargs</code> is a dict.</strong>"
 
@@ -282,3 +283,29 @@ def test_deck_kind_fix_and_lint(tmp_path, capsys):
     assert lint.kind_flags(config.load_deck(d))[0][0] == "!"
     (d / "deck.yaml").write_text("kind: book\ndeck: T\n", encoding="utf-8")
     assert "unknown `kind: book`" in lint.kind_flags(config.load_deck(d))[0][2]
+
+
+def test_vault_setting(tmp_path, capsys):
+    from studyloop.core.cli import main
+    from studyloop.core.vault import vault_for
+    v = tmp_path / "Notes"
+    home = v / "Anki cards"
+    deck = home / "d"
+    deck.mkdir(parents=True)
+    assert vault_for(deck) is None                    # no setting, no .obsidian: no vault
+    (v / ".obsidian").mkdir()
+    assert vault_for(deck) == v                       # card homes from before the setting
+
+    main(["init-home", str(home), "--no-vault"])
+    assert "vault: \"none\"" in (home / "studyloop.yaml").read_text(encoding="utf-8")
+    assert vault_for(deck) is None                    # `none` wins over .obsidian
+
+    elsewhere = tmp_path / "Elsewhere"
+    elsewhere.mkdir()
+    main(["init-home", str(home), "--vault", str(elsewhere)])
+    text = (home / "studyloop.yaml").read_text(encoding="utf-8")
+    assert text.count("\nvault:") == 1 and "# vault: .." not in text   # replaced the placeholder
+    assert vault_for(deck) == elsewhere.resolve()
+    main(["init-home", str(home), "--vault", str(v)])
+    assert 'vault: ".."' in (home / "studyloop.yaml").read_text(encoding="utf-8")   # relative
+    assert vault_for(deck) == v.resolve()

@@ -30,9 +30,9 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import cards as C
-from . import notes as N
-from .config import Deck, read_keep, write_keep
+from .core import cards as C
+from .core.config import Deck, read_keep, write_keep
+from .core.vault import split_frontmatter, vault_for, vault_index
 
 BEGIN, END = "<!-- asl:sources -->", "<!-- asl:sources:end -->"
 CACHE = ".asl-sources.json"
@@ -84,7 +84,7 @@ def brief(deck: Deck) -> dict:
     ov = deck.path / "Overview.md"
     if not ov.is_file():
         return {}
-    meta, _ = N.split_frontmatter(ov.read_text(encoding="utf-8"))
+    meta, _ = split_frontmatter(ov.read_text(encoding="utf-8"))
     return meta
 
 
@@ -127,8 +127,8 @@ def _expand(deck: Deck, vault: Path | None, raw) -> list:
 
 
 def resolve(deck: Deck, meta: dict) -> list[Source]:
-    vault = N.card_vault(deck.path)
-    files = N.vault_index(vault)[1] if vault else {}
+    vault = vault_for(deck.path)
+    files = vault_index(vault)[1] if vault else {}
     out, taken = [], set()
     for raw in [x for r in meta.get("sources") or [] for x in _expand(deck, vault, r)]:
         spec = raw if isinstance(raw, dict) else (
@@ -354,13 +354,13 @@ def count(deck: Deck, meta: dict, sources: list[Source]) -> None:
     note_refs: dict[str, list] = {}          # note name -> its source refs
     note_texts: dict[str, str] = {}          # note name -> its source text
     folder = meta.get("notes")
-    vault = N.card_vault(deck.path)
+    vault = vault_for(deck.path)
     if folder:
         nd = Path(str(folder)).expanduser()
         if not nd.is_absolute():
             nd = next((b / nd for b in (vault, deck.path) if b and (b / nd).is_dir()), nd)
         for p in nd.rglob("*.md") if nd.is_dir() else []:
-            m, _ = N.split_frontmatter(p.read_text(encoding="utf-8", errors="replace"))
+            m, _ = split_frontmatter(p.read_text(encoding="utf-8", errors="replace"))
             refs = _refs(_as_list(m.get("source")))
             if refs:
                 note_refs[p.stem.lower()] = refs

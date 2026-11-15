@@ -1,4 +1,9 @@
-# Card home settings (agentic-studying-loop). Lives next to standards/ in your vault.
+# Card home settings (agentic-studying-loop). Lives next to standards/ (in your vault, if any).
+
+# Your notes: a folder of markdown (Obsidian or any other) that cards link into
+# ([[Note]], ![[image.png]], `source:`). `none`: cards only, no links. Relative paths start
+# here. Set by `asl init-home --vault <folder>` / `--no-vault`.
+# vault: ..
 
 # Bumped by one each time the standards change after a refresh. New cards record
 # it as `std: N`, so later reports can compare cards written under each version.

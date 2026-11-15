@@ -11,7 +11,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ..notes import split_frontmatter
+from ..core.vault import split_frontmatter
 
 GATE_OK = {"planned": {"planned", "learning", "known"}, "learning": {"learning", "known"}}
 
