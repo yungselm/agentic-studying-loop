@@ -15,12 +15,12 @@ def book(path: Path) -> None:
     w = pypdf.PdfWriter()
     for _ in range(20):
         w.add_blank_page(100, 100)
-    w.add_outline_item("Cover", 0)
-    ch1 = w.add_outline_item("1 The Basics", 2)
-    w.add_outline_item("1.1 Programs", 2, parent=ch1)
-    w.add_outline_item("1.2 Functions", 6, parent=ch1)
-    w.add_outline_item("2 Classes", 10)
-    w.add_outline_item("Index", 17)
+    w.add_outline_item(title="Cover", page_number=0)
+    ch1 = w.add_outline_item(title="1 The Basics", page_number=2)
+    w.add_outline_item(title="1.1 Programs", page_number=2, parent=ch1)
+    w.add_outline_item(title="1.2 Functions", page_number=6, parent=ch1)
+    w.add_outline_item(title="2 Classes", page_number=10)
+    w.add_outline_item(title="Index", page_number=17)
     with open(path, "wb") as f:
         w.write(f)
 

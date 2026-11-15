@@ -10,7 +10,7 @@ from studyloop.core import cards as C
 from studyloop.core import config, ids, lint
 from studyloop.core.build import build
 
-REPO = Path(__file__).resolve().parent.parent
+REPO = Path(__file__).resolve().parents[2]
 
 
 def make_deck(tmp: Path, cards_yaml: str, deck_yaml: str = "deck: T\npack: python\nprefix: t\n"):
@@ -103,19 +103,6 @@ def test_lint_flags_oversized_and_literal(tmp_path, capsys):
     assert lint.lint(config.resolve_inputs([str(d)])) == 1
     out = capsys.readouterr().out
     assert "[size]" in out and "[literal]" in out
-
-
-def test_suggest_and_spearman():
-    from studyloop.analysis.bundled import limit_line, spearman, suggest
-    assert spearman(list(range(20)), list(range(20))) == pytest.approx(1.0)
-    bins = [(0, 40, 0.10, 500, 0), (40, 80, 0.12, 500, 0), (80, 120, 0.20, 500, 0.1),
-            (120, 10**9, 0.40, 500, 0.7)]
-    s = suggest(bins, 80, 120, "limits.code.typed_chars")
-    assert (s.target, s.kind, s.old) == ("limits.code.typed_chars", "limit", "80/120")
-    assert s.new in ("80/80", "80/120") and "reference fail rate 10%" in s.evidence
-    assert limit_line(s).startswith("- typed chars: target ≈ 80, max ≈ ")
-    few = suggest(bins[:2], 80, 120, "limits.code.typed_chars")
-    assert few.new == few.old and limit_line(few) == "- typed chars: not enough data yet (keep 80/120)."
 
 
 @pytest.mark.parametrize("deck", ["examples/python-core", "example-vault/Studying/Anki cards/tasklog"])

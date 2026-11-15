@@ -1,4 +1,5 @@
-"""The tables every analysis gets: the export's cards (one row per Anki card, measured as
+"""The tables every analysis gets (pandas is imported only to build them; `load_cards` is plain
+Python): the export's cards (one row per Anki card, measured as
 studied) joined to the card files of the card home by GUID, and the review log."""
 from __future__ import annotations
 
@@ -9,8 +10,6 @@ import json
 import re
 import statistics as st
 from dataclasses import dataclass, field
-
-import pandas as pd
 
 from ..core import cards as C
 from ..core.config import Home
@@ -142,8 +141,9 @@ def load_cards(rd: ReviewData, deck_prefix: str | None) -> list[Card]:
 
 # ---- the tables -----------------------------------------------------------------------
 
-def card_frame(cards: list[Card], join: dict[str, dict]) -> pd.DataFrame:
-    """One row per card; `join` (GUID -> card-file columns) fills file, tags, source."""
+def card_frame(cards: list[Card], join: dict[str, dict]):
+    """One row per card (a DataFrame); `join` (GUID -> card-file columns) fills file, tags, source."""
+    import pandas as pd
     rows = []
     for c in cards:
         j = join.get(c.guid) or {}
@@ -172,7 +172,8 @@ CARD_COLUMNS_ORDER = ("cid", "nid", "guid", "ord", "deck", "kind", "card_id", "s
                       "reviews", "fails", "fail_rate", "median_ms", "timer_hits")
 
 
-def review_frame(rd: ReviewData, cids: set[int]) -> pd.DataFrame:
+def review_frame(rd: ReviewData, cids: set[int]):
+    import pandas as pd
     rows = [(r.cid, dt.datetime.fromtimestamp(r.id / 1000), r.ease, r.ms, r.type)
             for r in rd.revlog if r.cid in cids]
     return pd.DataFrame(rows, columns=["cid", "time", "ease", "ms", "type"])

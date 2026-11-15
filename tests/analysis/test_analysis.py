@@ -11,7 +11,7 @@ from studyloop.core.build import build
 from studyloop.core.cli import main
 from studyloop.core.config import find_home, resolve_inputs
 
-REPO = Path(__file__).resolve().parent.parent
+REPO = Path(__file__).resolve().parents[2]
 DAY = 86400000
 
 
@@ -81,3 +81,16 @@ def test_report_renders_figures_and_only_changing_suggestions(tmp_path):
     summ = REP.render_summary(data, secs, "day-report.md")
     assert "- **Weak topics**: L03 is weakest" in summ
     assert "80/120 → 60/100" in summ and "→ 80/120" not in summ
+
+
+def test_suggest_and_spearman():
+    from studyloop.analysis.bundled import limit_line, spearman, suggest
+    assert abs(spearman(list(range(20)), list(range(20))) - 1.0) < 1e-9
+    bins = [(0, 40, 0.10, 500, 0), (40, 80, 0.12, 500, 0), (80, 120, 0.20, 500, 0.1),
+            (120, 10**9, 0.40, 500, 0.7)]
+    s = suggest(bins, 80, 120, "limits.code.typed_chars")
+    assert (s.target, s.kind, s.old) == ("limits.code.typed_chars", "limit", "80/120")
+    assert s.new in ("80/80", "80/120") and "reference fail rate 10%" in s.evidence
+    assert limit_line(s).startswith("- typed chars: target ≈ 80, max ≈ ")
+    few = suggest(bins[:2], 80, 120, "limits.code.typed_chars")
+    assert few.new == few.old and limit_line(few) == "- typed chars: not enough data yet (keep 80/120)."

@@ -30,8 +30,11 @@ def run(items, workdir, opts):
     (workdir / "test_cards.py").write_text("\n".join(tests), encoding="utf-8")
     print(f"  modules: {pkg}")
 
+    if not importlib.util.find_spec("pytest"):
+        print('  [!] pytest not found: pip install "agentic-studying-loop[python]" (pytest, ruff)')
+        return 1
     rc = 0
-    # ruff ships with the tool (also inside `uv tool` / pipx environments, where it isn't on PATH)
+    # ruff comes with the `python` extra (also inside `uv tool` / pipx environments, off PATH)
     if importlib.util.find_spec("ruff"):
         ruff = [sys.executable, "-m", "ruff"]
     else:
@@ -42,7 +45,7 @@ def run(items, workdir, opts):
         rc |= subprocess.run([*ruff, "check", "--quiet", "--no-cache", "--select", select,
                               "--ignore", "E501", str(pkg)]).returncode
     elif not ruff:
-        print("  [!] ruff not found (pip install ruff); skipping lints.")
+        print('  [!] ruff not found (pip install "agentic-studying-loop[python]"); skipping lints.')
     print("  => pytest")
     rc |= subprocess.run([sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider",
                           "test_cards.py"], cwd=workdir).returncode

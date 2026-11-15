@@ -80,15 +80,28 @@ def skills_dir() -> Path:
 
 
 def install_skills(target: Path) -> None:
-    """Copy the skills into a .claude/skills folder (for use without the plugin)."""
+    """Copy the skills of the installed modules into a .claude/skills folder (for use without
+    the plugin). A module without its optional install keeps its skills out: an agent never
+    loads a skill it cannot follow, and every installed skill costs context in each session."""
+    from .registry import registry
+    reg = registry()
+    owner = {s: m for m in reg.modules.values() for s in m.skills}
     target = target.expanduser().resolve()
+    skipped = []
     for skill in sorted(skills_dir().iterdir()):
-        if (skill / "SKILL.md").is_file():
-            dst = target / skill.name
-            if dst.exists():
-                shutil.rmtree(dst)
-            shutil.copytree(skill, dst)
-            print(f"  {dst}")
+        if not (skill / "SKILL.md").is_file():
+            continue
+        m = owner.get(skill.name)
+        if m is None or reg.missing(m):
+            skipped.append(f"{skill.name}" + (f" ([{m.extra}])" if m and m.extra else ""))
+            continue
+        dst = target / skill.name
+        if dst.exists():
+            shutil.rmtree(dst)
+        shutil.copytree(skill, dst)
+        print(f"  {dst}")
+    if skipped:
+        print(f"  not installed (their module's install is missing): {', '.join(skipped)}")
 
 
 def render(tpl: str, **kw) -> str:

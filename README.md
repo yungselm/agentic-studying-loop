@@ -117,12 +117,13 @@ You don't clone this repo to use it. There are three places, and you set each up
 curl -LsSf https://astral.sh/uv/install.sh | sh                                    # macOS / Linux / WSL
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"  # Windows
 
-# 2. asl
-uv tool install "agentic-studying-loop @ https://github.com/yungselm/agentic-studying-loop/archive/refs/heads/master.zip"
+# 2. asl, with the extras you need: python (checks Python cards), analysis (asl stats),
+#    lang-ja (Japanese decks); none of them for cards in other languages only
+uv tool install "agentic-studying-loop[python,analysis] @ https://github.com/yungselm/agentic-studying-loop/archive/refs/heads/master.zip"
 asl packs                     # lists cpp, python, rust; if `asl` isn't found: uv tool update-shell
 
-# update later
-uv tool install --force "agentic-studying-loop @ https://github.com/yungselm/agentic-studying-loop/archive/refs/heads/master.zip"
+# update later (same extras)
+uv tool install --force "agentic-studying-loop[python,analysis] @ https://github.com/yungselm/agentic-studying-loop/archive/refs/heads/master.zip"
 ```
 
 Rust cards also need [Rust](https://rustup.rs/) with `rustup component add clippy`. C++ cards need
@@ -240,7 +241,7 @@ anything outside the project and the chosen notes folder.
    [Install](#install) table for the user's OS, then use the full path or a new shell). For Rust
    projects check `cargo clippy --version`. Check that Anki is installed; if not, give the user the
    link and wait.
-2. **Install:** `uv tool install "agentic-studying-loop @ https://github.com/yungselm/agentic-studying-loop/archive/refs/heads/master.zip"`, then `asl packs`.
+2. **Install:** `uv tool install "agentic-studying-loop[python,analysis] @ https://github.com/yungselm/agentic-studying-loop/archive/refs/heads/master.zip"` (`python`: checks Python cards; `analysis`: `asl stats`; add `lang-ja` for Japanese), then `asl packs`.
 3. **Ask the user** (one question at a time): whether they keep notes in a folder of markdown
    (an Obsidian vault or any folder; suggest one inside their documents) or want cards only, and
    which mode: `teacher` (user writes all code),
@@ -363,7 +364,7 @@ Clone the repo and install it editable:
 
 ```bash
 git clone https://github.com/yungselm/agentic-studying-loop && cd agentic-studying-loop
-uv venv && uv pip install -e ".[dev]"
+uv venv && uv pip install -e ".[dev,python,analysis,lang-ja]"
 ```
 
 Everything the tool ships lives in `studyloop/`: `packs/` (one folder per language), `standards/`,

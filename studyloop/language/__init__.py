@@ -202,7 +202,9 @@ LANGUAGE = DeckKind(
 
 def register(reg: Registry) -> None:
     from .cardtypes import LANG_TYPES
+    from .new import init_language
     reg.add_deck_kind(LANGUAGE)
+    reg.provide("new-deck", "language", init_language)        # `asl topic --lang`
     for t in LANG_TYPES:
         reg.add_card_type(t)
     reg.add_command(Command("lang", "language topics: import media, seed vocabulary, plan i+1 cards",

@@ -118,7 +118,9 @@ context, and when?*
 | Big files | `Overview.md`, `Vocabulary.md` and the like: read only the frontmatter or one section, ideally through a command (`--show brief`). |
 | Reports | Every analysis gives the agent a short summary and `suggestions[]`; figures and tables are for the human, never read by the agent. |
 
-`write-cards` shows the pattern for skills:
+When a skill outgrows that, it splits like this (e.g. `write-cards`, once its per-kind guidance
+and type references pass ~30 lines; today they are 7 and 25 lines, both read on every use, so it
+stays one file):
 
 ```
 skills/write-cards/
@@ -196,14 +198,17 @@ the skill: it only reads the summary.
 
 ## Tests and CI
 
-Tests live with their module (`tests/core/`, `tests/language/`, ...). CI installs core alone
-and runs the core tests, then one job per optional install. That matrix is what proves core
-works without the modules. `import-linter` checks the dependency rules; a small check makes
-sure every skill belongs to exactly one module and every skill a module names exists.
+Tests live with their module (`tests/core/`, `tests/language/`, ...). CI
+(`.github/workflows/ci.yml`) installs no optional extra and runs the tests of core and the
+built-in modules, then one job per optional install (`lang-ja`, `analysis`) with only its tests.
+That matrix is what proves core works without the modules. `lint-imports` checks the dependency
+rules (contracts in `pyproject.toml`); `tests/core/test_skills.py` checks that every skill
+belongs to exactly one module and every skill a module names exists.
 
 ## Migration order
 
-Each step keeps the tests green and is its own commit.
+Done (2026-11-15); kept as the record of how the code got here. Each step kept the tests green
+and was its own commit.
 
 1. **One Anki export reader** in core (`core/reviews`), replacing `stats.open_collection` /
    `load_cards` and `lang/apkg.read_export`.

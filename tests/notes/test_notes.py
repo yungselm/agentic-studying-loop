@@ -4,7 +4,7 @@ from pathlib import Path
 
 from studyloop.notes import check as N
 
-REPO = Path(__file__).resolve().parent.parent
+REPO = Path(__file__).resolve().parents[2]
 
 GOOD = """\
 ---

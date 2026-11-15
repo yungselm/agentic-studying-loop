@@ -2,8 +2,8 @@
 
 ```bash
 git clone https://github.com/yungselm/agentic-studying-loop && cd agentic-studying-loop
-uv venv && uv pip install -e ".[dev]"
-ruff check studyloop tests && pytest -q tests
+uv venv && uv pip install -e ".[dev,python,analysis,lang-ja]"   # every optional install
+ruff check studyloop tests && lint-imports && pytest -q tests
 asl lint -q examples/python-core examples/rust-core "example-vault/Studying/Anki cards/tasklog"
 asl check examples/python-core examples/rust-core "example-vault/Studying/Anki cards/tasklog"
 ```

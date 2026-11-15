@@ -25,8 +25,10 @@ def init_topic(name: str, home: Path, sources: list[str], notes: str | None, no_
     deck, plus the topics block in the CLAUDE.md of the folder that holds the card home."""
     home = home.expanduser().resolve()
     if lang:
-        from ..language.new import init_language  # the language module
-        return init_language(name, home, lang, media, notes, prefix, goal, level, gloss)
+        makers = registry().provided("new-deck")         # the language module's
+        if "language" not in makers:
+            raise SystemExit("`asl topic --lang` needs the language module")
+        return makers["language"][1](name, home, lang, media, notes, prefix, goal, level, gloss)
     find_pack(pack)
     init_home(home, [pack])
     vault = vault_for(home) or home.parent

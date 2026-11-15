@@ -9,10 +9,11 @@ description = "Turn what you learn while coding into study notes and Anki cards,
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
-dependencies = ["genanki>=0.13", "PyYAML>=6.0", "pypdf>=4", "zstandard>=0.21", "pytest>=7", "ruff>=0.4"]
+dependencies = ["genanki>=0.13", "PyYAML>=6.0", "pypdf>=4", "zstandard>=0.21"]
 
 [project.optional-dependencies]
-dev = ["build"]
+dev = ["build", "pytest>=7", "ruff>=0.4", "import-linter>=2"]
+python = ["pytest>=7", "ruff>=0.4"]   # asl check for Python cards (the python pack's checker)
 lang = ["wordfreq>=3.1", "imageio-ffmpeg>=0.5", "edge-tts>=6.1"]   # language decks (asl lang)
 lang-ja = ["agentic-studying-loop[lang]", "fugashi>=1.3", "unidic-lite>=1.0.8"]   # + Japanese
 analysis = ["pandas>=2.0", "matplotlib>=3.7"]   # asl stats: review data, reports, figures
@@ -51,3 +52,50 @@ extend-exclude = ["studyloop/core/packs/*/mode.js", "examples", "example-vault"]
 [tool.ruff.lint]
 select = ["E", "F", "W", "B", "I", "UP", "SIM"]
 ignore = ["SIM108", "SIM905", "E501", "B905", "B007"]
+
+
+# Dependency rules (docs/architecture.md): run `lint-imports`.
+[tool.importlinter]
+root_package = "studyloop"
+
+[[tool.importlinter.contracts]]
+name = "core never imports a module"
+type = "forbidden"
+source_modules = ["studyloop.core"]
+forbidden_modules = ["studyloop.analysis", "studyloop.language", "studyloop.language_ja", "studyloop.notes", "studyloop.projects", "studyloop.sources"]
+
+[[tool.importlinter.contracts]]
+name = "analysis imports only core"
+type = "forbidden"
+source_modules = ["studyloop.analysis"]
+forbidden_modules = ["studyloop.language", "studyloop.language_ja", "studyloop.notes", "studyloop.projects", "studyloop.sources"]
+
+[[tool.importlinter.contracts]]
+name = "language imports only core, sources"
+type = "forbidden"
+source_modules = ["studyloop.language"]
+forbidden_modules = ["studyloop.analysis", "studyloop.language_ja", "studyloop.notes", "studyloop.projects"]
+
+[[tool.importlinter.contracts]]
+name = "language_ja imports only core, language"
+type = "forbidden"
+source_modules = ["studyloop.language_ja"]
+forbidden_modules = ["studyloop.analysis", "studyloop.notes", "studyloop.projects", "studyloop.sources"]
+
+[[tool.importlinter.contracts]]
+name = "notes imports only core"
+type = "forbidden"
+source_modules = ["studyloop.notes"]
+forbidden_modules = ["studyloop.analysis", "studyloop.language", "studyloop.language_ja", "studyloop.projects", "studyloop.sources"]
+
+[[tool.importlinter.contracts]]
+name = "projects imports only core"
+type = "forbidden"
+source_modules = ["studyloop.projects"]
+forbidden_modules = ["studyloop.analysis", "studyloop.language", "studyloop.language_ja", "studyloop.notes", "studyloop.sources"]
+
+[[tool.importlinter.contracts]]
+name = "sources imports only core"
+type = "forbidden"
+source_modules = ["studyloop.sources"]
+forbidden_modules = ["studyloop.analysis", "studyloop.language", "studyloop.language_ja", "studyloop.notes", "studyloop.projects"]
