@@ -1,7 +1,19 @@
 """Language topics: sentence mining, a vocabulary ground truth in the vault, i+1 planning.
 
 Opt-in: needs the `lang` extra (tokenizer, frequency data) and `asl lang setup <code>`.
-Design: docs/language-cards.md."""
+Design: docs/language-cards.md. Modules, in the order a source flows through them:
+
+  setup       a language's config (<code>.yaml), cache, `asl lang setup`
+  lines       sources -> lines/<key>.tsv: mined .apkg, video + subtitles; clips, screenshots
+  apkg, audio reading Anki exports; ffmpeg (padding, speaker splits)
+  tokens      tokenizer, furigana       levels      word levels (lists, frequency estimate)
+  vocab       Vocabulary.md, seeding from exports, meanings
+  grammar     grammar rules (pattern / token) and their check
+  gamegengo   grammar notes (+ cards) from a Game Gengo deck
+  overview    the official grammar lists as a checklist; images on the notes
+  plan        the i+1 planner and its report    draft    card stubs in plan order
+  cardfile    card items, in-place field edits   notefile  note frontmatter
+  sync        statuses from Anki reviews    tts    fallback audio    clean    unused media"""
 from __future__ import annotations
 
 import re
@@ -27,7 +39,7 @@ class LangDeck:
 
 def open_deck(folder: Path) -> LangDeck:
     from ..notes import split_frontmatter
-    from .levels import lang_config
+    from .setup import lang_config
     deck = load_deck(Path(folder).expanduser())
     lang = deck.cfg.get("lang")
     if not lang:
@@ -54,7 +66,8 @@ def _key_from_title(title: str) -> str:
 
 
 def main(a) -> int:
-    from .levels import Levels, setup
+    from .levels import Levels
+    from .setup import setup
     from .tokens import tokenizer
     if a.lang_cmd == "setup":
         return setup(a.code, a.force)
@@ -75,10 +88,11 @@ def main(a) -> int:
         from .tts import fill_audio
         return fill_audio(d)
     if a.lang_cmd == "grammar":
-        from .grammar import check_points, import_game_gengo
+        from .gamegengo import import_game_gengo
+        from .grammar import check_points
         if a.input:
             return import_game_gengo(d, a.input, "unknown" if a.fresh else "reviews", cards=a.cards)
-        from .grammar import fetch_images, write_overview
+        from .overview import fetch_images, write_overview
         write_overview(d)                     # also fills links/levels from the JLPT lists
         if a.images:
             fetch_images(d)

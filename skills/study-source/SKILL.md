@@ -1,14 +1,16 @@
 ---
 name: study-source
-description: Start a topic from lectures, books or links (PDFs in the vault, URLs) and work through them one part at a time, into study notes and cards. Use when the user points to sources or a folder of slides, gives new ones, or asks for the next lecture or chapter.
+description: Start a topic from lectures, books or links (PDFs in the vault, URLs) and work through them one part at a time, into study notes and cards. Use when the user points to sources or a folder of slides, gives new ones, or asks for the next lecture or chapter. Not for languages (use language-cards) or code in a repo (the project's mode).
 ---
 # Study a source
 
-The deck's `Overview.md` holds the brief (frontmatter) and the sources map (`## Sources`).
+Branch **topic**. The deck's `Overview.md` holds the brief (frontmatter) and the sources map (`## Sources`).
 Read only the frontmatter and that section: the card table below it isn't needed here.
 
-1. **New topic?** Ask first, one question at a time: the goal, what the user already knows, and
-   **study notes in the vault first (which folder?) or cards straight from the sources**. Then
+1. **New topic?** Ask first, one question at a time: the goal, what the user already knows,
+   **study notes in the vault first (which folder?) or cards straight from the sources**, and
+   for a source that teaches code, **how many code cards** (→ `cards: {code: 0.3}` in the
+   brief; default `{code: 0}`). Then
    `asl topic "<name>" --home "<card home>" --sources "<folder|file|url>" --notes "<folder>"`
    (or `--no-notes`) `--goal "…" --builds-on <what they know>`; the card home is in the CLAUDE.md study-loop
    block. **Existing topic, no cards yet** (first batch): confirm the brief's `goal` and `notes`

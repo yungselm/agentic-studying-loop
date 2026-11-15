@@ -12,7 +12,7 @@ from pathlib import Path
 
 from .levels import NONE, Levels
 from .lines import Line, read_lines, write_lines
-from .vocab import COUNTS_AS_KNOWN, Vocabulary
+from .vocab import COUNTS_AS_KNOWN, Vocabulary, fill_meanings, interjections
 
 MEDIA_PULL = 3          # a word in >= 3 lines of the user's media counts as current level
 _PUNCT = re.compile(r"[\s、。！？!?…‥・「」『』“”\"'（）()~〜ー―-]+")
@@ -220,7 +220,7 @@ def compute(deck_dir: Path, vocab: Vocabulary, levels: Levels, cfg: dict, curren
 
     # interjections the tokenizer tagged as words (うわっ before a word is an adverb to UniDic):
     # on no level list and only ever an interjection in the dictionary -> never a target
-    fillers = _interjections(forms, level_of, levels, cfg)
+    fillers = interjections(forms, level_of, levels, cfg)
     if fillers:
         for it in items:
             it.words = [k for k in it.words if k not in fillers]
@@ -253,7 +253,7 @@ def compute(deck_dir: Path, vocab: Vocabulary, levels: Levels, cfg: dict, curren
             e.card = carded_words[k]
         elif e.status == "planned":
             e.status, e.card = "unknown", ""
-    _fill_meanings(vocab, glosses, cfg, gloss_lang)
+    fill_meanings(vocab, glosses, cfg, gloss_lang)
     old_ids = {i: it.line.status.split(":", 1)[1] for i, it in enumerate(items)
                if it.line.status.startswith(("card:", "rejected:"))}
     excluded = frozenset(i for i in old_ids if items[i].line.id not in cards)
@@ -288,51 +288,6 @@ def compute(deck_dir: Path, vocab: Vocabulary, levels: Levels, cfg: dict, curren
     return State(files, by_src, items, plan, prio, known, assumed, media, cards)
 
 
-def _fill_meanings(vocab: Vocabulary, glosses: dict[str, str], cfg: dict, gloss_lang: str) -> None:
-    """`meaning` for quick lookup: a card's gloss wins; else keep what is there (hand-written);
-    else the dictionary's first sense in the gloss language (English as fallback)."""
-    for k, g in glosses.items():
-        if k in vocab.entries:
-            vocab.entries[k].meaning = g
-    if all(e.meaning for k, e in vocab.entries.items() if k not in glosses) or not cfg.get("dictionary"):
-        return
-    from .dictionary import ISO2, Dictionary
-    try:
-        dic = Dictionary(cfg)
-    except SystemExit:
-        return
-    codes = list(dict.fromkeys([ISO2.get(gloss_lang, gloss_lang), "eng"]))
-    for k, e in vocab.entries.items():
-        if e.meaning or k in glosses:
-            continue
-        lemma = k.split("|")[0]                      # dictionary form: なん -> 何
-        hits = dic.lookup(lemma, e.reading) or dic.lookup(e.word, e.reading)
-        for code in codes:
-            sense = next((sn for h in hits[:1] for sn in h["s"] if sn["gloss"].get(code)), None)
-            if sense:
-                e.meaning = "; ".join(sense["gloss"][code][:3])
-                break
-
-
-def _interjections(forms: dict, level_of: dict, levels: Levels, cfg: dict) -> set[str]:
-    if not cfg.get("dictionary"):
-        return set()
-    from .dictionary import Dictionary
-    try:
-        dic = Dictionary(cfg)
-    except SystemExit:
-        return set()
-    out = set()
-    for k, fc in forms.items():
-        if level_of.get(k, NONE).lstrip("~") in levels.order and not level_of[k].startswith("~"):
-            continue                                   # on a list (なるほど N4): a word to learn
-        entries = [e for (w, _) in fc for e in dic.lookup(w)[:1]]
-        if entries and all(sn["pos"] and all("interjection" in p for p in sn["pos"])
-                           for e in entries for sn in e["s"] if sn["gloss"].get("eng")):
-            out.add(k)
-    return out
-
-
 def write_state(st: State, vocab: Vocabulary, levels: Levels) -> None:
     target = {i: k for k, i in st.plan.order}
     idx = 0
@@ -350,9 +305,9 @@ def write_state(st: State, vocab: Vocabulary, levels: Levels) -> None:
         write_lines(f, lines)
     vocab.write(levels.order, rank_of=lambda k: -st.media[k])
     # sentence cards show the grammar their line uses (folded on the back)
-    from .lines import sync_card_field
-    links = {it.line.id: grammar_links(it.grammar) for it in st.items if it.line.id in st.cards}
-    if changed := sync_card_field(st.files[0].parent.parent, "grammar", links):
+    from .cardfile import edit_cards
+    links = {it.line.id: {"grammar": grammar_links(it.grammar)} for it in st.items if it.line.id in st.cards}
+    if changed := edit_cards(st.files[0].parent.parent, "line", links):
         print(f"Grammar links updated on {len(changed)} card(s).\n")
 
 

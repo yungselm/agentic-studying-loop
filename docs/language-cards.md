@@ -104,7 +104,9 @@ characters for Japanese); audio and image exist; `grammar` links resolve; TTS au
 
 ## A language is a topic
 
-`asl topic "Italienisch" --lang it --sources <grammar book.pdf> --sources <media folder> …`. The
+`asl topic "Italienisch" --lang it --home <card home> --media <folder outside the vault>` creates
+the deck (branch **language**: deck.yaml has `lang:`; skill `language-cards`, sentence and grammar
+cards only, `asl lint` flags other types). The
 `study-source` skill asks for the brief, one question at a time, and writes it into the deck's
 `Overview.md` frontmatter:
 

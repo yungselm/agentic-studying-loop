@@ -271,36 +271,6 @@ def split_audio(lines: list[Line], clips_dir: Path) -> tuple[int, int]:
     return done, whole
 
 
-def sync_card_field(deck_dir: Path, name: str, value_of_line: dict) -> list[str]:
-    """Cards follow their line: set `name:` on every card whose `line:` is in `value_of_line`
-    (insert the field before `line:` if missing). Edits only that field; the rest of the file
-    stays as written. Returns the ids of changed cards."""
-    import json
-    changed = []
-    for f in sorted(deck_dir.glob("*.yaml")):
-        if f.name == "deck.yaml":
-            continue
-        text = f.read_text(encoding="utf-8")
-        items = re.split(r"(?m)^(?=- )", text)
-        for n, it in enumerate(items):
-            lm = re.search(r"(?m)^  line: \"?([^\"\s]+)\"?\s*$", it)
-            if not lm or lm.group(1) not in value_of_line:
-                continue
-            line = f"  {name}: {json.dumps(value_of_line[lm.group(1)], ensure_ascii=False)}"
-            fm = re.search(rf"(?m)^  {name}: .*$", it)
-            if fm and fm.group(0) == line:
-                continue
-            items[n] = it.replace(fm.group(0), line) if fm else it.replace(lm.group(0), line + "\n" + lm.group(0))
-            changed.append((re.search(r"id: (\S+)", it) or lm).group(1))
-        if "".join(items) != text:
-            f.write_text("".join(items), encoding="utf-8")
-    return changed
-
-
-def sync_card_audio(deck_dir: Path, audio_of_line: dict[str, str]) -> list[str]:
-    return sync_card_field(deck_dir, "audio", {k: v for k, v in audio_of_line.items() if v})
-
-
 KEEP = ("card:", "rejected:")      # statuses that must survive a re-import (ids are never reissued)
 
 
@@ -372,8 +342,9 @@ def add_source(deck_dir: Path, media_dir: Path, inp: Path, key: str, title: str,
         if ln.id in kept:
             ln.status = kept[ln.id]
     write_lines(out, lines)
-    moved = sync_card_field(deck_dir, "line", {o: n for o, n in renamed.items() if o != n})
-    synced = sync_card_audio(deck_dir, {ln.id: ln.audio for ln in lines})
+    from .cardfile import edit_cards
+    moved = edit_cards(deck_dir, "line", {o: {"line": n} for o, n in renamed.items() if o != n})
+    synced = edit_cards(deck_dir, "line", {ln.id: {"audio": ln.audio} for ln in lines if ln.audio})
     (deck_dir / "lines" / f"{key}.yaml").write_text(yaml.safe_dump(
         {"title": title, "key": key, "input": raw_inp, "media": key,
          **({"video": str(video), "only": only, "padding": list(pad)} if video else {}),

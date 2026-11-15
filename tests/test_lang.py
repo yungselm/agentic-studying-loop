@@ -410,11 +410,11 @@ def test_grammar_overview_checklist(tmp_path, monkeypatch):
     import json
     from types import SimpleNamespace
 
-    from studyloop.lang import grammar as G
+    from studyloop.lang import overview as G
     monkeypatch.setenv("ASL_CACHE", str(tmp_path / "cache"))
     assert G._norm_forms("間（あいだ）") == ["間"]
     assert G._norm_forms("ちゃいけない・じゃいけない") == ["ちゃいけない", "じゃいけない"]
-    from studyloop.lang.levels import cache_dir
+    from studyloop.lang.setup import cache_dir
     (cache_dir("ja") / "grammar_lists.json").write_text(json.dumps({
         "N4": [{"link": "https://x/aida/", "grammar": "間（あいだ）", "meaning": "while"},
                {"link": "https://x/ni-tsuite/", "grammar": "について", "meaning": "about"}]}),
@@ -540,3 +540,40 @@ def test_clean_lists_and_deletes_unused_media(tmp_path):
     clean(SimpleNamespace(path=d, media_dir=media), delete=True)
     assert not (media / "old").exists()
     assert (media / "th1" / "c1.mp3").exists() and (media / "th1" / "c1.jpg").exists()   # used by cards
+
+
+def test_branches_route_decks(tmp_path, capsys):
+    from studyloop import config, lint
+    from studyloop.project import init_topic
+    home = tmp_path / "v" / "Anki cards"
+    (tmp_path / "v" / ".obsidian").mkdir(parents=True)
+    lang = init_topic("Nihongo", home, [], None, False, None, "python", None, [], lang="ja",
+                      media=str(tmp_path / "media"), level="N4")
+    topic = init_topic("Grokking", home, [], None, True, None, "python", None, [])
+    assert config.load_deck(lang).branch == "language" and config.load_deck(topic).branch == "topic"
+    claude = (tmp_path / "v" / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "- Nihongo (language: language-cards" in claude and "- Grokking (topic: study-source" in claude
+    assert "cards: {code: 0}" in (topic / "Overview.md").read_text(encoding="utf-8")
+    # a sentence card in a book topic is the wrong branch
+    (topic / "a.yaml").write_text('- id: gro-001\n  type: sentence\n  text: "**x**"\n  word: x\n'
+                                  '  gloss: y\n  audio: a.mp3\n  image: a.jpg\n', encoding="utf-8")
+    capsys.readouterr()
+    assert lint.lint(config.resolve_inputs([str(topic)])) == 1
+    assert "[branch] a.yaml: gro-001" in capsys.readouterr().out
+
+
+def test_mix_flags_follow_the_brief(tmp_path):
+    from collections import Counter
+
+    from studyloop.config import load_deck
+    from studyloop.lint import mix_flags
+    d = tmp_path / "t"
+    d.mkdir()
+    (d / "deck.yaml").write_text("deck: T\nprefix: t\n", encoding="utf-8")
+    ov = d / "Overview.md"
+    ov.write_text("---\ncards: {code: 0.3}\n---\n", encoding="utf-8")
+    deck = load_deck(d)
+    assert mix_flags(deck, Counter(code=3, concept=7)) == []
+    assert "the brief says 30%" in mix_flags(deck, Counter(code=8, concept=2))[0][2]
+    ov.write_text("---\ngoal: x\n---\n", encoding="utf-8")
+    assert "no `cards:` in the brief" in mix_flags(deck, Counter(code=6, concept=4))[0][2]

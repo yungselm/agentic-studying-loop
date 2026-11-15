@@ -1,18 +1,20 @@
 ---
 name: language-cards
-description: Make one-new-word sentence cards (audio + screenshot, target word glossed) and grammar cards from a show, a mined deck or a grammar book, with the known words tracked in the user's vault. Use when the user studies a language (Japanese, Italian, ...) and asks for language cards, or adds an episode or a deck.
+description: Make one-new-word sentence cards (audio + screenshot, target word glossed) and grammar cards from a show, a mined deck or a grammar book, with the known words tracked in the user's vault. Use when the user studies a language (Japanese, Italian, ...) and asks for language cards, or adds an episode or a deck. Only for language decks (deck.yaml has `lang:`); never write-cards or study-source there.
 ---
 # Language cards
 
+Branch **language**: cards are `sentence` and `grammar` only; commands are `asl lang …`, then
+`asl lint` and `asl build` (no `asl fix`/`asl check`: ids come from `asl lang draft`).
 Design and rules: `docs/language-cards.md` in the agentic-studying-loop repo. Needs `asl` with
 the `lang` extra and, once per language, `asl lang setup <code>` (word lists, dictionary).
 
 1. **New language?** Ask one question at a time: the goal, the gloss language, the current level
    (JLPT/CEFR), which Anki exports show what they know, grammar sources (book PDF, URL, deck),
-   and a media folder **outside** the vault. Then write `deck.yaml` (`lang`, `prefix`,
-   `media_dir`, presets: vocabulary `{order: sequential, gather: position}`) and the brief in
-   `Overview.md` (`goal`, `gloss_language`, `level`, `known_from`, `notes`), and run
-   `asl lang seed <deck>`.
+   and a media folder **outside** the vault. Then `asl topic "<Language>" --lang <code> --home
+   "<card home>" --media "<folder>" --level <level> --gloss <language>` (deck.yaml, brief,
+   notes folder, topics block), fill `goal` and `known_from` in the brief, `asl lang setup
+   <code>` once, and `asl lang seed <deck>`.
 2. **New media:** `asl lang add <deck> <video> --title "<Show Ep>" --key <short>` (subtitles
    `.srt`/`.ass` next to it, or `--subs`), or a mined `.apkg` (`--video` to re-cut from the video).
    Images and subtitles are the user's job; never open media files.

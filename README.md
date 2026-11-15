@@ -65,6 +65,19 @@ re-derived from 6.5k of my personal reviews (*typed characters, not lines, predi
 
 ## How it fits together
 
+**Three branches.** What a deck is for decides the skills, the `asl` commands and the card types,
+so you can check what an agent does. Its `deck.yaml` says which branch it is.
+
+| Branch | You study | Start with | Skills | `asl` commands | Card types |
+|---|---|---|---|---|---|
+| **project** (`repo:`) | code you write | `asl init` | the [mode](#modes), `write-cards`, `study-note` | `fix`, `lint`, `check`, `build` | code, concept, timeline |
+| **topic** (neither) | lectures, books, links | `asl topic` | `study-source` → `study-note` → `write-cards` | `sources`, `fix`, `lint`, `check`, `build` | cloze, concept, timeline; code as the brief's `cards:` says |
+| **language** (`lang:`) | a language from shows | `asl topic --lang` | `language-cards` | `lang add / plan / draft / grammar / tts / sync`, `lint`, `build` | sentence, grammar |
+
+`asl lint` flags a card type from another branch, and a topic deck whose share of code cards is far
+from its brief. Choices for one topic live in its `Overview.md` brief; `standards/preferences.md`
+holds only rules for all your cards.
+
 You don't clone this repo to use it. There are three places, and you set each up once:
 
 | | What | Where it lives | Set up with |
@@ -237,7 +250,9 @@ anything outside the project and the chosen notes folder.
    (no code) → `asl topic "<name>" --home "<vault>/Anki cards" --sources "<folder|file|url>"
    --notes "<vault>/<topic>"` (or `--no-notes`); first ask for the goal, what the user already
    knows, and whether they want study notes or cards straight from the sources (step 1 of the
-   `study-source` skill). Use real absolute paths, never placeholders.
+   `study-source` skill). A language → `asl topic "<Language>" --lang <code> --home "<vault>/Anki
+   cards" --media "<folder outside the vault>"` (skill `language-cards`). Use real absolute
+   paths, never placeholders.
 5. **Skills:** `asl install-skills` (or the plugin commands above if the user prefers).
 6. **Verify:** `asl lint -q "<vault>/Anki cards/<deck>"` prints `OK`.
 7. **Tell the user** in plain words: where notes and cards will appear, that cards are built with

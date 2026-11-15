@@ -10,6 +10,8 @@
   [gaps]     a cloze card with one gap (2-5 fail less)
   [source]   a `[[Note]]` source isn't in the vault; [media] an embedded image is missing
   [lang]     sentence/grammar cards: one **target**, word + gloss, length cap; [media] clip missing
+  [branch]   a card type that doesn't belong to the deck's branch (project / topic / language)
+  [mix]      a topic deck's share of code cards is far from its brief's `cards:` (Overview.md)
 Project decks (profile.md or `repo:` in deck.yaml) also get [frame], [header],
 [excerpt], [index] and [std]; see project_lint.py.
 
@@ -19,12 +21,13 @@ Project decks (profile.md or `repo:` in deck.yaml) also get [frame], [header],
 from __future__ import annotations
 
 import re
+from collections import Counter
 from pathlib import Path
 
 from . import cards as C
 from . import notes as N
 from . import project_lint as P
-from .config import Deck, find_home, load_pack
+from .config import BRANCHES, Deck, find_home, load_pack
 
 XREF = re.compile(r"\b(like the previous|the previous card|as (above|before)|like it|"
                   r"same as the previous|see the (other|previous))\b", re.I)
@@ -161,6 +164,24 @@ def _card_flags(card, lim, lint_cfg, prefix, seen, fname, fronts=None, retired=(
     return out
 
 
+def mix_flags(deck: Deck, kinds: Counter) -> list[tuple[str, str, str]]:
+    """Topic decks: the brief's `cards: {code: 0.3}` sets the share of code cards; far off -> note.
+    Without it, a topic deck that is mostly code cards gets the reminder to decide."""
+    if deck.branch != "topic" or sum(kinds.values()) < 10:
+        return []
+    ov = deck.path / "Overview.md"
+    brief = N.split_frontmatter(ov.read_text(encoding="utf-8"))[0] if ov.is_file() else {}
+    total, code = sum(kinds.values()), kinds["code"] / sum(kinds.values())
+    want = (brief.get("cards") or {}).get("code") if isinstance(brief.get("cards"), dict) else None
+    if want is None:
+        return [("~", "mix", f"{code:.0%} code cards and no `cards:` in the brief: set e.g. "
+                 "`cards: {code: 0.3}` in Overview.md (books about code) or `{code: 0}`")] if code > 0.4 else []
+    if abs(code - float(want)) > 0.15:
+        return [("~", "mix", f"{code:.0%} code cards ({kinds['code']} of {total}); the brief says "
+                 f"{float(want):.0%} (`cards:` in Overview.md)")]
+    return []
+
+
 TARGET = re.compile(r"\*\*(.+?)\*\*", re.S)
 
 
@@ -168,7 +189,7 @@ def lang_context(deck: Deck) -> dict | None:
     if not deck.cfg.get("lang"):
         return None
     from .build import media_index
-    from .lang.levels import lang_config
+    from .lang.setup import lang_config
     try:
         cfg = lang_config(deck.cfg["lang"])
     except SystemExit:
@@ -233,6 +254,8 @@ def lint(groups: list[tuple[Deck, list[Path]]], quiet: bool = False,
             repo = None
         ids = []
         lctx = lang_context(deck)
+        allowed = BRANCHES[deck.branch]["cards"]
+        kinds = Counter()
         for f in files:
             pack = deck.file_opts(f).get("pack") or deck.pack
             lint_cfg = load_pack(pack).get("lint", {}) if pack else {}
@@ -242,10 +265,17 @@ def lint(groups: list[tuple[Deck, list[Path]]], quiet: bool = False,
                 flags += P.check_card(deck, card, lint_cfg, deck.checked(f), roles, repo)
                 if card["type"] in ("sentence", "grammar"):
                     flags += lang_flags(card, lctx)
+                kinds[card["type"]] += 1
+                if card["type"] not in allowed:
+                    flags.append(("!" if card["type"] in ("sentence", "grammar") or deck.branch == "language"
+                                  else "~", "branch", f"a {card['type']} card in a {deck.branch} deck "
+                                  f"(its cards: {', '.join(allowed)})"))
                 for sev, kind, msg in flags:
                     report(sev, kind, f"{f.name}: {C.label(card)}", msg)
                 if card.get("id"):
                     ids.append(str(card["id"]))
+        for sev, kind, msg in mix_flags(deck, kinds):
+            report(sev, kind, deck.path.name, msg)
         if set(files) >= set(deck.files()):          # whole deck given: check the index
             for sev, kind, msg in P.check_index(deck, ids):
                 report(sev, kind, deck.path.name, msg)

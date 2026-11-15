@@ -92,6 +92,10 @@ def _main(argv=None) -> int:
     tp.add_argument("--pack", default="python", help="code highlighting/checker (default python)")
     tp.add_argument("--goal", help="what the topic is for; steers what gets carded")
     tp.add_argument("--builds-on", action="append", default=[], help="what you know already")
+    tp.add_argument("--lang", help="a language deck instead (e.g. ja): sentence and grammar cards")
+    tp.add_argument("--media", help="language decks: folder outside the vault for clips/screenshots")
+    tp.add_argument("--level", help="language decks: current level (JLPT / CEFR)")
+    tp.add_argument("--gloss", help="language decks: gloss language (default en)")
 
     m = sub.add_parser("mode", help="switch the mode in a project's CLAUDE.md")
     m.add_argument("mode")
@@ -139,7 +143,7 @@ def _main(argv=None) -> int:
     if a.cmd == "topic":
         from .project import init_topic
         init_topic(a.name, a.home, a.sources, a.notes, a.no_notes, a.prefix, a.pack, a.goal,
-                   a.builds_on)
+                   a.builds_on, a.lang, a.media, a.level, a.gloss)
         return 0
     if a.cmd == "mode":
         from .project import set_mode

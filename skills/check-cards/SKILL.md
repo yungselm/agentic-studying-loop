@@ -4,6 +4,9 @@ description: Validate a deck folder of study cards and build the Anki package. U
 ---
 # Check cards
 
+By branch (deck.yaml): **project/topic** → all steps below; **language** (`lang:`) → only
+`asl lint` and `asl build` (ids come from `asl lang draft`; there is no code to check).
+
 1. `asl fix <deck>`: missing ids, `std:`, Overview.md rows.
 2. `asl lint -q <deck>`: ids, size, self-containment, context frame, headers, verbatim excerpts,
    index, drift. Fix every `!`; drop `-q` to also see `~` notes.

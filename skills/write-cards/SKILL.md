@@ -1,18 +1,22 @@
 ---
 name: write-cards
-description: Write or update Anki cards (YAML) for a pattern the user learned in this project, following the card home's standards. Use when the study-loop block in CLAUDE.md says cards are due, or the user asks to card something.
+description: Write or update Anki cards (YAML) for a code project or a topic (lectures, books, links), following the card home's standards. Use when the study-loop block in CLAUDE.md says cards are due, or the user asks to card something. Not for language decks (deck.yaml has `lang:`): use language-cards.
 ---
 # Write cards
 
-Paths (card home, deck folder) are in the CLAUDE.md study-loop block.
+Branches **project** and **topic** (deck.yaml: `repo:` → project, no `repo:`/`lang:` → topic).
+Paths (card home, deck folder) are in the CLAUDE.md study-loop or topics block.
 
 1. **Read** `<card home>/standards/core.md`, `<pack>.md`, `preferences.md` (wins), and the deck's
    `profile.md`. Skim `Overview.md` and grep the deck for the pattern: no duplicates.
-2. **Decide:** only recurring patterns, only confirmed working code. Big pattern → ladder;
-   async/concurrency → timeline first. Aim for ~half code cards. From a vault note (lectures,
-   study notes): facts → `cloze`, *why* → `concept`; its `[!question]` callouts are ready-made.
-   From a book or link (`study-source`): `source: "[[Book.pdf#page=N]]"` or the URL, so the
-   sources map counts it; the brief's `goal` and `builds_on` (Overview.md) decide what and how.
+2. **Decide by branch.**
+   - *Project:* only recurring patterns, only confirmed working code. Big pattern → ladder;
+     async/concurrency → timeline first. Code vs concept as `preferences.md` says.
+   - *Topic:* the brief (Overview.md) decides: `goal`, `builds_on`, and **`cards:`, the share
+     of code cards** (`{code: 0.3}` for a book about code, `{code: 0}` otherwise); `asl lint`
+     notes a deck far from it. From a vault note: facts → `cloze`, *why* → `concept`; its
+     `[!question]` callouts are ready-made. From a book or link (`study-source`):
+     `source: "[[Book.pdf#page=N]]"` or the URL, so the sources map counts it.
 3. **Write** into `<slug>.yaml` (stdlib + stubs, checked) or `<slug>_ext.yaml` (third-party,
    verbatim). Leave out `id`/`std`, `asl fix` adds them:
    ```yaml
@@ -39,5 +43,7 @@ Paths (card home, deck folder) are in the CLAUDE.md study-loop block.
    ```
 4. **Finish:** `asl fix <deck>`, then `asl lint -q <deck>` and `asl check <deck>`; fix every
    problem. Report the new ids in one line.
-5. **Corrections** from the user: fix the card, add a dated one-line rule with the id to
-   `preferences.md`.
+5. **Corrections** from the user: fix the card, then put the rule where it belongs. A choice
+   for **this topic** (card mix, what to skip) → its brief in `Overview.md` (`cards:`, `focus:`,
+   `skip:`). A rule for **all cards** (how a good card looks) → a dated one-line rule with the
+   id in `preferences.md`. Unsure which → ask.

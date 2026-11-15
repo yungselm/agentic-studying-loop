@@ -102,11 +102,31 @@ def find_home(start: Path) -> Home:
     return Home(None, {})
 
 
+# The three branches: what a deck is for decides the skills, commands and card types.
+BRANCHES = {
+    "project": {"what": "code in a repo", "skills": "the mode in the project's CLAUDE.md, "
+                "write-cards, study-note", "cards": ("code", "concept", "timeline", "cloze")},
+    "topic": {"what": "lectures, books, links", "skills": "study-source -> study-note -> write-cards",
+              "cards": ("cloze", "concept", "timeline", "code")},
+    "language": {"what": "a language from native media", "skills": "language-cards",
+                 "cards": ("sentence", "grammar")},
+}
+
+
 @dataclass
 class Deck:
     """A folder of card files plus its deck.yaml."""
     path: Path
     cfg: dict
+
+    @property
+    def branch(self) -> str:
+        """`language` (deck.yaml has `lang:`), `project` (`repo:` or a profile.md), else `topic`."""
+        if self.cfg.get("lang"):
+            return "language"
+        if self.cfg.get("repo") or (self.path / "profile.md").is_file():
+            return "project"
+        return "topic"
 
     @property
     def name(self) -> str:

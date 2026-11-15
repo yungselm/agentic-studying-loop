@@ -165,7 +165,7 @@ def test_topic_from_a_lecture_folder(tmp_path):
     assert "Lecture 02 - Linear.pptx" not in text                       # its PDF export is used
     assert "Lecture 11 - Draft.pptx: slides: export to PDF" in text
     claude = (v / "Studying" / "CLAUDE.md").read_text()
-    assert "study-source" in claude and f"CS: `{d}`" in claude
+    assert "study-source" in claude and "- CS (topic: study-source" in claude and f"`{d}`" in claude
     assert main(["topic", "CS", "--home", str(home)]) == 0              # rerun keeps the deck
     assert (v / "Studying" / "CLAUDE.md").read_text().count("studyloop:topics:begin") == 1
     assert main(["lint", "-q", str(d)]) == 0

@@ -12,6 +12,7 @@ then on they evolve with your own review data.
 """
 from __future__ import annotations
 
+import os
 import re
 import shutil
 from pathlib import Path
@@ -106,11 +107,15 @@ def _resolve_in(base: Path, s: str) -> Path:
 
 
 def init_topic(name: str, home: Path, sources: list[str], notes: str | None, no_notes: bool,
-               prefix: str | None, pack: str, goal: str | None, builds_on: list[str]) -> Path:
-    """A deck for a topic without a code repo (lectures, books, links), plus the study-loop
-    block in the CLAUDE.md of the folder that holds the card home."""
+               prefix: str | None, pack: str, goal: str | None, builds_on: list[str],
+               lang: str | None = None, media: str | None = None, level: str | None = None,
+               gloss: str | None = None) -> Path:
+    """A deck for a topic without a code repo (lectures, books, links), or with `lang` a language
+    deck, plus the topics block in the CLAUDE.md of the folder that holds the card home."""
     from . import notes as N
     home = home.expanduser().resolve()
+    if lang:
+        return _init_language(name, home, lang, media, notes, prefix, goal, level, gloss)
     find_pack(pack)
     init_home(home, [pack])
     vault = N.card_vault(home) or home.parent
@@ -148,28 +153,72 @@ def init_topic(name: str, home: Path, sources: list[str], notes: str | None, no_
     return deck_dir
 
 
+def _init_language(name, home, lang, media, notes, prefix, goal, level, gloss) -> Path:
+    from . import notes as N
+    from .lang.setup import lang_config
+    lang_config(lang)                                   # known language?
+    if not media:
+        raise SystemExit("A language deck needs --media: a folder OUTSIDE the vault for clips "
+                         "and screenshots (e.g. C:\\AnkiMedia\\japanese)")
+    init_home(home, [])
+    vault = N.card_vault(home) or home.parent
+    slug = re.sub(r"[^a-z0-9_]+", "_", name.lower()).strip("_") or lang
+    deck_dir = home / slug
+    notes_dir = _resolve_in(vault, notes) if notes else vault / name
+    notes_dir.mkdir(parents=True, exist_ok=True)
+    rel = Path(os.path.relpath(notes_dir, deck_dir)).as_posix()
+    kw = dict(name=name, lang=lang, prefix=prefix or lang, media=_yaml_str(media),
+              goal=_yaml_str(goal) if goal else '""', level=level or '""', gloss=gloss or "en",
+              notes=_yaml_str(rel))
+    for tpl in ("deck.yaml", "Overview.md"):
+        out = deck_dir / tpl
+        if out.exists():
+            print(f"  kept {out}")
+            continue
+        out.parent.mkdir(parents=True, exist_ok=True)
+        write_keep(out, _render((TEMPLATES / "language" / tpl).read_text(encoding="utf-8"), **kw))
+        print(f"  created {out}")
+    print(f"  notes (Vocabulary.md, Grammar/): {notes_dir}")
+    print(f"  next: `asl lang setup {lang}` once, then `asl lang add {deck_dir} <video>`")
+    write_topics_block(home)
+    return deck_dir
+
+
 TOPICS_BEGIN, TOPICS_END = "<!-- studyloop:topics:begin -->", "<!-- studyloop:topics:end -->"
 
 
 def write_topics_block(home: Path) -> None:
     """CLAUDE.md next to the card home: where topics live, so an agent started anywhere
     in the studying folder finds them without being told paths."""
-    from .config import _read_yaml
-    topics = [d for d in sorted(home.iterdir())
-              if (d / "deck.yaml").is_file() and not _read_yaml(d / "deck.yaml").get("repo")]
+    from .config import BRANCHES, load_deck
+    decks = [load_deck(d) for d in sorted(home.iterdir()) if (d / "deck.yaml").is_file()]
+    topics = [d for d in decks if d.branch != "project"]     # projects have their own block
+
+    def entry(d):
+        b = BRANCHES[d.branch]
+        title = (d.path / "Overview.md").is_file() and _topic_name(d.path) or d.path.name
+        kinds = ", ".join(b["cards"][:3]) + (" + code per the brief's `cards:`" if d.branch == "topic" else "")
+        return f"  - {title} ({d.branch}: {b['skills']}; cards: {kinds}): `{d.path}`"
     lines = [
         TOPICS_BEGIN,
         "## Study loop: topics ([agentic-studying-loop](https://github.com/yungselm/agentic-studying-loop))",
-        "Lectures, books and links studied here become study notes and Anki cards: skill "
-        "`study-source` (one part per batch), then `study-note`, `write-cards`, `check-cards`.",
+        "Each deck has a **branch** (its deck.yaml says which); the branch decides the skills, the "
+        "`asl` commands and the card types. Follow only the named branch.",
+        "- **topic** (lectures, books, links): `study-source` (one part per batch) → `study-note` → "
+        "`write-cards`; `asl sources / fix / lint / check / build`; card mix from the brief's `cards:`.",
+        "- **language**: `language-cards`; `asl lang add / plan / draft / grammar / tts / sync`, "
+        "then `asl lint / build`; sentence and grammar cards only.",
+        "- Choices for one topic go into its `Overview.md` brief; `preferences.md` only takes rules "
+        "for all cards.",
         "",
         f"- **Card home** (standards, evidence): `{home}`",
-        "- **Topics** (deck folder; its `Overview.md` holds the brief and the sources map; "
-        "read that, not the sources):",
-        *[f"  - {(d / 'Overview.md').is_file() and _topic_name(d) or d.name}: `{d}`" for d in topics],
+        "- **Decks** (deck folder; its `Overview.md` holds the brief; read that, not the sources):",
+        *[entry(d) for d in topics],
         f'- **New topic:** ask the goal, prior knowledge and notes-or-cards-only first, then '
         f'`asl topic "<name>" --home "{home}" --sources "<folder|file|url>" '
         '--notes "<notes folder>"` (or `--no-notes`)',
+        f'- **New language:** `asl topic "<Language>" --lang <code> --home "{home}" '
+        '--media "<folder outside the vault>"` (skill `language-cards` asks the rest)',
         TOPICS_END,
     ]
     block = "\n".join(lines)

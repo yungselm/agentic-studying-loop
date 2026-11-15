@@ -5,7 +5,6 @@ image, line and source; `gloss: ""` is left for the agent (the sense used in thi
 brief's gloss language). The dictionary senses are printed for that, nothing else."""
 from __future__ import annotations
 
-import json
 import re
 from collections import defaultdict
 from dataclasses import replace
@@ -14,12 +13,11 @@ from pathlib import Path
 import yaml
 
 from ..config import load_deck
+from .cardfile import card_item
 from .plan import compute, grammar_links, write_state
 from .tokens import furigana
 
 SENSES_PER_LANG = 3
-FIELDS = ("id", "type", "text", "word", "reading", "gloss", "audio", "image", "grammar", "line",
-          "source")
 
 
 def _katakana(s: str) -> bool:
@@ -33,18 +31,6 @@ def _slug(s: str) -> str:
 def _source_meta(deck_dir: Path, key: str) -> dict:
     p = deck_dir / "lines" / f"{key}.yaml"
     return (yaml.safe_load(p.read_text(encoding="utf-8")) or {}) if p.is_file() else {}
-
-
-def _item_yaml(card: dict) -> str:
-    out = []
-    for i, k in enumerate(FIELDS):
-        v = card.get(k, "")
-        if k == "grammar" and not v:
-            continue
-        val = (v if k in ("id", "type", "line") else
-               json.dumps(v if isinstance(v, list) else str(v), ensure_ascii=False))
-        out.append(("- " if not out else "  ") + f"{k}: {val}")
-    return "\n".join(out) + "\n"
 
 
 def _next_number(deck, prefix: str, st) -> int:
@@ -98,7 +84,7 @@ def draft(d, vocab, levels, n: int, current: str | None, assume: list[str],
                 "reading": reading, "gloss": "", "audio": it.line.audio, "image": it.line.image,
                 "grammar": grammar_links(it.grammar),
                 "line": it.line.id, "source": f"{title} · {it.line.start[:8]}"}
-        by_file[d.path / f"vocabulary__{_slug(title)}.yaml"].append(_item_yaml(card))
+        by_file[d.path / f"vocabulary__{_slug(title)}.yaml"].append(card_item(card, keep_empty=("gloss",)))
         lvl = st.prio.effective_level(k)
         print(f"{cid}  {word}【{reading}】 {lvl}  {it.line.text}")
         if entries:

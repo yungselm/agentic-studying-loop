@@ -10,8 +10,6 @@ import re
 from collections import Counter
 from pathlib import Path
 
-import yaml
-
 from ..cards import load_file
 from ..config import load_deck
 from .apkg import read_export
@@ -29,7 +27,9 @@ def _asl_id(note) -> str | None:
 
 
 def sync(d, vocab, export: Path) -> dict:
-    from .grammar import _norm_forms, split_frontmatter
+    from ..notes import split_frontmatter
+    from .notefile import update_note
+    from .overview import _norm_forms
     ex = read_export(export)
     deck = load_deck(d.path)
     cards = {str(c["id"]): c for f in deck.files() for c in load_file(f) if c.get("id")}
@@ -84,11 +84,7 @@ def sync(d, vocab, export: Path) -> dict:
     for title, st in best.items():
         p, meta = notes[title]
         if GRAMMAR_RANK[st] > GRAMMAR_RANK.get(str(meta.get("status") or "unknown"), 0):
-            _, fm, body = p.read_text(encoding="utf-8").split("---\n", 2)
-            m = yaml.safe_load(fm) or {}
-            m["status"] = st
-            p.write_text("---\n" + yaml.safe_dump(m, allow_unicode=True, sort_keys=False, width=1000)
-                         + "---\n" + body, encoding="utf-8")
+            update_note(p, status=st)
             out[f"grammar {st}"] += 1
 
     # 3. how the language cards do, per source (an early look at the evidence)
