@@ -10,7 +10,9 @@
   [gaps]     a cloze card with one gap (2-5 fail less)
   [source]   a `[[Note]]` source isn't in the vault; [media] an embedded image is missing
   [lang]     sentence/grammar cards: one **target**, word + gloss, length cap; [media] clip missing
-  [branch]   a card type that doesn't belong to the deck's branch (project / topic / language)
+  [kind]     a card type that doesn't belong to the deck's kind (project / topic / language);
+             deck.yaml without `kind:` or with an unknown one
+  [pack]     `lang:` on a card (renamed to `pack:`)
   [mix]      a topic deck's share of code cards is far from its brief's `cards:` (Overview.md)
 Project decks (profile.md or `repo:` in deck.yaml) also get [frame], [header],
 [excerpt], [index] and [std]; see project_lint.py.
@@ -27,7 +29,7 @@ from pathlib import Path
 from . import cards as C
 from . import notes as N
 from . import project_lint as P
-from .config import BRANCHES, Deck, find_home, load_pack
+from .config import DECK_KINDS, Deck, find_home, load_pack
 
 XREF = re.compile(r"\b(like the previous|the previous card|as (above|before)|like it|"
                   r"same as the previous|see the (other|previous))\b", re.I)
@@ -167,7 +169,7 @@ def _card_flags(card, lim, lint_cfg, prefix, seen, fname, fronts=None, retired=(
 def mix_flags(deck: Deck, kinds: Counter) -> list[tuple[str, str, str]]:
     """Topic decks: the brief's `cards: {code: 0.3}` sets the share of code cards; far off -> note.
     Without it, a topic deck that is mostly code cards gets the reminder to decide."""
-    if deck.branch != "topic" or sum(kinds.values()) < 10:
+    if deck.kind != "topic" or sum(kinds.values()) < 10:
         return []
     ov = deck.path / "Overview.md"
     brief = N.split_frontmatter(ov.read_text(encoding="utf-8"))[0] if ov.is_file() else {}
@@ -179,6 +181,21 @@ def mix_flags(deck: Deck, kinds: Counter) -> list[tuple[str, str, str]]:
     if abs(code - float(want)) > 0.15:
         return [("~", "mix", f"{code:.0%} code cards ({kinds['code']} of {total}); the brief says "
                  f"{float(want):.0%} (`cards:` in Overview.md)")]
+    return []
+
+
+def kind_flags(deck: Deck) -> list[tuple[str, str, str]]:
+    """deck.yaml states its kind; decks from before `kind:` are detected (see Deck.detected_kinds)."""
+    if not (deck.path / "deck.yaml").is_file():
+        return []
+    k = deck.cfg.get("kind")
+    if k is None:
+        found = deck.detected_kinds()
+        if len(found) > 1:
+            return [("!", "kind", f"looks like {' and '.join(found)}: set `kind:` in deck.yaml")]
+        return [("~", "kind", f"no `kind:` (`asl fix` writes `kind: {found[0]}`)")]
+    if k not in DECK_KINDS:
+        return [("!", "kind", f"unknown `kind: {k}` (one of: {', '.join(DECK_KINDS)})")]
     return []
 
 
@@ -254,7 +271,9 @@ def lint(groups: list[tuple[Deck, list[Path]]], quiet: bool = False,
             repo = None
         ids = []
         lctx = lang_context(deck)
-        allowed = BRANCHES[deck.branch]["cards"]
+        allowed = DECK_KINDS[deck.kind]["cards"]
+        for sev, kind, msg in kind_flags(deck):
+            report(sev, kind, f"{deck.path.name}/deck.yaml", msg)
         kinds = Counter()
         for f in files:
             pack = deck.file_opts(f).get("pack") or deck.pack
@@ -265,10 +284,13 @@ def lint(groups: list[tuple[Deck, list[Path]]], quiet: bool = False,
                 flags += P.check_card(deck, card, lint_cfg, deck.checked(f), roles, repo)
                 if card["type"] in ("sentence", "grammar"):
                     flags += lang_flags(card, lctx)
+                if "lang" in card:
+                    flags.append(("!", "pack", "`lang:` on a card is now `pack:` (lang: means a "
+                                  "spoken language, in deck.yaml)"))
                 kinds[card["type"]] += 1
                 if card["type"] not in allowed:
-                    flags.append(("!" if card["type"] in ("sentence", "grammar") or deck.branch == "language"
-                                  else "~", "branch", f"a {card['type']} card in a {deck.branch} deck "
+                    flags.append(("!" if card["type"] in ("sentence", "grammar") or deck.kind == "language"
+                                  else "~", "kind", f"a {card['type']} card in a {deck.kind} deck "
                                   f"(its cards: {', '.join(allowed)})"))
                 for sev, kind, msg in flags:
                     report(sev, kind, f"{f.name}: {C.label(card)}", msg)

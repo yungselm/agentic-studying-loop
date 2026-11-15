@@ -4,7 +4,7 @@ description: Start a topic from lectures, books or links (PDFs in the vault, URL
 ---
 # Study a source
 
-Branch **topic**. The deck's `Overview.md` holds the brief (frontmatter) and the sources map (`## Sources`).
+Deck kind **topic**. The deck's `Overview.md` holds the brief (frontmatter) and the sources map (`## Sources`).
 Read only the frontmatter and that section: the card table below it isn't needed here.
 
 1. **New topic?** Ask first, one question at a time: the goal, what the user already knows,

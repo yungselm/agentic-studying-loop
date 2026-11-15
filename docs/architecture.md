@@ -203,13 +203,14 @@ Each step keeps the tests green and is its own commit.
 
 1. **One Anki export reader** in core (`core/reviews`), replacing `stats.open_collection` /
    `load_cards` and `lang/apkg.read_export`.
-2. **Rename** the card-level `lang:` to `pack:`; `asl fix` migrates card files and writes
-   `kind:` into each `deck.yaml` that lacks it.
+2. **Rename** the card-level `lang:` to `pack:` (`asl lint` flags a leftover `lang:`; no card
+   file used it, so there is no migration) and add `kind:`: the templates write it, `asl fix`
+   writes it into each `deck.yaml` that lacks it.
 3. **`core/` package**: move card files, config, ids, lint, build, check; the vault becomes
    optional (`vault:` setting).
 4. **Registry and extension points**; core registers its card types through them.
 5. **Language out of core**: the sentence/grammar note models and media handling (`build.py`),
-   `lang_flags` (`lint.py`), the language branch (`config.py`), `_init_language`
+   `lang_flags` (`lint.py`), the language deck kind (`config.py`), `_init_language`
    (`project.py`), the id special case (`ids.py`) → `language/`; then split off `language_ja/`.
 6. **`sources`, `notes`, `projects`** as modules; `core.budget` from `sources.py`.
 7. **`analysis`**: the join, the `Analysis` interface, the current stats ported as analyses.

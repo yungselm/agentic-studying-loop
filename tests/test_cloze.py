@@ -23,7 +23,7 @@ def vault(tmp: Path, cards_yaml: str) -> Path:
     (v / "Notes" / "scene.png").write_bytes(PNG)
     d = v / "cards"
     d.mkdir()
-    (d / "deck.yaml").write_text("deck: T\nprefix: t\n")
+    (d / "deck.yaml").write_text("kind: topic\ndeck: T\nprefix: t\n")
     (d / "a.yaml").write_text(textwrap.dedent(cards_yaml), encoding="utf-8")
     return d
 

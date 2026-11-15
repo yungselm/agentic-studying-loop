@@ -1,5 +1,6 @@
-# Language deck for {{name}} (agentic-studying-loop; branch: language, skill `language-cards`).
+# Language deck for {{name}} (agentic-studying-loop; skill `language-cards`).
 # Commands: asl lang add / plan / draft / grammar / tts / sync, then asl lint / build.
+kind: language                   # decides the skills, commands and card types
 deck: "Study Loop::{{name}}"     # Anki: ::Vocabulary::<source>, ::Grammar
 lang: {{lang}}                   # language config: tokenizer, word levels, dictionary
 prefix: {{prefix}}               # sentence cards: {{prefix}}-001, ... (plan order; never reused)

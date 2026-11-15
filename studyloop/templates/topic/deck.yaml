@@ -1,5 +1,6 @@
 # Deck settings for {{name}} (agentic-studying-loop). A topic: cards come from its sources
 # (lectures, books, links) and study notes, not from a code repo.
+kind: topic                      # lectures, books, links: decides the skills and card types
 deck: "Study Loop::{{name}}"     # Anki deck this folder builds into
 pack: {{pack}}                   # highlighting for code in cards; checker for code cards
 prefix: {{prefix}}               # card ids: {{prefix}}-001, {{prefix}}-002, ...

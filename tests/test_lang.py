@@ -542,7 +542,7 @@ def test_clean_lists_and_deletes_unused_media(tmp_path):
     assert (media / "th1" / "c1.mp3").exists() and (media / "th1" / "c1.jpg").exists()   # used by cards
 
 
-def test_branches_route_decks(tmp_path, capsys):
+def test_kinds_route_decks(tmp_path, capsys):
     from studyloop import config, lint
     from studyloop.project import init_topic
     home = tmp_path / "v" / "Anki cards"
@@ -550,16 +550,16 @@ def test_branches_route_decks(tmp_path, capsys):
     lang = init_topic("Nihongo", home, [], None, False, None, "python", None, [], lang="ja",
                       media=str(tmp_path / "media"), level="N4")
     topic = init_topic("Grokking", home, [], None, True, None, "python", None, [])
-    assert config.load_deck(lang).branch == "language" and config.load_deck(topic).branch == "topic"
+    assert config.load_deck(lang).kind == "language" and config.load_deck(topic).kind == "topic"
     claude = (tmp_path / "v" / "CLAUDE.md").read_text(encoding="utf-8")
     assert "- Nihongo (language: language-cards" in claude and "- Grokking (topic: study-source" in claude
     assert "cards: {code: 0}" in (topic / "Overview.md").read_text(encoding="utf-8")
-    # a sentence card in a book topic is the wrong branch
+    # a sentence card in a book topic is the wrong kind
     (topic / "a.yaml").write_text('- id: gro-001\n  type: sentence\n  text: "**x**"\n  word: x\n'
                                   '  gloss: y\n  audio: a.mp3\n  image: a.jpg\n', encoding="utf-8")
     capsys.readouterr()
     assert lint.lint(config.resolve_inputs([str(topic)])) == 1
-    assert "[branch] a.yaml: gro-001" in capsys.readouterr().out
+    assert "[kind] a.yaml: gro-001" in capsys.readouterr().out
 
 
 def test_mix_flags_follow_the_brief(tmp_path):

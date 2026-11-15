@@ -102,8 +102,9 @@ def find_home(start: Path) -> Home:
     return Home(None, {})
 
 
-# The three branches: what a deck is for decides the skills, commands and card types.
-BRANCHES = {
+# Deck kinds: what a deck is for decides the skills, commands and card types. deck.yaml says
+# which (`kind:`); decks made before that are detected (`Deck.detected_kinds`).
+DECK_KINDS = {
     "project": {"what": "code in a repo", "skills": "the mode in the project's CLAUDE.md, "
                 "write-cards, study-note", "cards": ("code", "concept", "timeline", "cloze")},
     "topic": {"what": "lectures, books, links", "skills": "study-source -> study-note -> write-cards",
@@ -120,13 +121,20 @@ class Deck:
     cfg: dict
 
     @property
-    def branch(self) -> str:
-        """`language` (deck.yaml has `lang:`), `project` (`repo:` or a profile.md), else `topic`."""
+    def kind(self) -> str:
+        """`kind:` from deck.yaml, else the first detected kind."""
+        k = self.cfg.get("kind")
+        return k if k in DECK_KINDS else self.detected_kinds()[0]
+
+    def detected_kinds(self) -> list[str]:
+        """What a deck without `kind:` looks like: `lang:` → language, `repo:` or a profile.md →
+        project; neither → topic. Two at once is ambiguous: lint asks for `kind:`."""
+        out = []
         if self.cfg.get("lang"):
-            return "language"
+            out.append("language")
         if self.cfg.get("repo") or (self.path / "profile.md").is_file():
-            return "project"
-        return "topic"
+            out.append("project")
+        return out or ["topic"]
 
     @property
     def name(self) -> str:

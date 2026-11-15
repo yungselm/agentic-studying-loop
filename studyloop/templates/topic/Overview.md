@@ -11,7 +11,7 @@ sources:
 ---
 # {{name}}: card index
 
-Branch: **topic** (skills `study-source` → `study-note` → `write-cards`). The brief above (goal,
+Kind: **topic** (skills `study-source` → `study-note` → `write-cards`). The brief above (goal,
 what you know, card mix, notes first or not, sources) steers them, and choices for this topic
 belong here, not in `preferences.md`; `asl sources` keeps the map below. Status: `draft` → `reviewed` → `needs update`.
 

@@ -2,6 +2,7 @@
 
     asl ids path/to/deck          # next free id + cards without one (read-only)
     asl fix path/to/deck          # write it all (keeps comments and formatting):
+      - `kind:` in deck.yaml, if it has none (detected: language / project / topic)
       - `id:` for every card without one (<prefix>-NNN, never reusing retired_ids)
       - `std: <standards_version>` on those new cards (from studyloop.yaml)
       - a row in Overview.md for every card that has none (status `draft`)
@@ -137,13 +138,38 @@ def _verify(f: Path, before: list[dict], new_text: str, added: dict[int, dict]) 
                              f"unexpectedly. Nothing written; add ids by hand.")
 
 
+def fix_kind(deck: Deck) -> str | None:
+    """Write `kind:` into a deck.yaml from before it existed. Returns the kind written."""
+    import yaml
+    p = deck.path / "deck.yaml"
+    if deck.cfg.get("kind") or not p.is_file():
+        return None
+    found = deck.detected_kinds()
+    if len(found) > 1:
+        print(f"  [!] {deck.path.name}/deck.yaml looks like {' and '.join(found)}: "
+              "set `kind:` by hand.")
+        return None
+    text, fmt = read_keep(p)
+    lines = text.split("\n")
+    first = next((i for i, ln in enumerate(lines) if ln.strip() and not ln.lstrip().startswith("#")),
+                 len(lines))                     # after the header comment, before the first key
+    lines.insert(first, f"kind: {found[0]}")
+    new_text = "\n".join(lines)
+    if yaml.safe_load(new_text) != {**deck.cfg, "kind": found[0]}:
+        raise SystemExit(f"{p}: refusing to write, the settings would change. Nothing written; "
+                         f"add `kind: {found[0]}` by hand.")
+    write_keep(p, new_text, fmt)
+    deck.cfg["kind"] = found[0]
+    return found[0]
+
+
 def _source_short(card: dict) -> str:
     src = str(card.get("source") or "")
     return src.replace("|", "/")[:80]
 
 
 def fix_index(deck: Deck) -> int:
-    if deck.cfg.get("lang"):
+    if deck.kind == "language":
         return 0                          # language decks: thousands of cards, no index rows
     ov = deck.path / "Overview.md"
     if not ov.is_file():
@@ -183,11 +209,13 @@ def ids(groups, fix: bool) -> int:
             for f, c in missing:
                 print(f"  no id: {f.name} {C.label(c)}")
             continue
+        kind = fix_kind(deck)
         home = find_home(deck.path)
         std = home.standards_version if home.path else None
         total = sum(fix_file(deck, f, files, std) for f in files)
         rows = fix_index(deck)
-        print(f"{deck.path.name}: id/std/guid written on {total} card(s), "
+        print(f"{deck.path.name}: " + (f"kind: {kind} written, " if kind else "")
+              + f"id/std/guid written on {total} card(s), "
               f"{rows} Overview.md row(s) added.")
         from .sources import BEGIN, build_map
         ov = deck.path / "Overview.md"

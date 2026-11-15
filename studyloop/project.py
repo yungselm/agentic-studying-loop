@@ -190,20 +190,20 @@ TOPICS_BEGIN, TOPICS_END = "<!-- studyloop:topics:begin -->", "<!-- studyloop:to
 def write_topics_block(home: Path) -> None:
     """CLAUDE.md next to the card home: where topics live, so an agent started anywhere
     in the studying folder finds them without being told paths."""
-    from .config import BRANCHES, load_deck
+    from .config import DECK_KINDS, load_deck
     decks = [load_deck(d) for d in sorted(home.iterdir()) if (d / "deck.yaml").is_file()]
-    topics = [d for d in decks if d.branch != "project"]     # projects have their own block
+    topics = [d for d in decks if d.kind != "project"]     # projects have their own block
 
     def entry(d):
-        b = BRANCHES[d.branch]
+        b = DECK_KINDS[d.kind]
         title = (d.path / "Overview.md").is_file() and _topic_name(d.path) or d.path.name
-        kinds = ", ".join(b["cards"][:3]) + (" + code per the brief's `cards:`" if d.branch == "topic" else "")
-        return f"  - {title} ({d.branch}: {b['skills']}; cards: {kinds}): `{d.path}`"
+        kinds = ", ".join(b["cards"][:3]) + (" + code per the brief's `cards:`" if d.kind == "topic" else "")
+        return f"  - {title} ({d.kind}: {b['skills']}; cards: {kinds}): `{d.path}`"
     lines = [
         TOPICS_BEGIN,
         "## Study loop: topics ([agentic-studying-loop](https://github.com/yungselm/agentic-studying-loop))",
-        "Each deck has a **branch** (its deck.yaml says which); the branch decides the skills, the "
-        "`asl` commands and the card types. Follow only the named branch.",
+        "Each deck has a **kind** (`kind:` in its deck.yaml); the kind decides the skills, the "
+        "`asl` commands and the card types. Follow only the named kind.",
         "- **topic** (lectures, books, links): `study-source` (one part per batch) → `study-note` → "
         "`write-cards`; `asl sources / fix / lint / check / build`; card mix from the brief's `cards:`.",
         "- **language**: `language-cards`; `asl lang add / plan / draft / grammar / tts / sync`, "

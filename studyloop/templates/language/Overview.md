@@ -12,5 +12,5 @@ sources: []
 ---
 # {{name}}
 
-Branch: **language** (skill `language-cards`; cards: sentence, grammar). Lines and their status:
+Kind: **language** (skill `language-cards`; cards: sentence, grammar). Lines and their status:
 `lines/*.tsv`; known words: `Vocabulary.md`; grammar: `Overview - {{name}} Grammar.md`.

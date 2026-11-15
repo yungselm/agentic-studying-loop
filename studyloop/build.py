@@ -215,7 +215,7 @@ def guid(deck: Deck, f: Path, card: dict) -> str:
 
 
 def lang_for(deck: Deck, f: Path, card: dict) -> str:
-    pack = card.get("lang") or deck.file_opts(f).get("pack") or deck.pack
+    pack = card.get("pack") or deck.file_opts(f).get("pack") or deck.pack
     if not pack:
         return "text/plain"
     try:
@@ -434,7 +434,7 @@ def build(groups: list[tuple[Deck, list[Path]]], out: Path) -> int:
                                      f"{guids[note.guid]} — ids must be unique.")
                 guids[note.guid] = f"{C.label(card)} ({f.name})"
                 anki_decks[name].add_note(note)
-                if deck.cfg.get("lang") and card.get("id"):
+                if deck.kind == "language" and card.get("id"):
                     positions[note.guid] = id_number(card["id"])
                 total += 1
                 anki_cards += len(note.cards)

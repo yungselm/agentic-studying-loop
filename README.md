@@ -65,16 +65,16 @@ re-derived from 6.5k of my personal reviews (*typed characters, not lines, predi
 
 ## How it fits together
 
-**Three branches.** What a deck is for decides the skills, the `asl` commands and the card types,
-so you can check what an agent does. Its `deck.yaml` says which branch it is.
+**Three deck kinds.** What a deck is for decides the skills, the `asl` commands and the card
+types, so you can check what an agent does. Its `deck.yaml` says which (`kind:`).
 
-| Branch | You study | Start with | Skills | `asl` commands | Card types |
+| Kind | You study | Start with | Skills | `asl` commands | Card types |
 |---|---|---|---|---|---|
-| **project** (`repo:`) | code you write | `asl init` | the [mode](#modes), `write-cards`, `study-note` | `fix`, `lint`, `check`, `build` | code, concept, timeline |
-| **topic** (neither) | lectures, books, links | `asl topic` | `study-source` → `study-note` → `write-cards` | `sources`, `fix`, `lint`, `check`, `build` | cloze, concept, timeline; code as the brief's `cards:` says |
-| **language** (`lang:`) | a language from shows | `asl topic --lang` | `language-cards` | `lang add / plan / draft / grammar / tts / sync`, `lint`, `build` | sentence, grammar |
+| **project** | code you write | `asl init` | the [mode](#modes), `write-cards`, `study-note` | `fix`, `lint`, `check`, `build` | code, concept, timeline |
+| **topic** | lectures, books, links | `asl topic` | `study-source` → `study-note` → `write-cards` | `sources`, `fix`, `lint`, `check`, `build` | cloze, concept, timeline; code as the brief's `cards:` says |
+| **language** | a language from shows | `asl topic --lang` | `language-cards` | `lang add / plan / draft / grammar / tts / sync`, `lint`, `build` | sentence, grammar |
 
-`asl lint` flags a card type from another branch, and a topic deck whose share of code cards is far
+`asl lint` flags a card type from another kind, and a topic deck whose share of code cards is far
 from its brief. Choices for one topic live in its `Overview.md` brief; `standards/preferences.md`
 holds only rules for all your cards.
 

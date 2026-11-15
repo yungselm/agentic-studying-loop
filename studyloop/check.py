@@ -44,7 +44,7 @@ def collect(groups: list[tuple[Deck, list[Path]]]) -> tuple[dict[str, list[Item]
                 skipped += 1
                 continue
             for card in C.load_file(f):
-                pack = card.get("lang") or deck.file_opts(f).get("pack") or deck.pack
+                pack = card.get("pack") or deck.file_opts(f).get("pack") or deck.pack
                 if not pack or card.get("check") is False:
                     continue
                 tag = _ident(str(card.get("id") or f"{f.stem}_{card['_index']}"))

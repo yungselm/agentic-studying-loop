@@ -254,3 +254,31 @@ def test_two_projects_get_separate_presets(tmp_path):
     per = {d["name"]: dconf[str(d["conf"])]["new"]["perDay"] for d in decks.values()
            if d["name"] != "Default"}
     assert per["Study Loop::A::A"] == 3 and per["Study Loop::B::B"] == 30
+
+
+def test_deck_kind_fix_and_lint(tmp_path, capsys):
+    yml = "# header comment\ndeck: T  # keep me\npack: python\nprefix: t\n"
+    d = make_deck(tmp_path, "- id: t-001\n  type: concept\n  question: Q?\n  answer: '**A.**'\n"
+                            "  pack: rust\n", yml)
+    assert config.load_deck(d).kind == "topic"
+    lint.lint(config.resolve_inputs([str(d)]))
+    assert "~ [kind] deck/deck.yaml -> no `kind:`" in capsys.readouterr().out
+    ids.ids(config.resolve_inputs([str(d)]), fix=True)
+    text = (d / "deck.yaml").read_text(encoding="utf-8")
+    assert text == "# header comment\nkind: topic\ndeck: T  # keep me\npack: python\nprefix: t\n"
+    assert "kind: topic written" in capsys.readouterr().out
+
+    lint.lint(config.resolve_inputs([str(d)]))       # the card's `pack:` is fine; `kind` is set
+    assert "[kind]" not in capsys.readouterr().out
+    (d / "a.yaml").write_text("- id: t-001\n  type: concept\n  question: Q?\n  answer: '**A.**'\n"
+                              "  lang: rust\n", encoding="utf-8")
+    assert lint.lint(config.resolve_inputs([str(d)])) == 1
+    assert "! [pack]" in capsys.readouterr().out
+
+    # repo + lang: ambiguous, fix leaves it, lint asks; an unknown kind is an error
+    (d / "deck.yaml").write_text("deck: T\nprefix: t\nlang: ja\nrepo: x\n", encoding="utf-8")
+    ids.fix_kind(config.load_deck(d))
+    assert "kind" not in (d / "deck.yaml").read_text(encoding="utf-8")
+    assert lint.kind_flags(config.load_deck(d))[0][0] == "!"
+    (d / "deck.yaml").write_text("kind: book\ndeck: T\n", encoding="utf-8")
+    assert "unknown `kind: book`" in lint.kind_flags(config.load_deck(d))[0][2]
