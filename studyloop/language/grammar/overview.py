@@ -5,8 +5,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from ..core.vault import split_frontmatter
-from .notefile import update_note
+from studyloop.core.config.vault import split_frontmatter
+from studyloop.language.grammar.notes import update_note
 
 IMAGES = "_attachements"          # next to the notes, as for other topics' PDFs
 
@@ -84,7 +84,7 @@ def save_image(data: bytes, out: Path, width: int = 600) -> None:
     import subprocess
     import tempfile
 
-    from .audio import ffmpeg_exe
+    from studyloop.language.media.audio import ffmpeg_exe
     exe = ffmpeg_exe()
     if not exe:
         out.write_bytes(data)

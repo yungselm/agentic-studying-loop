@@ -9,7 +9,8 @@ from pathlib import Path
 
 import yaml
 
-from .config import find_home, native_path
+from studyloop.core.config.home import find_home
+from studyloop.core.config.paths import native_path
 
 NO_VAULT = {None, False, "", "none"}
 

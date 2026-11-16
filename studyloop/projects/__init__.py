@@ -1,14 +1,16 @@
-"""Code projects (deck kind `project`): `asl init` connects a repo, `asl mode` switches how the
-agent works in it (modes/*.md), and a lint rule checks cards against the repo.
+"""Code projects (deck kind `project`): cards from code you write in a repo. Start here.
 
-  connect     `asl init`, `asl mode`: the deck folder and the block in the project's CLAUDE.md
-  lint        headers, verbatim excerpts, `std:`, drift against the repo
+    asl init -> connect.py   the deck folder, and the study-loop block in the project's CLAUDE.md
+    asl mode -> connect.py   how the agent works in the project (the text: modes/<mode>.md)
+    asl lint -> lint.py      this module's lint rule: headers, verbatim excerpts, `std:`, drift
+
+    templates/   deck.yaml, Overview.md, profile.md and card files of a new project deck
 """
 from __future__ import annotations
 
 from pathlib import Path
 
-from ..core.registry import Command, DeckKind, Module, Registry
+from studyloop.core.registry import Command, DeckKind, Module, Registry
 
 PROJECT = DeckKind(
     "project", what="code in a repo",
@@ -29,7 +31,7 @@ def _init_args(p):
 
 
 def _init(a):
-    from .connect import init_project
+    from studyloop.projects.connect import init_project
     init_project(a.project, a.home, a.pack, a.prefix, a.mode, a.notes, a.name)
     return 0
 
@@ -40,13 +42,13 @@ def _mode_args(p):
 
 
 def _mode(a):
-    from .connect import set_mode
+    from studyloop.projects.connect import set_mode
     set_mode(a.project, a.mode)
     return 0
 
 
 def register(reg: Registry) -> None:
-    from .lint import RULE
+    from studyloop.projects.lint import RULE
     reg.add_deck_kind(PROJECT)
     reg.add_lint_rule(RULE)
     reg.add_command(Command("init", "connect a project: deck folder + CLAUDE.md block", _init_args, _init))

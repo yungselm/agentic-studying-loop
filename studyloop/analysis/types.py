@@ -1,6 +1,6 @@
 """What an analysis of review data is (docs/architecture.md, "Review data and analysis").
 
-`asl stats <export>` reads the export (core.reviews), joins every Anki card back to its card
+`asl stats <export>` reads the export (core/anki/reviews.py), joins every Anki card back to its card
 file, and runs every registered analysis on the result. Each returns a Section: a short summary
 and suggestions for the agent (refresh-standards reads only those), tables and figures for you.
 An analysis registers with `reg.provide("analysis", name, obj)`, like a language; the bundled
@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     import pandas as pd
 
-    from ..core.config import Home
+    from studyloop.core.config import Home
 
 
 # ---- the data every analysis gets ------------------------------------------------------

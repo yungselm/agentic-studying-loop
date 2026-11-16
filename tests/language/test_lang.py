@@ -7,11 +7,11 @@ from pathlib import Path
 import genanki
 import pytest
 
-from studyloop.core import reviews as R
-from studyloop.language.lines import import_apkg, read_lines, split_speakers, write_lines
-from studyloop.language.plan import Analysed, _mark_names, make_plan
-from studyloop.language.tokens import Token
-from studyloop.language.vocab import glossed_words
+from studyloop.core.anki import reviews as R
+from studyloop.language.media.lines import import_apkg, read_lines, split_speakers, write_lines
+from studyloop.language.vocabulary.plan import Analysed, _mark_names, make_plan
+from studyloop.language.vocabulary.tokens import Token
+from studyloop.language.vocabulary.vocab import glossed_words
 from studyloop.language_ja import levels as LV
 
 LABELS = "（[^）]*）"
@@ -102,7 +102,7 @@ class _Prio:
 
 
 def _item(i, words, chars=10):
-    from studyloop.language.lines import Line
+    from studyloop.language.media.lines import Line
     return Analysed(Line(f"s-{i:04d}", "", "", "x" * chars), "s", words, Counter(), chars)
 
 
@@ -168,7 +168,7 @@ def test_single_word_line_skipped_while_its_word_waits():
 # ---- milestone 2: furigana, card types, lint, build, rejection --------------------------
 
 def test_ruby_and_plain_text():
-    from studyloop.language.tokens import plain_text
+    from studyloop.language.vocabulary.tokens import plain_text
     from studyloop.language_ja.tokenizer import ruby
     assert ruby("住んで", "すんで") == " 住[す]んで"
     assert ruby("お願い", "おねがい") == "お 願[ねが]い"
@@ -232,7 +232,8 @@ SENTENCE = '''\
 
 
 def test_lang_lint(tmp_path, capsys):
-    from studyloop.core import config, lint
+    from studyloop.core import config
+    from studyloop.core.engine import lint
     d = _lang_deck(tmp_path, SENTENCE)
     assert lint.lint(config.resolve_inputs([str(d)])) == 1
     out = capsys.readouterr().out
@@ -246,7 +247,7 @@ def test_lang_build(tmp_path):
     import sqlite3
 
     from studyloop.core import config
-    from studyloop.core.build import build
+    from studyloop.core.engine.build import build
     d = _lang_deck(tmp_path, SENTENCE.split("- id: ja-001")[0])
     out = tmp_path / "ja.apkg"
     assert build(config.resolve_inputs([str(d)]), out) == 0
@@ -282,7 +283,7 @@ def test_native_path_windows_and_wsl():
 
 
 def test_cut_points_finds_the_quiet_stretch():
-    from studyloop.language.audio import WIN, cut_points
+    from studyloop.language.media.audio import WIN, cut_points
     levels = [10.0] * 40 + [1.0] * 5 + [10.0] * 55          # a pause at windows 40-44
     ((end_a, start_b),) = cut_points(levels, [0.5])
     assert (start_b, end_a) == (40 * WIN, 45 * WIN)           # both parts keep the whole pause
@@ -292,7 +293,7 @@ def test_cut_points_finds_the_quiet_stretch():
 
 
 def test_readd_keeps_card_and_rejected_statuses(tmp_path):
-    from studyloop.language.lines import add_source
+    from studyloop.language.media.lines import add_source
     apkg = _subs2srs_apkg(tmp_path)
     deck = tmp_path / "deck"
     add_source(deck, tmp_path / "media", apkg, "th1", "TH", LABELS)
@@ -309,8 +310,8 @@ def test_readd_keeps_card_and_rejected_statuses(tmp_path):
 def test_cut_from_video(tmp_path):
     import subprocess
 
-    from studyloop.language.audio import ffmpeg_exe
-    from studyloop.language.lines import cut_from_video
+    from studyloop.language.media.audio import ffmpeg_exe
+    from studyloop.language.media.lines import cut_from_video
     exe = ffmpeg_exe()
     if not exe:
         pytest.skip("no ffmpeg")
@@ -335,7 +336,7 @@ def test_plan_prefers_the_better_source():
 
 
 def test_vocabulary_reads_old_and_new_columns(tmp_path):
-    from studyloop.language.vocab import Vocabulary
+    from studyloop.language.vocabulary.vocab import Vocabulary
 
     class Tok:
         def key_for(self, w):
@@ -383,7 +384,7 @@ def test_grammar_forms_and_rules():
 
 
 def test_grammar_point_matching():
-    from studyloop.language.grammar import Point
+    from studyloop.language.grammar.points import Point
     tok = _tok_table({"美し": ("形容詞", ""), "さ": ("接尾辞", ""), "が": ("助詞", "格助詞"),
                       "ください": ("動詞", "")})
     adj = Point("い adjectives", Path("x"), token="/形容詞")
@@ -397,7 +398,7 @@ def test_grammar_point_matching():
 
 
 def test_load_points_skips_undetectable(tmp_path):
-    from studyloop.language.grammar import load_points
+    from studyloop.language.grammar.points import load_points
     g = tmp_path / "Grammar"
     g.mkdir()
     (g / "ちゃいけない.md").write_text("---\ntype: grammar\npattern: (ちゃ|じゃ)いけ\nstatus: known\n---\n# x\n",
@@ -411,7 +412,7 @@ def test_grammar_overview_checklist(tmp_path, monkeypatch):
     import json
     from types import SimpleNamespace
 
-    from studyloop.language import overview as G
+    from studyloop.language.grammar import overview as G
     monkeypatch.setenv("ASL_CACHE", str(tmp_path / "cache"))
     assert G._norm_forms("間（あいだ）") == ["間"]
     assert G._norm_forms("ちゃいけない・じゃいけない") == ["ちゃいけない", "じゃいけない"]
@@ -441,9 +442,9 @@ def test_sync_raises_statuses_from_reviews(tmp_path):
     from types import SimpleNamespace
 
     from studyloop.core import config
-    from studyloop.core.build import build
-    from studyloop.language.sync import sync
-    from studyloop.language.vocab import Entry
+    from studyloop.core.engine.build import build
+    from studyloop.language.vocabulary.sync import sync
+    from studyloop.language.vocabulary.vocab import Entry
     d = _lang_deck(tmp_path, SENTENCE.split("- id: ja-001")[0])
     (d / "grammar.yaml").write_text((d / "grammar.yaml").read_text(encoding="utf-8")
                                     + '  note: "[[じゃだめ]]"\n', encoding="utf-8")
@@ -480,7 +481,7 @@ def test_sync_raises_statuses_from_reviews(tmp_path):
 
 
 def test_parse_subs_srt_and_ass(tmp_path):
-    from studyloop.language.lines import import_subs, parse_subs
+    from studyloop.language.media.lines import import_subs, parse_subs
     srt = tmp_path / "ep1.srt"
     srt.write_bytes("﻿1\r\n00:00:01,000 --> 00:00:02,500\r\n<i>はいー</i>\r\n\r\n"
                     "2\r\n00:01:19,750 --> 00:01:28,250\r\n本字幕由諸神字幕組出品\r\n\r\n"
@@ -496,7 +497,7 @@ def test_parse_subs_srt_and_ass(tmp_path):
 
 
 def test_readd_from_other_input_keeps_cards(tmp_path):
-    from studyloop.language.lines import Line, _match_old_ids
+    from studyloop.language.media.lines import Line, _match_old_ids
     old = [Line("sk1-0001", "00:01:42.880", "", "笹を食べながら"), Line("sk1-0002", "00:01:48.030", "", "ちょっと")]
     new = [Line("sk1-0001", "00:00:01.000", "", "はいー"), Line("sk1-0002", "00:01:42.880", "", "笹を食べながら"),
            Line("sk1-0003", "00:01:48.030", "", "ちょっと また")]
@@ -511,7 +512,7 @@ def test_tts_fills_missing_audio(tmp_path, monkeypatch):
     from types import SimpleNamespace
 
     from studyloop.core.cards import load_file
-    from studyloop.language import tts
+    from studyloop.language.media import tts
     d = _lang_deck(tmp_path, SENTENCE.split("- id: ja-001")[0])
     g = d / "grammar.yaml"
     g.write_text(g.read_text(encoding="utf-8").replace("  audio: c1.mp3\n", ""), encoding="utf-8")
@@ -535,7 +536,7 @@ def test_tts_fills_missing_audio(tmp_path, monkeypatch):
 def test_clean_lists_and_deletes_unused_media(tmp_path):
     from types import SimpleNamespace
 
-    from studyloop.language.clean import clean
+    from studyloop.language.media.clean import clean
     d = _lang_deck(tmp_path, SENTENCE.split("- id: ja-001")[0])
     media = tmp_path / "media"
     (media / "old").mkdir()
@@ -546,7 +547,8 @@ def test_clean_lists_and_deletes_unused_media(tmp_path):
 
 
 def test_kinds_route_decks(tmp_path, capsys):
-    from studyloop.core import config, lint
+    from studyloop.core import config
+    from studyloop.core.engine import lint
     from studyloop.sources.topic import init_topic
     home = tmp_path / "v" / "Anki cards"
     (tmp_path / "v" / ".obsidian").mkdir(parents=True)

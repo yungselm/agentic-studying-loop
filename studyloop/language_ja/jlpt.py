@@ -5,10 +5,10 @@ import html
 import json
 import re
 
-from ..core.vault import split_frontmatter
-from ..language.notefile import embed_image, read_note, write_note
-from ..language.overview import IMAGES, save_image
-from ..language.setup import cache_dir
+from studyloop.core.config.vault import split_frontmatter
+from studyloop.language.grammar.notes import embed_image, read_note, write_note
+from studyloop.language.grammar.overview import IMAGES, save_image
+from studyloop.language.setup import cache_dir
 
 
 def lists(code: str) -> dict:

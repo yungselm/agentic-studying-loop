@@ -10,10 +10,10 @@ import re
 from collections import Counter
 from pathlib import Path
 
-from ..core.cards import load_file
-from ..core.config import load_deck
-from ..core.reviews import read_export
-from .vocab import RANK
+from studyloop.core.anki.reviews import read_export
+from studyloop.core.cards import load_file
+from studyloop.core.config import load_deck
+from studyloop.language.vocabulary.vocab import RANK
 
 GRAMMAR_RANK = {"unknown": 0, "planned": 1, "learning": 2, "known": 3}
 
@@ -27,9 +27,9 @@ def _asl_id(note) -> str | None:
 
 
 def sync(d, vocab, export: Path) -> dict:
-    from ..core.vault import split_frontmatter
-    from .notefile import update_note
-    from .overview import _norm_forms
+    from studyloop.core.config.vault import split_frontmatter
+    from studyloop.language.grammar.notes import update_note
+    from studyloop.language.grammar.overview import _norm_forms
     ex = read_export(export)
     deck = load_deck(d.path)
     cards = {str(c["id"]): c for f in deck.files() for c in load_file(f) if c.get("id")}

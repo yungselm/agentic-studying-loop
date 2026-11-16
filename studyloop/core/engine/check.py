@@ -18,9 +18,9 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import cards as C
-from .config import Deck, load_pack
-from .registry import registry
+from studyloop.core import cards as C
+from studyloop.core.config import Deck, load_pack
+from studyloop.core.registry import registry
 
 
 @dataclass

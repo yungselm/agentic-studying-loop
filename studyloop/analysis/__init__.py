@@ -1,19 +1,22 @@
-"""Analyses of your own review data (`asl stats`, skill `refresh-standards`).
+"""Analyses of your own review data (`asl stats`, skill `refresh-standards`). Start here.
 
-  analysis    what an analysis gets (Data: the cards and reviews tables) and returns (Section)
-  table       the export -> one row per Anki card, joined to its card file by GUID
-  bundled     the analyses that ship with the tool
-  report      `asl stats`: runs them; report (for you), summary (for the agent), cards.csv
+    asl stats -> report.py   reads the export, runs every analysis, writes the report (for you),
+                             the summary (for the agent) and cards.csv
 
-A new analysis: a class with `name`, `order` and `run(data) -> Section | None`, registered by
-its module with `reg.provide("analysis", name, obj)` (see bundled.py).
+    types.py      what an analysis gets (Data: the cards and reviews tables) and returns
+                  (Section, Suggestion), and the base class `Analysis`
+    table.py      the export -> one row per Anki card, joined to its card file by GUID
+    analyses/     the analyses that ship with the tool, one section of the report each
+
+A new analysis: a class with `name`, `order` and `run(data) -> Section | None` (see
+analyses/), registered with `reg.provide("analysis", name, obj)`.
 """
 from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
 
-from ..core.registry import Command, Module, Registry
+from studyloop.core.registry import Command, Module, Registry
 
 
 def _stats_args(p):
@@ -26,7 +29,7 @@ def _stats_args(p):
 
 
 def _stats(a):
-    from .report import stats
+    from studyloop.analysis.report import stats
     only = [x.strip() for x in a.only.split(",") if x.strip()] if a.only else None
     return stats(Path(a.export), a.deck, a.home, a.mark_refreshed, only)
 
@@ -36,7 +39,7 @@ def register(reg: Registry) -> None:
                             _stats))
     if importlib.util.find_spec("pandas") is None:
         return                      # registering must never fail: `asl stats` names the install
-    from .bundled import BUNDLED
+    from studyloop.analysis.analyses import BUNDLED
     for a in BUNDLED:
         reg.provide("analysis", a.name, a)
 

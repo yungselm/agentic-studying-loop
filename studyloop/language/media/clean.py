@@ -6,9 +6,9 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from ..core.cards import load_file
-from ..core.config import load_deck
-from .lines import read_lines
+from studyloop.core.cards import load_file
+from studyloop.core.config import load_deck
+from studyloop.language.media.lines import read_lines
 
 EMBED = re.compile(r"!\[\[([^\]|#]+)")
 

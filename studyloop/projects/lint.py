@@ -12,8 +12,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from ..core.config import Deck
-from ..core.registry import DeckSummary, Flag, LintContext, LintRule
+from studyloop.core.config import Deck
+from studyloop.core.registry import DeckSummary, Flag, LintContext, LintRule
 
 ROW = re.compile(r"^\|\s*`([^`]+)`\s*\|\s*([^|]+?)\s*\|")
 

@@ -1,13 +1,13 @@
-"""Study notes in the vault (skill `study-note`): `asl notes` checks them against the style
-(TL;DR, a diagram, the word budget, links). Notes are optional: cards build without them.
+"""Study notes in the vault (skill `study-note`). Start here.
 
-  check       the checks and `asl notes`
+    asl notes -> check.py    checks notes against the style: TL;DR, a diagram, the word
+                             budget, links, overviews. Notes are optional: cards build without them.
 """
 from __future__ import annotations
 
 from pathlib import Path
 
-from ..core.registry import Command, Module, Registry
+from studyloop.core.registry import Command, Module, Registry
 
 
 def _notes_args(p):
@@ -20,7 +20,7 @@ def _notes_args(p):
 
 
 def _notes(a):
-    from .check import notes
+    from studyloop.notes.check import notes
     return notes(a.inputs, a.vault, a.quiet, a.budget)
 
 

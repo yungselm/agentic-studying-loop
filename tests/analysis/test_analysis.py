@@ -6,10 +6,10 @@ import zipfile
 from pathlib import Path
 
 from studyloop.analysis import report as REP
-from studyloop.analysis.analysis import Data, Section, Suggestion
-from studyloop.core.build import build
+from studyloop.analysis.types import Data, Section, Suggestion
 from studyloop.core.cli import main
 from studyloop.core.config import find_home, resolve_inputs
+from studyloop.core.engine.build import build
 
 REPO = Path(__file__).resolve().parents[2]
 DAY = 86400000
@@ -84,7 +84,7 @@ def test_report_renders_figures_and_only_changing_suggestions(tmp_path):
 
 
 def test_suggest_and_spearman():
-    from studyloop.analysis.bundled import limit_line, spearman, suggest
+    from studyloop.analysis.analyses import limit_line, spearman, suggest
     assert abs(spearman(list(range(20)), list(range(20))) - 1.0) < 1e-9
     bins = [(0, 40, 0.10, 500, 0), (40, 80, 0.12, 500, 0), (80, 120, 0.20, 500, 0.1),
             (120, 10**9, 0.40, 500, 0.7)]

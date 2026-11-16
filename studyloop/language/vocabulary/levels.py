@@ -8,7 +8,7 @@ import io
 import math
 import statistics
 
-from .setup import cache_dir
+from studyloop.language.setup import cache_dir
 
 NONE = "—"
 

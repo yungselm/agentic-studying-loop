@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Any, NamedTuple
 if TYPE_CHECKING:
     import genanki
 
-    from .config import Deck
+    from studyloop.core.config import Deck
 
 
 # ---- modules ---------------------------------------------------------------------------
@@ -247,7 +247,7 @@ def registry() -> Registry:
     """Core plus every installed module (entry points), loaded once per process."""
     from importlib.metadata import entry_points
 
-    from .module import MODULE as CORE
+    from studyloop.core import MODULE as CORE
     mods = [CORE]
     for ep in entry_points(group="studyloop.modules"):
         m = ep.load()

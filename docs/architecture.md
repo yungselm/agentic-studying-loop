@@ -45,6 +45,24 @@ separate package with the same boundaries. **Optional installs** bring heavy dep
 `pip install agentic-studying-loop[lang-ja]` (which pulls in `[lang]`). The Python pack's
 checker needs `ruff` and `pytest`: `[python]`. Rust and C++ checkers use system tools.
 
+## Inside a module
+
+Every package starts at its `__init__.py`: what the package is for, which command or skill
+enters where (`asl lint -> engine/lint.py`), and one line per file or subfolder. Open a module
+there and follow the arrows. A module with more than a handful of files groups them in
+subfolders by concern, each again with an `__init__.py` that maps it, e.g.
+
+```
+core/        registry.py · cli.py · commands.py · config/ · cards/ · engine/ · anki/
+language/    cli.py · base.py · setup.py · deck.py · media/ · vocabulary/ · grammar/ · cards/
+analysis/    report.py · types.py · table.py · analyses/
+```
+
+Imports are absolute (`from studyloop.core.cards.io import load_file`), so every import says
+where the code lives. A package's `__init__.py` may re-export its public names
+(`from studyloop.core.config import Deck`); inside a package, files import their siblings
+directly.
+
 ## Dependency rules
 
 - A module imports core and the modules it declares in `requires`. **Core never imports a
@@ -114,7 +132,7 @@ context, and when?*
 | Skills | One workflow per skill, steps only. Details the agent needs only sometimes go in files next to `SKILL.md` and are read on demand (see below). Inline anything under ~30 lines that is almost always needed: each extra file is one more read. |
 | CLI | The agent runs commands and never reads the code. Output is compact and actionable (`!` must fix, `~` may fix, `-q`). Commands do the summarizing: `asl sources --read <part>`, `asl lang draft` prints only the line and the dictionary senses. |
 | Rules | A rule that lint can check does not also need prose in the standards. Moving rules into lint keeps `core.md` and the pack standards short, and those are read before every batch. |
-| Big inputs | Never read whole. Books, episodes and review data go through `core.budget`: estimate tokens, split into parts that fit a batch, track each part's status. |
+| Big inputs | Never read whole. Books, episodes and review data go through `core/engine/budget.py`: estimate tokens, split into parts that fit a batch, track each part's status. |
 | Big files | `Overview.md`, `Vocabulary.md` and the like: read only the frontmatter or one section, ideally through a command (`--show brief`). |
 | Reports | Every analysis gives the agent a short summary and `suggestions[]`; figures and tables are for the human, never read by the agent. |
 
@@ -192,7 +210,7 @@ class Suggestion:                  # what refresh-standards acts on
 `asl stats` writes `evidence/<date>-<deck>-report.md` (every section, figures as `.svg` beside
 it, so it renders in Obsidian and any markdown viewer) for the user, and `-summary.md` (each
 section's summary and the suggestions that change something) for the agent. The bundled
-analyses (`analysis/bundled.py`) are the earlier `asl stats` report, one section each. New ones
+analyses (`analysis/analyses/`) are the earlier `asl stats` report, one section each. New ones
 (graphs, weak topics) register with `reg.provide("analysis", name, obj)` and need no change to
 the skill: it only reads the summary.
 

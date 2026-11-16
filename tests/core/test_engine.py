@@ -7,8 +7,10 @@ from pathlib import Path
 import pytest
 
 from studyloop.core import cards as C
-from studyloop.core import config, ids, lint
-from studyloop.core.build import build
+from studyloop.core import config
+from studyloop.core.cards import ids
+from studyloop.core.engine import lint
+from studyloop.core.engine.build import build
 
 REPO = Path(__file__).resolve().parents[2]
 
@@ -181,7 +183,7 @@ def _concept(q):
 def test_fix_legacy_migration_keeps_every_id_and_guid(tmp_path):
     body = "".join(f"# rlk-00{i}\n{_concept(f'Q{i}?')}\n" for i in range(1, 5))
     d = make_deck(tmp_path, body, "deck: K\npack: python\nprefix: rlk\nguid: legacy-kata\n")
-    from studyloop.core.build import guid
+    from studyloop.core.engine.build import guid
     deck = config.load_deck(d)
     before = [guid(deck, d / "a.yaml", c) for c in C.load_file(d / "a.yaml")]
     assert _fix(d) == ["rlk-001", "rlk-002", "rlk-003", "rlk-004"]
@@ -223,7 +225,7 @@ def test_retired_card_comment_is_not_inherited(tmp_path):
 
 
 def test_text_bold_never_inside_code():
-    from studyloop.core.build import text
+    from studyloop.core.engine.build import text
     assert text("`x ** 2` and `-(x ** 2)`") == "<code>x ** 2</code> and <code>-(x ** 2)</code>"
     assert text("**`**kwargs` is a dict.**") == "<strong><code>**kwargs</code> is a dict.</strong>"
 
@@ -278,7 +280,7 @@ def test_deck_kind_fix_and_lint(tmp_path, capsys):
 
 def test_vault_setting(tmp_path, capsys):
     from studyloop.core.cli import main
-    from studyloop.core.vault import vault_for
+    from studyloop.core.config.vault import vault_for
     v = tmp_path / "Notes"
     home = v / "Anki cards"
     deck = home / "d"

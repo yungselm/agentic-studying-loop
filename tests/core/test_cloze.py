@@ -7,9 +7,10 @@ from pathlib import Path
 
 from studyloop.analysis.table import load_cards
 from studyloop.core import cards as C
-from studyloop.core import config, lint
-from studyloop.core.build import build
-from studyloop.core.reviews import read_export
+from studyloop.core import config
+from studyloop.core.anki.reviews import read_export
+from studyloop.core.engine import lint
+from studyloop.core.engine.build import build
 
 PNG = bytes.fromhex("89504e470d0a1a0a0000000d4948445200000001000000010806000000"
                     "1f15c4890000000d49444154789c6360000002000100e221bc330000000049454e44ae426082")

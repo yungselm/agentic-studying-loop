@@ -11,8 +11,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from ..core.config import find_pack, read_keep, write_keep
-from ..core.home import init_home, render
+from studyloop.core.config import find_pack, read_keep, write_keep
+from studyloop.core.config.home import init_home, render
 
 BEGIN, MODE, END = "<!-- studyloop:begin -->", "<!-- studyloop:mode -->", "<!-- studyloop:end -->"
 MODES = ["teacher", "mentor", "coworker", "on-demand"]

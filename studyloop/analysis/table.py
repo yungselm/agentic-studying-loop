@@ -11,10 +11,10 @@ import re
 import statistics as st
 from dataclasses import dataclass, field
 
-from ..core import cards as C
-from ..core.config import Home
-from ..core.registry import registry
-from ..core.reviews import ReviewData
+from studyloop.core import cards as C
+from studyloop.core.anki.reviews import ReviewData
+from studyloop.core.config import Home
+from studyloop.core.registry import registry
 
 TIMER_MS = 60000
 MEASURES = ("typed_chars", "typed_lines", "answer_chars", "bold_chars", "gap_chars", "gaps", "hook")
@@ -181,8 +181,8 @@ def review_frame(rd: ReviewData, cids: set[int]):
 
 def card_files(home: Home) -> dict[str, dict]:
     """GUID -> the card file's columns, for every card in the card home's decks."""
-    from ..core.build import guid
-    from ..core.config import load_deck
+    from studyloop.core.config import load_deck
+    from studyloop.core.engine.build import guid
     out: dict[str, dict] = {}
     if not home.path:
         return out

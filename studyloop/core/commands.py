@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from . import config
-from .registry import Command
+from studyloop.core import config
+from studyloop.core.registry import Command
 
 
 def _inputs(p):
@@ -17,7 +17,7 @@ def _build_args(p):
 
 
 def _build(a):
-    from .build import build
+    from studyloop.core.engine.build import build
     return build(config.resolve_inputs(a.inputs), Path(a.out))
 
 
@@ -27,7 +27,7 @@ def _check_args(p):
 
 
 def _check(a):
-    from .check import check
+    from studyloop.core.engine.check import check
     return check(config.resolve_inputs(a.inputs), {"fast": a.fast})
 
 
@@ -38,7 +38,7 @@ def _lint_args(p):
 
 
 def _lint(a):
-    from .lint import lint
+    from studyloop.core.engine.lint import lint
     return lint(config.resolve_inputs(a.inputs), a.quiet,
                 frozenset(k.strip() for k in a.skip.split(",") if k.strip()))
 
@@ -49,7 +49,7 @@ def _ids_args(p):
 
 
 def _ids(a):
-    from .ids import ids
+    from studyloop.core.cards.ids import ids
     return ids(config.resolve_inputs(a.inputs), a.cmd == "fix" or getattr(a, "fix", False))
 
 
@@ -63,7 +63,7 @@ def _init_home_args(p):
 
 
 def _init_home(a):
-    from .home import init_home
+    from studyloop.core.config.home import init_home
     init_home(a.home, a.pack, "none" if a.no_vault else a.vault)
     return 0
 
@@ -73,7 +73,7 @@ def _install_skills_args(p):
 
 
 def _install_skills(a):
-    from .home import install_skills
+    from studyloop.core.config.home import install_skills
     install_skills(a.target)
     return 0
 

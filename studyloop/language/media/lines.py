@@ -13,7 +13,7 @@ from pathlib import Path
 
 import yaml
 
-from ..core.reviews import read_export
+from studyloop.core.anki.reviews import read_export
 
 COLUMNS = ["id", "start", "end", "text", "speaker", "audio", "image", "status"]
 _TIME = re.compile(r"(\d+)\.(\d\d)\.(\d\d)[.,](\d{3})-(\d+)\.(\d\d)\.(\d\d)[.,](\d{3})")
@@ -218,7 +218,7 @@ def cut_from_video(video: Path, rows: list, out_dir: Path, pad: tuple[float, flo
     most `width` px wide) per row, from the original video. Skips files that exist."""
     from concurrent.futures import ThreadPoolExecutor
 
-    from .audio import ffmpeg_exe
+    from studyloop.language.media.audio import ffmpeg_exe
     exe = ffmpeg_exe()
     if not exe:
         raise SystemExit("Cutting from video needs ffmpeg: install the `lang` extra (imageio-ffmpeg)")
@@ -250,7 +250,7 @@ def cut_from_video(video: Path, rows: list, out_dir: Path, pad: tuple[float, flo
 def split_audio(lines: list[Line], clips_dir: Path) -> tuple[int, int]:
     """Lines split by speaker get their own clip, cut at the pause between them. Returns
     (split, kept whole). Without ffmpeg nothing changes (status stays split:audio-pending)."""
-    from .audio import ffmpeg_exe, split_clip
+    from studyloop.language.media.audio import ffmpeg_exe, split_clip
     exe = ffmpeg_exe()
     groups: dict[str, list[Line]] = {}
     for ln in lines:
@@ -304,7 +304,7 @@ def add_source(deck_dir: Path, media_dir: Path, inp: Path, key: str, title: str,
                label_re: str, strip_re: str = "", video: Path | None = None,
                only: str | None = None, pad: tuple[float, float] = (0.25, 0.4),
                width: int = 960, subs: Path | None = None, keep_re: str = "", lang: str = "") -> int:
-    from ..core.config import native_path
+    from studyloop.core.config import native_path
     raw_inp, inp = str(inp), native_path(inp)
     ex = None
     if inp.suffix.lower() in VIDEO:              # a video + its subtitle file
@@ -343,7 +343,7 @@ def add_source(deck_dir: Path, media_dir: Path, inp: Path, key: str, title: str,
         if ln.id in kept:
             ln.status = kept[ln.id]
     write_lines(out, lines)
-    from .cardfile import edit_cards
+    from studyloop.language.cards.io import edit_cards
     moved = edit_cards(deck_dir, "line", {o: {"line": n} for o, n in renamed.items() if o != n})
     synced = edit_cards(deck_dir, "line", {ln.id: {"audio": ln.audio} for ln in lines if ln.audio})
     (deck_dir / "lines" / f"{key}.yaml").write_text(yaml.safe_dump(

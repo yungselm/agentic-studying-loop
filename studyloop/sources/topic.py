@@ -9,10 +9,10 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from ..core.config import find_pack, load_deck, read_keep, write_keep
-from ..core.home import _yaml_str, init_home, render
-from ..core.registry import registry
-from ..core.vault import resolve_in, split_frontmatter, vault_for, vault_rel
+from studyloop.core.config import find_pack, load_deck, read_keep, write_keep
+from studyloop.core.config.home import _yaml_str, init_home, render
+from studyloop.core.config.vault import resolve_in, split_frontmatter, vault_for, vault_rel
+from studyloop.core.registry import registry
 
 TEMPLATES = Path(__file__).resolve().parent / "templates"
 
@@ -60,7 +60,7 @@ def init_topic(name: str, home: Path, sources: list[str], notes: str | None, no_
         print(f"  created {out}")
     write_topics_block(home)
     if sources:
-        from .sourcemap import build_map
+        from studyloop.sources.sourcemap import build_map
         build_map(load_deck(deck_dir))
     return deck_dir
 

@@ -1,16 +1,20 @@
-"""Topics from lectures, books and links (deck kind `topic`, skill `study-source`).
+"""Topics from lectures, books and links (deck kind `topic`, skill `study-source`). Start here.
 
-  sourcemap   a topic's sources as a map of parts sized to the token budget; `asl sources`
-  topic       `asl topic`: a new topic deck, and the topics block in the vault's CLAUDE.md
+    asl topic   -> topic.py       a new topic deck, and the topics block in the vault's CLAUDE.md
+    asl sources -> sourcemap.py   the sources as a map of parts sized to the token budget;
+                                  `--read <part>` prints one part (an agent never reads a book whole)
+    asl lint    -> mix_flags (below): the share of code cards against the brief's `cards:`
+
+    templates/   deck.yaml and Overview.md (the brief) of a new topic deck
 """
 from __future__ import annotations
 
 from collections import Counter
 from pathlib import Path
 
-from ..core.config import Deck
-from ..core.registry import Command, DeckKind, LintRule, Module, Registry
-from ..core.vault import split_frontmatter
+from studyloop.core.config import Deck
+from studyloop.core.config.vault import split_frontmatter
+from studyloop.core.registry import Command, DeckKind, LintRule, Module, Registry
 
 
 def mix_flags(deck: Deck, kinds: Counter) -> list[tuple[str, str, str]]:
@@ -33,7 +37,7 @@ def mix_flags(deck: Deck, kinds: Counter) -> list[tuple[str, str, str]]:
 
 def _refresh_map(deck: Deck) -> None:
     """After `asl fix`: the sources map's status follows the new cards' `source:` links."""
-    from .sourcemap import BEGIN, build_map
+    from studyloop.sources.sourcemap import BEGIN, build_map
     ov = deck.path / "Overview.md"
     if ov.is_file() and BEGIN in ov.read_text(encoding="utf-8"):
         build_map(deck, quiet=True)
@@ -50,8 +54,8 @@ def _sources_args(p):
 
 
 def _sources(a):
-    from ..core.config import resolve_inputs
-    from .sourcemap import sources
+    from studyloop.core.config import resolve_inputs
+    from studyloop.sources.sourcemap import sources
     return sources(resolve_inputs(a.inputs), a.read)
 
 
@@ -73,7 +77,7 @@ def _topic_args(p):
 
 
 def _topic(a):
-    from .topic import init_topic
+    from studyloop.sources.topic import init_topic
     init_topic(a.name, a.home, a.sources, a.notes, a.no_notes, a.prefix, a.pack, a.goal,
                a.builds_on, a.lang, a.media, a.level, a.gloss)
     return 0

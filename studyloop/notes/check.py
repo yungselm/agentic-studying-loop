@@ -30,7 +30,7 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ..core.vault import split_frontmatter, vault_for
+from studyloop.core.config.vault import split_frontmatter, vault_for
 
 BUDGET = 250
 WALL = 60

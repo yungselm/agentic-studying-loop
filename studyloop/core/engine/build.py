@@ -28,11 +28,11 @@ from pathlib import Path
 
 import genanki
 
-from . import cards as C
-from .config import ANKI, Deck, all_packs, load_pack
-from .registry import NoteContext, registry
-from .vault import vault_for as vault_of
-from .vault import vault_index
+from studyloop.core import cards as C
+from studyloop.core.config import ANKI, Deck, all_packs, load_pack
+from studyloop.core.config.vault import vault_for as vault_of
+from studyloop.core.config.vault import vault_index
+from studyloop.core.registry import NoteContext, registry
 
 TPL = ANKI / "templates"
 VENDOR = ANKI / "vendor"
@@ -338,7 +338,7 @@ def postprocess(apkg: Path, deck_presets: dict[str, tuple[int, dict, str]],
 
 def media_index(deck: Deck) -> dict[str, Path]:
     """Language decks: clips and screenshots live in `media_dir` (outside the vault)."""
-    from .config import native_path
+    from studyloop.core.config import native_path
     d = native_path(deck.cfg["media_dir"]) if deck.cfg.get("media_dir") else None
     if not d or not d.is_dir():
         return {}

@@ -2,7 +2,7 @@
 modules whose optional install is missing."""
 from pathlib import Path
 
-from studyloop.core import home
+from studyloop.core.config import home
 from studyloop.core.registry import registry
 
 SKILLS = Path(__file__).resolve().parents[2] / "skills"

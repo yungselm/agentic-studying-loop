@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .tokens import plain_text
+from studyloop.language.vocabulary.tokens import plain_text
 
 
 def _edge(text: str, out: Path, cfg: dict) -> bool:
@@ -46,9 +46,9 @@ def synthesize(text: str, out: Path, cfg: dict, engines: dict | None = None) -> 
 
 def fill_audio(d) -> int:
     """Every sentence/grammar card without `audio:` gets a TTS clip (media_dir/tts/<id>.mp3)."""
-    from ..core.cards import load_file
-    from ..core.config import load_deck
-    from .cardfile import edit_cards
+    from studyloop.core.cards import load_file
+    from studyloop.core.config import load_deck
+    from studyloop.language.cards.io import edit_cards
     deck = load_deck(d.path)
     done, failed, changes = [], [], {}
     for f in deck.files():

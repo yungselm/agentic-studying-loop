@@ -9,7 +9,7 @@ Every card (here):
              deck.yaml without `kind:` or with an unknown one
   [pack]     `lang:` on a card (renamed to `pack:`)
   [index]    a card has no row in Overview.md (or a row has no card)
-Per card type (cardtypes.py, and each module's own types):
+Per card type (core/cards/types.py, and each module's own types):
   [size]     over the limits in studyloop.yaml (`~` = over target only)
   [xref] [literal] [frame]   code cards: points at another card, emits a string the prompt
              never mentions, no enclosing function/type visible
@@ -27,10 +27,10 @@ import re
 from collections import Counter
 from pathlib import Path
 
-from . import cards as C
-from .config import Deck, find_home, load_pack
-from .registry import DeckSummary, Flag, LintContext, registry
-from .vault import vault_for
+from studyloop.core import cards as C
+from studyloop.core.config import Deck, find_home, load_pack
+from studyloop.core.config.vault import vault_for
+from studyloop.core.registry import DeckSummary, Flag, LintContext, registry
 
 
 def kind_flags(deck: Deck) -> list[Flag]:

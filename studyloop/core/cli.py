@@ -15,7 +15,7 @@ def _utf8_stdout() -> None:
 
 def main(argv=None) -> int:
     _utf8_stdout()
-    from .cards import CardFileError
+    from studyloop.core.cards import CardFileError
     try:
         return _main(argv)
     except CardFileError as e:
@@ -25,7 +25,7 @@ def main(argv=None) -> int:
 
 def _main(argv=None) -> int:
     """Every command comes from a registered module (core's first)."""
-    from .registry import registry
+    from studyloop.core.registry import registry
     reg = registry()
     ap = argparse.ArgumentParser(prog="asl", description=__doc__)
     sub = ap.add_subparsers(dest="cmd", required=True)

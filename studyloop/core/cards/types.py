@@ -7,10 +7,10 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from . import cards as C
-from .config import ANKI
-from .registry import CardType, CodeBlock, Flag, Template
-from .vault import vault_index
+from studyloop.core import cards as C
+from studyloop.core.config import ANKI
+from studyloop.core.config.vault import vault_index
+from studyloop.core.registry import CardType, CodeBlock, Flag, Template
 
 TEMPLATES = ANKI / "templates"
 XREF = re.compile(r"\b(like the previous|the previous card|as (above|before)|like it|"

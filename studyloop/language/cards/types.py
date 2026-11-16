@@ -6,8 +6,8 @@ import html
 import re
 from pathlib import Path
 
-from ..core.config import Deck
-from ..core.registry import CardType, Flag, Template
+from studyloop.core.config import Deck
+from studyloop.core.registry import CardType, Flag, Template
 
 TEMPLATES = Path(__file__).resolve().parent / "anki"
 TARGET = re.compile(r"\*\*(.+?)\*\*", re.S)
@@ -63,9 +63,9 @@ def lang_context(deck: Deck) -> dict | None:
     """Per deck: the language's length cap and the clips in media_dir."""
     if not deck.cfg.get("lang"):
         return None
-    from ..core.build import media_index
-    from .language import Language
-    from .setup import get_language
+    from studyloop.core.engine.build import media_index
+    from studyloop.language.base import Language
+    from studyloop.language.setup import get_language
     try:
         lang = get_language(deck.cfg["lang"])
         cap, length = lang.config.get("length_cap"), lang.text_length

@@ -30,10 +30,17 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ..core import cards as C
-from ..core.budget import DEFAULT_BATCH, TOKENS_PER_WORD, short, split, tokens, word_limit
-from ..core.config import Deck, read_keep, write_keep
-from ..core.vault import split_frontmatter, vault_for, vault_index
+from studyloop.core import cards as C
+from studyloop.core.config import Deck, read_keep, write_keep
+from studyloop.core.config.vault import split_frontmatter, vault_for, vault_index
+from studyloop.core.engine.budget import (
+    DEFAULT_BATCH,
+    TOKENS_PER_WORD,
+    short,
+    split,
+    tokens,
+    word_limit,
+)
 
 BEGIN, END = "<!-- asl:sources -->", "<!-- asl:sources:end -->"
 CACHE = ".asl-sources.json"

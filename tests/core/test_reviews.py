@@ -4,7 +4,7 @@ import zipfile
 
 import genanki
 
-from studyloop.core.reviews import MATURE_IVL, read_export
+from studyloop.core.anki.reviews import MATURE_IVL, read_export
 
 
 def _export(tmp, cards):

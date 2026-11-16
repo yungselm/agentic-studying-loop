@@ -19,9 +19,9 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from . import cards as C
-from .build import guid as compute_guid
-from .config import Deck, find_home, read_keep, write_keep
+from studyloop.core import cards as C
+from studyloop.core.config import Deck, find_home, read_keep, write_keep
+from studyloop.core.engine.build import guid as compute_guid
 
 ITEM = re.compile(r"^- ")
 INDEX_SECTION = "## New cards (added by `asl fix`, move rows where they belong)"

@@ -1,5 +1,6 @@
-"""The card home: a folder (in your vault, if you keep one) with studyloop.yaml, your
-standards and the evidence from your reviews.
+"""The card home: a folder (in your vault, if you keep one) with studyloop.yaml (limits,
+refresh settings, standards version, the vault), your standards and the evidence from your
+reviews. `Home`/`find_home` read it; `init_home` sets one up; `install_skills` copies skills.
 
     asl init-home <card home> [--pack rust --pack python] [--vault <folder> | --no-vault]
     asl install-skills [<.claude/skills folder>]
@@ -10,9 +11,48 @@ from __future__ import annotations
 import os
 import re
 import shutil
+from dataclasses import dataclass, field
 from pathlib import Path
 
-from .config import PKG, find_pack, read_keep, write_keep
+from studyloop.core.config.packs import find_pack
+from studyloop.core.config.paths import PKG, _read_yaml, read_keep, write_keep
+
+DEFAULT_REFRESH = {"mature_share": 0.5, "step_share": 0.25, "min_review_answers": 1000,
+                   "min_card_age_days": 30, "mature_ivl_days": 21}
+
+
+@dataclass
+class Home:
+    """The card home: a folder (usually in the vault) with studyloop.yaml."""
+    path: Path | None
+    cfg: dict = field(default_factory=dict)
+
+    @property
+    def limits(self) -> dict:
+        """Per card type: studyloop.yaml `limits:` over the card types' defaults."""
+        from studyloop.core.registry import registry
+        lim = {t.name: dict(t.default_limits) for t in registry().card_types.values()
+               if t.default_limits}
+        for kind, vals in (self.cfg.get("limits") or {}).items():
+            lim.setdefault(kind, {}).update(vals or {})
+        return lim
+
+    @property
+    def refresh(self) -> dict:
+        return {**DEFAULT_REFRESH, **(self.cfg.get("refresh") or {})}
+
+    @property
+    def standards_version(self) -> int:
+        return int(self.cfg.get("standards_version", 1))
+
+
+def find_home(start: Path) -> Home:
+    start = start.resolve()
+    for d in [start, *start.parents]:
+        if (d / "studyloop.yaml").is_file():
+            return Home(d, _read_yaml(d / "studyloop.yaml"))
+    return Home(None, {})
+
 
 TEMPLATES = PKG / "templates"
 
@@ -83,7 +123,7 @@ def install_skills(target: Path) -> None:
     """Copy the skills of the installed modules into a .claude/skills folder (for use without
     the plugin). A module without its optional install keeps its skills out: an agent never
     loads a skill it cannot follow, and every installed skill costs context in each session."""
-    from .registry import registry
+    from studyloop.core.registry import registry
     reg = registry()
     owner = {s: m for m in reg.modules.values() for s in m.skills}
     target = target.expanduser().resolve()

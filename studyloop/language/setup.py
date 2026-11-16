@@ -8,11 +8,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from .language import Language
+    from studyloop.language.base import Language
 
 
 def get_language(code: str) -> Language:
-    from ..core.registry import registry
+    from studyloop.core.registry import registry
     reg = registry()
     langs = reg.provided("language")
     if code not in langs:

@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 from functools import cache
 
-from ..language.tokens import Token, mark_target
+from studyloop.language.vocabulary.tokens import Token, mark_target
 
 
 def hira(s: str) -> str:

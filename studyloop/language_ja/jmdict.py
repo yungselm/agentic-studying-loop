@@ -11,7 +11,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from ..language.setup import cache_dir
+from studyloop.language.setup import cache_dir
 
 XML_LANG = "{http://www.w3.org/XML/1998/namespace}lang"
 POS_EN = {"名詞": "noun", "動詞": "verb", "形容詞": "adjective (keiyoushi)", "副詞": "adverb",

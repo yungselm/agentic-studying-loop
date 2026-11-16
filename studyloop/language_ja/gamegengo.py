@@ -8,13 +8,13 @@ import html
 import re
 from pathlib import Path
 
-from ..core.reviews import read_export
-from ..language.cardfile import card_item
-from ..language.grammar import check_points
-from ..language.notefile import embed_image, read_note, write_note
-from ..language.overview import IMAGES, save_image, write_overview
-from ..language.tokens import plain_text
-from .rules import _forms, derive_rule
+from studyloop.core.anki.reviews import read_export
+from studyloop.language.cards.io import card_item
+from studyloop.language.grammar.notes import embed_image, read_note, write_note
+from studyloop.language.grammar.overview import IMAGES, save_image, write_overview
+from studyloop.language.grammar.points import check_points
+from studyloop.language.vocabulary.tokens import plain_text
+from studyloop.language_ja.rules import _forms, derive_rule
 
 
 def _clean(s: str, mark: bool = True) -> str:
@@ -38,7 +38,7 @@ def _safe(title: str) -> str:
 
 def import_game_gengo(d, apkg: Path, statuses: str = "reviews", key: str = "gg",
                       cards: bool = False) -> int:
-    from ..core.config import native_path
+    from studyloop.core.config import native_path
     tok = d.language.tokenizer()
     ex = read_export(native_path(apkg))
     gg = sorted((n for n in ex.notes if n.model.startswith("GameGengoGrammar")

@@ -1,18 +1,22 @@
-"""Japanese for the language module: UniDic tokens and furigana, JLPT levels, JMdict, VOICEVOX,
-the JLPT grammar lists (JLPT Sensei) and Game Gengo grammar decks. Config: ja.yaml.
+"""Japanese for the language module. Start here: `Japanese` (below) is the whole contract;
+each method hands over to one file. Config: ja.yaml.
 
-  tokenizer   UniDic (fugashi), kana, furigana     levels    JLPT lists: kana, okurigana
-  jmdict      the dictionary                       voicevox  local TTS
-  jlpt        grammar lists + images               gamegengo grammar notes from a Game Gengo deck
+    tokenizer.py   UniDic tokens (fugashi), kana, furigana         -> tokenizer(), annotate()
+    levels.py      JLPT word lists: kana readings, okurigana        -> levels()
+    jmdict.py      the dictionary (JMdict)                          -> dictionary()
+    voicevox.py    local text-to-speech                             -> tts_engines()
+    jlpt.py        JLPT grammar lists and images (JLPT Sensei)      -> grammar_lists(), grammar_images()
+    gamegengo.py   grammar notes from a Game Gengo deck             -> import_grammar()
+    rules.py       grammar rules from Japanese notation (used by gamegengo)
 """
 from __future__ import annotations
 
 import re
 from pathlib import Path
 
-from ..core.registry import Module, Registry
-from ..language.language import Language
-from ..language.tokens import plain_text
+from studyloop.core.registry import Module, Registry
+from studyloop.language.base import Language
+from studyloop.language.vocabulary.tokens import plain_text
 
 HERE = Path(__file__).resolve().parent
 PUNCT = re.compile(r"[\s、。！？!?…‥・「」『』“”\"'（）()~〜―-]")
@@ -27,7 +31,7 @@ class Japanese(Language):
 
     def tokenizer(self):
         if self._tok is None:
-            from .tokenizer import UnidicTokenizer
+            from studyloop.language_ja.tokenizer import UnidicTokenizer
             self._tok = UnidicTokenizer()
         return self._tok
 
@@ -39,7 +43,7 @@ class Japanese(Language):
         """Furigana, with the config's `reading_fixes` (私 → わたし) on the tokens' readings."""
         from dataclasses import replace
 
-        from .tokenizer import furigana
+        from studyloop.language_ja.tokenizer import furigana
         fixes = self.config.get("reading_fixes") or {}
         return furigana([replace(t, kana=fixes.get(t.surface, t.kana)) for t in tokens], target_key)
 
@@ -52,36 +56,36 @@ class Japanese(Language):
         return reading
 
     def levels(self):
-        from .levels import JaLevels
+        from studyloop.language_ja.levels import JaLevels
         return JaLevels(self.config)
 
     def dictionary(self):
         if not self.config.get("dictionary"):
             return None
-        from .jmdict import JMdict
+        from studyloop.language_ja.jmdict import JMdict
         return JMdict(self.config)
 
     def tts_engines(self):
-        from .voicevox import speak
+        from studyloop.language_ja.voicevox import speak
         return {"voicevox": speak}
 
     def setup(self, force: bool = False) -> None:
-        from .jlpt import fetch_lists
-        from .jmdict import setup_dictionary
+        from studyloop.language_ja.jlpt import fetch_lists
+        from studyloop.language_ja.jmdict import setup_dictionary
         super().setup(force)
         setup_dictionary(self.config, force)
         fetch_lists(self.config, force)
 
     def grammar_lists(self) -> dict:
-        from .jlpt import lists
+        from studyloop.language_ja.jlpt import lists
         return lists(self.code)
 
     def import_grammar(self, d, export, statuses, cards):
-        from .gamegengo import import_game_gengo
+        from studyloop.language_ja.gamegengo import import_game_gengo
         return import_game_gengo(d, export, statuses, cards=cards)
 
     def grammar_images(self, d) -> int:
-        from .jlpt import fetch_images
+        from studyloop.language_ja.jlpt import fetch_images
         return fetch_images(d)
 
 

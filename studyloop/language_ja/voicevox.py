@@ -6,7 +6,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from ..language.audio import ffmpeg_exe
+from studyloop.language.media.audio import ffmpeg_exe
 
 
 def speak(text: str, out: Path, cfg: dict) -> bool:

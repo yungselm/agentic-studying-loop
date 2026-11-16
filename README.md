@@ -350,7 +350,7 @@ scheduling information*, then ask the agent to *refresh my standards*, or run
 half the deck mature, then every further 25%), and shows fail rates by card size, leeches, hard
 decks, and whether the last rule change helped; the agent reads a short summary of it. The
 agent proposes edits to your standards; you approve them. Each section is an analysis
-(`studyloop/analysis/bundled.py`); a new one is one class.
+(`studyloop/analysis/analyses/`); a new one is one class.
 
 ## Examples
 

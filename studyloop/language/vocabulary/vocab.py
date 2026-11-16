@@ -8,8 +8,8 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..core.reviews import read_export
-from .levels import NONE
+from studyloop.core.anki.reviews import read_export
+from studyloop.language.vocabulary.levels import NONE
 
 STATUSES = ["known", "learning", "planned", "unknown", "ignored"]
 RANK = {"ignored": 4, "known": 3, "learning": 2, "planned": 1, "unknown": 0}
@@ -183,7 +183,7 @@ def fill_meanings(vocab: Vocabulary, glosses: dict[str, str], cfg: dict, gloss_l
 
 def _dictionary(cfg: dict):
     """The language's dictionary, or None (none configured, or not downloaded yet)."""
-    from .setup import get_language
+    from studyloop.language.setup import get_language
     try:
         return get_language(cfg["code"]).dictionary()
     except SystemExit:

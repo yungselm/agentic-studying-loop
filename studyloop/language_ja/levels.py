@@ -2,8 +2,8 @@
 kana-only words matched by their reading."""
 from __future__ import annotations
 
-from ..language.levels import Levels
-from .tokenizer import hira
+from studyloop.language.vocabulary.levels import Levels
+from studyloop.language_ja.tokenizer import hira
 
 
 class JaLevels(Levels):

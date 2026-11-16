@@ -16,8 +16,8 @@ from typing import Any, Protocol
 
 import yaml
 
-from .levels import Levels
-from .tokens import Token, mark_target, plain_text
+from studyloop.language.vocabulary.levels import Levels
+from studyloop.language.vocabulary.tokens import Token, mark_target, plain_text
 
 
 class Tokenizer(Protocol):
@@ -78,7 +78,7 @@ class Language:
 
     def setup(self, force: bool = False) -> None:
         """`asl lang setup <code>`: one-time downloads. Default: the level lists."""
-        from .levels import download_lists
+        from studyloop.language.vocabulary.levels import download_lists
         download_lists(self.config, force)
 
     # -- grammar (optional) ----------------------------------------------------------------

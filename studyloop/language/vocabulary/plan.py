@@ -10,9 +10,14 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
-from .levels import NONE, Levels
-from .lines import Line, read_lines, write_lines
-from .vocab import COUNTS_AS_KNOWN, Vocabulary, fill_meanings, interjections
+from studyloop.language.media.lines import Line, read_lines, write_lines
+from studyloop.language.vocabulary.levels import NONE, Levels
+from studyloop.language.vocabulary.vocab import (
+    COUNTS_AS_KNOWN,
+    Vocabulary,
+    fill_meanings,
+    interjections,
+)
 
 MEDIA_PULL = 3          # a word in >= 3 lines of the user's media counts as current level
 _PUNCT = re.compile(r"[\s、。！？!?…‥・「」『』“”\"'（）()~〜ー―-]+")
@@ -186,8 +191,8 @@ def source_quality(meta: Path) -> int:
 
 
 def existing_cards(deck_dir: Path) -> list[dict]:
-    from ..core.cards import load_file
-    from ..core.config import load_deck
+    from studyloop.core.cards import load_file
+    from studyloop.core.config import load_deck
     deck = load_deck(deck_dir)
     return [c for f in deck.files() for c in load_file(f) if c.get("type") == "sentence"]
 
@@ -259,7 +264,7 @@ def compute(deck_dir: Path, vocab: Vocabulary, levels: Levels, cfg: dict, curren
     excluded = frozenset(i for i in old_ids if items[i].line.id not in cards)
 
     # grammar: what each line uses; with a gate, a line waits for grammar not yet studied
-    from .grammar import GATE_OK, detect, load_points
+    from studyloop.language.grammar.points import GATE_OK, detect, load_points
     points = load_points(notes_dir) if notes_dir else []
     blocked: dict[int, list] = {}
     if points:
@@ -305,7 +310,7 @@ def write_state(st: State, vocab: Vocabulary, levels: Levels) -> None:
         write_lines(f, lines)
     vocab.write(levels.order, rank_of=lambda k: -st.media[k])
     # sentence cards show the grammar their line uses (folded on the back)
-    from .cardfile import edit_cards
+    from studyloop.language.cards.io import edit_cards
     links = {it.line.id: {"grammar": grammar_links(it.grammar)} for it in st.items if it.line.id in st.cards}
     if changed := edit_cards(st.files[0].parent.parent, "line", links):
         print(f"Grammar links updated on {len(changed)} card(s).\n")

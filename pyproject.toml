@@ -31,7 +31,26 @@ projects = "studyloop.projects:MODULE"
 sources = "studyloop.sources:MODULE"
 
 [tool.setuptools]
-packages = ["studyloop", "studyloop.core", "studyloop.analysis", "studyloop.language", "studyloop.language_ja", "studyloop.notes", "studyloop.projects", "studyloop.sources", "studyloop_skills"]
+packages = [
+    "studyloop",
+    "studyloop.analysis",
+    "studyloop.analysis.analyses",
+    "studyloop.core",
+    "studyloop.core.anki",
+    "studyloop.core.cards",
+    "studyloop.core.config",
+    "studyloop.core.engine",
+    "studyloop.language",
+    "studyloop.language.cards",
+    "studyloop.language.grammar",
+    "studyloop.language.media",
+    "studyloop.language.vocabulary",
+    "studyloop.language_ja",
+    "studyloop.notes",
+    "studyloop.projects",
+    "studyloop.sources",
+    "studyloop_skills",
+]
 
 [tool.setuptools.package-dir]
 studyloop = "studyloop"
@@ -40,9 +59,11 @@ studyloop_skills = "skills"          # the plugin's skills/ folder, shipped with
 [tool.setuptools.package-data]
 "studyloop.projects" = ["modes/*", "templates/*"]
 "studyloop.sources" = ["templates/*"]
-"studyloop.language" = ["anki/*", "templates/*"]
+"studyloop.language" = ["templates/*"]
+"studyloop.language.cards" = ["anki/*"]
 "studyloop.language_ja" = ["*.yaml"]
-"studyloop.core" = ["anki/*/*", "packs/*/*", "standards/*", "templates/*/*"]
+"studyloop.core" = ["packs/*/*", "standards/*", "templates/*/*"]
+"studyloop.core.anki" = ["templates/*", "vendor/*"]
 studyloop_skills = ["*/SKILL.md"]
 
 [tool.ruff]

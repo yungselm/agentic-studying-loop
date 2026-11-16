@@ -24,12 +24,12 @@ from pathlib import Path
 
 import yaml
 
-from ..core.config import find_home
-from ..core.registry import registry
-from ..core.reviews import read_export
-from .analysis import Analysis, Data, Section
-from .bundled import _fmt, limit_line, refresh_status
-from .table import card_files, card_frame, load_cards, review_frame
+from studyloop.analysis.analyses import _fmt, limit_line, refresh_status
+from studyloop.analysis.table import card_files, card_frame, load_cards, review_frame
+from studyloop.analysis.types import Analysis, Data, Section
+from studyloop.core.anki.reviews import read_export
+from studyloop.core.config import find_home
+from studyloop.core.registry import registry
 
 SUGGESTIONS_ORDER = 70            # the suggested limits, between the descriptions and the cards
 CSV_COLUMNS = ["card_id", "anki_cid", "deck", "kind", "std", "typed_chars", "typed_lines",
