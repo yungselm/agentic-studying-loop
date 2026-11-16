@@ -16,6 +16,7 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
+from studyloop.core.cli import examples
 from studyloop.core.registry import Command, Module, Registry
 
 
@@ -26,6 +27,12 @@ def _stats_args(p):
     p.add_argument("--only", help="comma-separated analyses to run, e.g. code-size,leeches")
     p.add_argument("--mark-refreshed", action="store_true",
                    help="record this export as the baseline for the next refresh")
+    examples(p, """
+        asl stats ~/Downloads/collection.colpkg                    # report + agent summary
+        asl stats deck.apkg --deck "Study Loop::Tasklog"          # one deck and its subdecks
+        asl stats deck.apkg --only code-size,leeches
+        asl stats deck.apkg --mark-refreshed      # after the standards were updated from it
+    """)
 
 
 def _stats(a):

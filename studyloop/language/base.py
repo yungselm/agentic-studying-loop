@@ -38,42 +38,112 @@ TTSEngine = Callable[[str, Path, dict], bool]          # (text, out.mp3, tts con
 
 
 class Language:
-    code: str                       # deck.yaml `lang:`
-    name: str                       # "Japanese"
-    config_file: Path               # <code>.yaml: level lists, dictionary, subtitle filters, TTS
+    """What a language provides to the shared pipeline. Subclass it in a language module.
+
+    Only `tokenizer` must be implemented; every other method has a default that suits a
+    language written with spaces and no reading aid.
+
+    Attributes
+    ----------
+    code : str
+        deck.yaml ``lang:``, e.g. ``"ja"``.
+    name : str
+        e.g. ``"Japanese"``.
+    config_file : Path
+        ``<code>.yaml``: level lists, dictionary, subtitle filters, TTS.
+
+    Examples
+    --------
+    The Japanese module (``studyloop/language_ja/__init__.py``), shortened:
+
+    >>> class Japanese(Language):
+    ...     code, name = "ja", "Japanese"
+    ...     config_file = HERE / "ja.yaml"
+    ...
+    ...     def tokenizer(self):
+    ...         from studyloop.language_ja.tokenizer import UnidicTokenizer
+    ...         return UnidicTokenizer()
+    ...
+    ...     def text_length(self, text):          # no spaces: count characters
+    ...         return len(PUNCT.sub("", plain_text(text)))
+    >>> def register(reg):
+    ...     reg.provide("language", "ja", Japanese())
+    """
+    code: str
+    name: str
+    config_file: Path
 
     @functools.cached_property
     def config(self) -> dict:
+        """`config_file` as read, plus ``code``."""
         cfg = yaml.safe_load(self.config_file.read_text(encoding="utf-8")) or {}
         cfg["code"] = self.code
         return cfg
 
     # -- reading text --------------------------------------------------------------------
     def tokenizer(self) -> Tokenizer:
+        """Text to tokens (surface, lexeme key, reading). Required.
+
+        Examples
+        --------
+        >>> [(t.surface, t.key) for t in ja.tokenizer()("住んでます")]
+        [('住ん', '住む|すむ'), ('で', 'てる|てる'), ('ます', 'ます|ます')]
+        """
         raise NotImplementedError
 
     def text_length(self, text: str) -> int:
-        """What the length cap (`length_cap:`) counts: words; Japanese counts characters."""
+        """What the length cap (``length_cap:``) counts: words by default.
+
+        Examples
+        --------
+        >>> Language().text_length("I live in Karuizawa now.")
+        5
+        >>> ja.text_length("ずっと こっちの 軽井沢に 住んでます。")    # characters
+        16
+        """
         return len(plain_text(text).split())
 
     # -- writing cards -------------------------------------------------------------------
     def annotate(self, tokens: list[Token], target_key: str | None) -> str:
-        """Card text with the reading aid and the target in `**…**` (Japanese: furigana)."""
+        """Card text with the reading aid and the target in ``**…**``.
+
+        Examples
+        --------
+        >>> tokens = ja.tokenizer()("住んでます")
+        >>> ja.annotate(tokens, tokens[0].key)          # furigana as 漢字[かな]
+        '** 住[す]ん**でます'
+        """
         return mark_target(tokens, target_key, lambda t: t.surface)
 
     def reading(self, word: str, token: Token | None, fallback: str) -> str:
-        """The target word's reading for its card."""
+        """The target word's reading for its card.
+
+        Examples
+        --------
+        >>> ja.reading("私", None, "わたくし")       # `reading_fixes:` in ja.yaml
+        'わたし'
+        >>> ja.reading("シーン", None, "しーん")      # katakana reads as itself
+        'シーン'
+        """
         return token.reading if token else fallback
 
     # -- levels, meanings, audio -----------------------------------------------------------
     def levels(self) -> Levels:
+        """Word levels (JLPT, CEFR) from the config's level lists; Japanese adds readings."""
         return Levels(self.config)
 
     def dictionary(self) -> Dictionary | None:
+        """Meanings for glosses and Vocabulary.md (Japanese: JMdict); None: no dictionary."""
         return None
 
     def tts_engines(self) -> dict[str, TTSEngine]:
-        """Engines beyond the shared `edge` (Japanese: a local VOICEVOX)."""
+        """Text-to-speech engines beyond the shared ``edge``, by name.
+
+        Examples
+        --------
+        >>> list(ja.tts_engines())                   # a local VOICEVOX
+        ['voicevox']
+        """
         return {}
 
     def setup(self, force: bool = False) -> None:
@@ -84,7 +154,13 @@ class Language:
     # -- grammar (optional) ----------------------------------------------------------------
     def grammar_lists(self) -> dict:
         """Official grammar points per level ({level: [{link, grammar, meaning}]}) for the
-        overview's checklist (Japanese: JLPT, from JLPT Sensei). Empty: notes only."""
+        overview's checklist (Japanese: JLPT, from JLPT Sensei). Empty: notes only.
+
+        Examples
+        --------
+        >>> list(ja.grammar_lists())[:3]
+        ['N5', 'N4', 'N3']
+        """
         return {}
 
     def import_grammar(self, d: Any, export: Path, statuses: str, cards: bool) -> int:

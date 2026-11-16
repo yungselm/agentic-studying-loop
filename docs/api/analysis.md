@@ -1,17 +1,19 @@
-# Analysis
+# Analysis interface
 
-Optional: `pip install agentic-studying-loop[analysis]`.
-
-```{eval-rst}
-.. automodule:: studyloop.analysis
-```
+What an analysis of review data gets and returns. Needs the `analysis` install.
 
 ```{eval-rst}
-.. automodule:: studyloop.analysis.types
+.. autoclass:: studyloop.analysis.types.Analysis
    :members:
-```
 
-```{eval-rst}
-.. automodule:: studyloop.analysis.analyses
+.. autoclass:: studyloop.analysis.types.Data
+
+.. autoclass:: studyloop.analysis.types.Section
+
+.. autoclass:: studyloop.analysis.types.Suggestion
+
+.. autodata:: studyloop.analysis.types.CARD_COLUMNS
+
+.. autodata:: studyloop.analysis.types.REVIEW_COLUMNS
 ```
 

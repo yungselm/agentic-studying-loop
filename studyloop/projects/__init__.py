@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from studyloop.core.cli import examples
 from studyloop.core.registry import Command, DeckKind, Module, Registry
 
 MODES = sorted(p.stem for p in (Path(__file__).resolve().parent / "modes").glob("*.md"))
@@ -30,6 +31,10 @@ def _init_args(p):
     p.add_argument("--mode", default="mentor", choices=MODES, help="how much the agent leaves to you")
     p.add_argument("--notes", help="vault folder with this project's study notes")
     p.add_argument("--name", help="deck name (default: project folder name)")
+    examples(p, """
+        asl init ~/code/tasklog --home "~/Notes/Anki cards" --pack python --prefix tsk \\
+            --notes ~/Notes/tasklog --mode teacher
+    """)
 
 
 def _init(a):
@@ -42,6 +47,10 @@ def _mode_args(p):
     p.add_argument("mode", choices=MODES, help="how much the agent leaves to you")
     p.add_argument("project", type=Path, nargs="?", default=Path("."),
                    help="the project folder (default: the current one)")
+    examples(p, """
+        asl mode coworker                         # in the project folder
+        asl mode teacher ~/code/tasklog
+    """)
 
 
 def _mode(a):

@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 
 # ---- the data every analysis gets ------------------------------------------------------
 
+#: Columns of `Data.cards`, name to meaning (one row per Anki card).
 CARD_COLUMNS = {
     # one row per Anki card (a cloze note with 3 gaps is 3 rows)
     "cid": "Anki card id", "nid": "Anki note id", "guid": "note GUID", "ord": "template / gap number (from 0)",
@@ -44,6 +45,7 @@ CARD_COLUMNS = {
     "fail_rate": "fails / reviews", "median_ms": "median answer time",
     "timer_hits": "answers at the 60 s timer",
 }
+#: Columns of `Data.reviews`, name to meaning (one row per answer).
 REVIEW_COLUMNS = {
     # one row per answer, for anything over time ("which lecture got weak in March")
     "cid": "Anki card id", "time": "when (datetime)", "ease": "1 Again .. 4 Easy", "ms": "answer time",
@@ -53,39 +55,123 @@ REVIEW_COLUMNS = {
 
 @dataclass
 class Data:
-    cards: pd.DataFrame                 # CARD_COLUMNS
-    reviews: pd.DataFrame               # REVIEW_COLUMNS
-    home: Home                          # limits, refresh settings, standards version
-    deck: str | None                    # `--deck`: only this deck and its subdecks
+    """What every analysis gets.
+
+    Attributes
+    ----------
+    cards : pandas.DataFrame
+        One row per Anki card; columns in `CARD_COLUMNS`.
+    reviews : pandas.DataFrame
+        One row per answer; columns in `REVIEW_COLUMNS`.
+    home : Home
+        Limits, refresh settings, standards version.
+    deck : str or None
+        ``--deck``: only this deck and its subdecks.
+    export : Path
+    state : dict
+        The last refresh (``evidence/refresh-state.yaml``).
+
+    Examples
+    --------
+    >>> c = data.cards
+    >>> c[c["kind"] == "cloze"].groupby("gaps")["fail_rate"].mean()
+    """
+    cards: pd.DataFrame
+    reviews: pd.DataFrame
+    home: Home
+    deck: str | None
     export: Path
-    state: dict = field(default_factory=dict)   # the last refresh (evidence/refresh-state.yaml)
+    state: dict = field(default_factory=dict)
 
 
 # ---- what an analysis returns ------------------------------------------------------------
 
 @dataclass(frozen=True)
 class Suggestion:
-    """A proposed change; refresh-standards turns these into one diff the user approves."""
-    target: str                         # "limits.code.typed_chars_max", "standards/python.md", "tsk-007"
-    kind: str                           # limit | rule | rewrite
+    """A proposed change; the refresh-standards skill turns these into one diff the user approves.
+
+    Parameters
+    ----------
+    target : str
+        What changes: ``"limits.concept.bold_chars"``, ``"standards/python.md"``, ``"tsk-007"``.
+    kind : str
+        ``limit``, ``rule`` or ``rewrite``.
+    old : str or None
+    new : str
+    evidence : str
+        One line: the numbers behind it.
+    confidence : str
+        ``low``, ``medium`` or ``high`` (bin sizes, effect size).
+
+    Examples
+    --------
+    From the author's own review data (the concept-size analysis):
+
+    >>> Suggestion("limits.concept.bold_chars", "limit", "120/150", "80/80",
+    ...            "reference fail rate 4% in the smallest bin", "high")
+    """
+    target: str
+    kind: str
     old: str | None
     new: str
-    evidence: str                       # one line: the numbers behind it
-    confidence: str                     # low | medium | high (bin sizes, effect size)
+    evidence: str
+    confidence: str
 
 
 @dataclass
 class Section:
+    """One section of the ``asl stats`` report: what an analysis returns.
+
+    Attributes
+    ----------
+    title : str
+    summary : str
+        At most 3 lines, for the agent (it reads only these and the suggestions).
+    markdown : str
+        Tables and text, for you.
+    figures : list of (str, Figure)
+        ``(name, matplotlib Figure)``, saved next to the report.
+    suggestions : list of Suggestion
+
+    Examples
+    --------
+    >>> Section("Leeches", summary="3 leech(es) (≥5 lapses): tsk-007, tsk-012, cs-031",
+    ...         markdown=table)                  # a markdown table of the leeches
+    """
     title: str
-    summary: str = ""                   # ≤ 3 lines, for the agent
-    markdown: str = ""                  # tables etc., for you
-    figures: list[tuple[str, Any]] = field(default_factory=list)   # (name, matplotlib Figure)
+    summary: str = ""
+    markdown: str = ""
+    figures: list[tuple[str, Any]] = field(default_factory=list)
     suggestions: list[Suggestion] = field(default_factory=list)
 
 
 class Analysis:
-    name: str                           # "size-bins"; `asl stats --only size-bins,leeches`
-    order: int = 50                     # position in the report (refresh status 0, leeches 90)
+    """One analysis of review data. Subclass it, implement `run`, provide it.
+
+    Attributes
+    ----------
+    name : str
+        For ``asl stats --only code-size,leeches``.
+    order : int
+        Position in the report (refresh status 0, leeches 80).
+
+    Examples
+    --------
+    The leeches section (``studyloop/analysis/analyses/cards.py``), shortened:
+
+    >>> class Leeches(Analysis):
+    ...     name, order = "leeches", 80
+    ...
+    ...     def run(self, data):
+    ...         c = data.cards
+    ...         leeches = c[c["lapses"] >= 5].sort_values("lapses", ascending=False)
+    ...         if leeches.empty:
+    ...             return None
+    ...         return Section("Leeches", summary=f"{len(leeches)} leech(es)")
+    >>> reg.provide("analysis", "leeches", Leeches())
+    """
+    name: str
+    order: int = 50
 
     def run(self, data: Data) -> Section | None:
         """None: nothing to say (no cards of that kind, too few answers)."""

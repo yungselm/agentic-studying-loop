@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import textwrap
 from pathlib import Path
 
 INTRO = """# Commands
@@ -58,6 +59,9 @@ def _command(parser: argparse.ArgumentParser, title: str, level: int, out: list[
     rows = _rows(parser)
     if rows:
         out += ["| Argument | What it does |", "|---|---|", *rows, ""]
+    if parser.epilog:                                # set by studyloop.core.cli.examples
+        text = textwrap.dedent(parser.epilog.removeprefix("examples:\n"))
+        out += ["Examples:", "", "```bash", text.rstrip(), "```", ""]
     for action in parser._actions:
         if isinstance(action, argparse._SubParsersAction):
             helps = {a.dest: a.help for a in action._choices_actions}

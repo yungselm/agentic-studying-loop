@@ -12,6 +12,7 @@ from __future__ import annotations
 from collections import Counter
 from pathlib import Path
 
+from studyloop.core.cli import examples
 from studyloop.core.config import Deck
 from studyloop.core.config.vault import split_frontmatter
 from studyloop.core.registry import Command, DeckKind, LintRule, Module, Registry
@@ -51,6 +52,10 @@ TOPIC = DeckKind(
 def _sources_args(p):
     p.add_argument("inputs", nargs="*", help="topic deck folders (default: the current folder)")
     p.add_argument("--read", metavar="PART", help="print the text of one part, e.g. tour.3")
+    examples(p, """
+        asl sources "Anki cards/C++"              # the map: parts, tokens, status
+        asl sources "Anki cards/C++" --read tour.3   # one part's text, for the agent
+    """)
 
 
 def _sources(a):
@@ -74,6 +79,14 @@ def _topic_args(p):
     p.add_argument("--media", help="language decks: folder outside the vault for clips/screenshots")
     p.add_argument("--level", help="language decks: current level (JLPT / CEFR)")
     p.add_argument("--gloss", help="language decks: gloss language (default en)")
+    examples(p, """
+        asl topic "CS231n" --home "~/Notes/Anki cards" --sources ~/Notes/CS231n/slides \\
+            --notes ~/Notes/CS231n --goal "understand and implement the models"
+        asl topic "C++" --home "~/Notes/Anki cards" --pack cpp --no-notes \\
+            --sources tour.pdf --sources https://isocpp.github.io/CppCoreGuidelines/
+        asl topic "Japanese" --lang ja --home "~/Notes/Anki cards" --media ~/media/ja \\
+            --level N4 --gloss de
+    """)
 
 
 def _topic(a):

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from studyloop.core.cli import examples
 from studyloop.core.registry import Command, Module, Registry
 
 
@@ -17,6 +18,11 @@ def _notes_args(p):
     p.add_argument("-q", "--quiet", action="store_true", help="only print problems (!)")
     p.add_argument("--budget", type=int, default=250,
                    help="visible prose words per note before a hint (default 250)")
+    examples(p, """
+        asl notes                                 # the notes folders named in ./CLAUDE.md
+        asl notes ~/Notes/CS231n -q
+        asl notes "~/Notes/CS231n/Softmax.md" --budget 400
+    """)
 
 
 def _notes(a):

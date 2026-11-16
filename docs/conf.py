@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 project = "agentic-studying-loop"
 author = "yungselm"
-extensions = ["myst_parser", "sphinx.ext.autodoc"]
+extensions = ["myst_parser", "sphinx.ext.autodoc", "sphinx.ext.napoleon", "sphinx.ext.viewcode"]
 source_suffix = {".md": "markdown"}
 html_theme = "furo"
 html_title = project
@@ -21,6 +21,9 @@ exclude_patterns = ["_build", "architecture.md", "evidence-*.md", "language-card
 autodoc_mock_imports = ["pandas", "matplotlib", "fugashi", "unidic_lite", "wordfreq",
                         "imageio_ffmpeg", "edge_tts"]
 autodoc_member_order = "bysource"
+autodoc_typehints = "description"           # types next to the parameters, not in the signature
+napoleon_google_docstring = False           # NumPy style only
+napoleon_use_rtype = False
 
 
 def _literal_maps(app, what, name, obj, options, lines):

@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from studyloop.core.cli import examples
 from studyloop.core.config import native_path
 from studyloop.language.deck import open_deck
 
@@ -92,6 +93,7 @@ def add_parser(lg) -> None:
     s = ls.add_parser("setup", help="download level lists for a language (e.g. ja)")
     s.add_argument("code", help="language code, e.g. ja")
     s.add_argument("--force", action="store_true", help="download again")
+    examples(s, "asl lang setup ja        # JLPT lists, JMdict, grammar lists (once)")
     ad = ls.add_parser("add", help="import a media source (.apkg from subs2srs/movies2anki)")
     ad.add_argument("deck", type=Path, help="the language deck folder")
     ad.add_argument("input", help="a video (subtitles next to it: .srt/.ass) or a mined .apkg")
@@ -100,9 +102,18 @@ def add_parser(lg) -> None:
     ad.add_argument("--video", help="the original video: cut padded clips + sharp screenshots from it")
     ad.add_argument("--only", help="keep notes mentioning this (default with --video: its file name)")
     ad.add_argument("--subs", help="the subtitle file, if not next to the video with the same name")
+    examples(ad, """
+        asl lang add "Anki cards/Japanese" ~/media/ja/terrace_house_01.mkv --title "Terrace House OND 1"
+        asl lang add "Anki cards/Japanese" shirokuma.apkg --title "Shirokuma Cafe" --key sk
+        asl lang add "Anki cards/Japanese" mined.apkg --video ep01.mkv   # re-cut clips from the video
+    """)
     se = ls.add_parser("seed", help="mark words known from your own Anki exports")
     se.add_argument("deck", type=Path, help="the language deck folder")
     se.add_argument("exports", nargs="*", help="default: `known_from:` in Overview.md")
+    examples(se, """
+        asl lang seed "Anki cards/Japanese"                  # the exports in Overview.md
+        asl lang seed "Anki cards/Japanese" old_decks.colpkg
+    """)
     pl = ls.add_parser("plan", help="order one-new-word lines into cards; report the rest")
     pl.add_argument("deck", type=Path, help="the language deck folder")
     pl.add_argument("--level", help="current level (default: `level:` in Overview.md)")
@@ -110,6 +121,10 @@ def add_parser(lg) -> None:
     pl.add_argument("--dry", action="store_true", help="report only; write nothing")
     pl.add_argument("--gate", choices=["learning", "planned", "off"],
                     help="grammar gate (default: `grammar_gate:` in Overview.md, else learning)")
+    examples(pl, """
+        asl lang plan "Anki cards/Japanese" --dry            # the report, nothing written
+        asl lang plan "Anki cards/Japanese" --level N4 --assume N5
+    """)
     gr = ls.add_parser("grammar", help="grammar notes + cards from a Game Gengo deck; or check the rules")
     gr.add_argument("deck", type=Path, help="the language deck folder")
     gr.add_argument("input", nargs="?", help="a Game Gengo .apkg (without: check the notes' rules)")
@@ -117,17 +132,32 @@ def add_parser(lg) -> None:
     gr.add_argument("--cards", action="store_true", help="also write the lessons as grammar cards")
     gr.add_argument("--images", action="store_true",
                     help="an image for each grammar note without one (Japanese: from JLPT Sensei)")
+    examples(gr, """
+        asl lang grammar "Anki cards/Japanese" game_gengo.apkg --cards   # notes + grammar cards
+        asl lang grammar "Anki cards/Japanese"               # check the notes' rules
+        asl lang grammar "Anki cards/Japanese" --images
+    """)
     cl = ls.add_parser("clean", help="list (or --delete) media no line or card uses")
     cl.add_argument("deck", type=Path, help="the language deck folder")
     cl.add_argument("--delete", action="store_true", help="remove them")
+    examples(cl, """
+        asl lang clean "Anki cards/Japanese"                 # list first
+        asl lang clean "Anki cards/Japanese" --delete
+    """)
     tt = ls.add_parser("tts", help="give cards without native audio a text-to-speech clip")
     tt.add_argument("deck", type=Path, help="the language deck folder")
+    examples(tt, 'asl lang tts "Anki cards/Japanese"     # VOICEVOX if running, else edge-tts')
     sy = ls.add_parser("sync", help="statuses from your Anki reviews (a manual .apkg/.colpkg export)")
     sy.add_argument("deck", type=Path, help="the language deck folder")
     sy.add_argument("export", help="Anki export with scheduling information")
+    examples(sy, 'asl lang sync "Anki cards/Japanese" ~/Downloads/japanese.apkg')
     dr = ls.add_parser("draft", help="write sentence-card stubs for the next planned lines")
     dr.add_argument("deck", type=Path, help="the language deck folder")
     dr.add_argument("-n", type=int, default=20, help="how many cards (default 20)")
     dr.add_argument("--level", help="current level (default: `level:` in Overview.md)")
     dr.add_argument("--assume", action="append", help="treat a level's listed words as known")
     dr.add_argument("--source", help="only lines of sources whose key starts with this (e.g. sk)")
+    examples(dr, """
+        asl lang draft "Anki cards/Japanese" -n 50
+        asl lang draft "Anki cards/Japanese" --source sk     # only Shirokuma Cafe lines
+    """)

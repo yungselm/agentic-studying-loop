@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import sys
+import textwrap
 
 
 def _utf8_stdout() -> None:
@@ -21,6 +22,19 @@ def main(argv=None) -> int:
     except CardFileError as e:
         print(f"! {e}", file=sys.stderr)
         return 1
+
+
+def examples(p: argparse.ArgumentParser, text: str) -> None:
+    """Usage examples under a command's options: in `asl <cmd> -h` and on the docs site.
+
+    Examples
+    --------
+    >>> examples(p, '''
+    ...     asl lint -q decks/tasklog      # only problems
+    ... ''')
+    """
+    p.epilog = "examples:\n" + textwrap.indent(textwrap.dedent(text).strip(), "  ")
+    p.formatter_class = argparse.RawDescriptionHelpFormatter
 
 
 def build_parser(reg) -> argparse.ArgumentParser:

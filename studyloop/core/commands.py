@@ -4,6 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from studyloop.core import config
+from studyloop.core.cli import examples
 from studyloop.core.registry import Command
 
 
@@ -14,6 +15,11 @@ def _inputs(p):
 def _build_args(p):
     _inputs(p)
     p.add_argument("-o", "--out", default="asl-output/cards.apkg", help="the .apkg to write")
+    examples(p, """
+        asl build "Anki cards/tasklog" -o tasklog.apkg     # one deck
+        asl build "Anki cards/tasklog" "Anki cards/CS231n" -o study.apkg
+        asl build "Anki cards/tasklog/_examples.yaml"      # preview an example file
+    """)
 
 
 def _build(a):
@@ -24,6 +30,10 @@ def _build(a):
 def _check_args(p):
     _inputs(p)
     p.add_argument("--fast", action="store_true", help="skip the linter (clippy / ruff)")
+    examples(p, """
+        asl check examples/python-core            # run every solution against its tests
+        asl check --fast "Anki cards/omakase"     # compile and test, skip clippy
+    """)
 
 
 def _check(a):
@@ -35,6 +45,11 @@ def _lint_args(p):
     _inputs(p)
     p.add_argument("-q", "--quiet", action="store_true", help="only print problems (!)")
     p.add_argument("--skip", default="", help="comma-separated kinds to leave out, e.g. size,frame")
+    examples(p, """
+        asl lint -q "Anki cards/tasklog"          # prints OK, or only the problems
+        asl lint "Anki cards/CS231n/lecture_03.yaml"
+        asl lint --skip size,frame "Anki cards/omakase"
+    """)
 
 
 def _lint(a):
@@ -46,6 +61,17 @@ def _lint(a):
 def _ids_args(p):
     _inputs(p)
     p.add_argument("--fix", action="store_true", help="same as `asl fix`")
+    examples(p, """
+        asl ids "Anki cards/tasklog"              # next free id: tsk-012; cards without one
+    """)
+
+
+def _fix_args(p):
+    _inputs(p)
+    examples(p, """
+        asl fix "Anki cards/tasklog"              # after writing cards: ids, std, Overview.md rows
+        asl fix "Anki cards/CS231n"               # a topic: also refreshes the sources map
+    """)
 
 
 def _ids(a):
@@ -60,6 +86,10 @@ def _init_home_args(p):
     v.add_argument("--vault", type=Path, help="your notes folder (Obsidian or any markdown); "
                    "cards link into it")
     v.add_argument("--no-vault", action="store_true", help="no notes folder: cards only")
+    examples(p, """
+        asl init-home "~/Notes/Anki cards" --vault ~/Notes --pack python --pack rust
+        asl init-home ~/anki-cards --no-vault     # cards only
+    """)
 
 
 def _init_home(a):
@@ -71,6 +101,10 @@ def _init_home(a):
 def _install_skills_args(p):
     p.add_argument("target", type=Path, nargs="?", default=Path.home() / ".claude" / "skills",
                    help="skills folder (default: ~/.claude/skills)")
+    examples(p, """
+        asl install-skills                        # for every project
+        asl install-skills .claude/skills         # for this project only
+    """)
 
 
 def _install_skills(a):
@@ -91,10 +125,11 @@ COMMANDS = (
     Command("lint", "ids, size limits, self-containment (no code is run)", _lint_args, _lint),
     Command("ids", "next free id and cards without one (read-only)", _ids_args, _ids),
     Command("fix", "write missing kind, ids, std versions, Overview.md rows and sources map",
-            _inputs, _ids),
+            _fix_args, _ids),
     Command("init-home", "create a card home (in your vault, if you keep one)", _init_home_args,
             _init_home),
     Command("install-skills", "copy skills to a .claude/skills folder", _install_skills_args,
             _install_skills),
-    Command("packs", "list available packs", lambda p: None, _packs),
+    Command("packs", "list available packs", lambda p: examples(p, "asl packs   # cpp, python, rust and your own"),
+            _packs),
 )

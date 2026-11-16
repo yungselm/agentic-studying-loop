@@ -23,7 +23,25 @@ DEFAULT_REFRESH = {"mature_share": 0.5, "step_share": 0.25, "min_review_answers"
 
 @dataclass
 class Home:
-    """The card home: a folder (usually in the vault) with studyloop.yaml."""
+    """The card home: a folder (usually in the vault) with studyloop.yaml and the decks.
+
+    Get it with `find_home`; ``asl init-home`` makes one.
+
+    Attributes
+    ----------
+    path : Path or None
+        None when no card home was found (defaults apply).
+    cfg : dict
+        studyloop.yaml as read.
+
+    Examples
+    --------
+    >>> h = find_home(Path("example-vault/Studying/Anki cards/tasklog"))
+    >>> h.path.name, h.standards_version
+    ('Anki cards', 1)
+    >>> h.limits["concept"]
+    {'answer_chars_target': 250, 'answer_chars_max': 300, 'bold_chars_target': 120, 'bold_chars_max': 150}
+    """
     path: Path | None
     cfg: dict = field(default_factory=dict)
 
@@ -39,14 +57,25 @@ class Home:
 
     @property
     def refresh(self) -> dict:
+        """When ``asl stats`` may propose new limits: ``refresh:`` over `DEFAULT_REFRESH`."""
         return {**DEFAULT_REFRESH, **(self.cfg.get("refresh") or {})}
 
     @property
     def standards_version(self) -> int:
+        """The ``std:`` new cards are written under."""
         return int(self.cfg.get("standards_version", 1))
 
 
 def find_home(start: Path) -> Home:
+    """The card home containing ``start``: the nearest folder upwards with studyloop.yaml.
+
+    Examples
+    --------
+    >>> find_home(Path("example-vault/Studying/Anki cards/tasklog")).path.name
+    'Anki cards'
+    >>> find_home(Path("/tmp"))
+    Home(path=None, cfg={})
+    """
     start = start.resolve()
     for d in [start, *start.parents]:
         if (d / "studyloop.yaml").is_file():

@@ -63,6 +63,23 @@ class Note:
 
 @dataclass
 class ReviewData:
+    """An Anki export as plain tables. Get it with `read_export`.
+
+    Attributes
+    ----------
+    path : Path
+    note_types : dict
+        Id to `NoteType`.
+    decks : dict
+        Id to full deck name (``A::B``).
+    notes : list of Note
+        By id, which is creation order.
+    cards : list of Card
+    revlog : list of Review
+        Every answer; empty for an export without scheduling data.
+    media : dict
+        File name to zip member; read with `read_media`.
+    """
     path: Path
     note_types: dict[int, NoteType] = field(default_factory=dict)
     decks: dict[int, str] = field(default_factory=dict)
@@ -72,6 +89,7 @@ class ReviewData:
     media: dict[str, str] = field(default_factory=dict)        # file name -> zip member
 
     def read_media(self, name: str) -> bytes | None:
+        """One media file's bytes, or None if the export doesn't have it."""
         member = self.media.get(name)
         if member is None:
             return None
@@ -94,6 +112,20 @@ class ReviewData:
 
 
 def read_export(path: Path) -> ReviewData:
+    """Read an Anki export (.apkg or .colpkg, legacy or zstd-compressed).
+
+    Examples
+    --------
+    The tasklog example deck, built with ``asl build`` (no reviews yet):
+
+    >>> rd = read_export(Path("tasklog.apkg"))
+    >>> len(rd.notes), len(rd.cards), len(rd.revlog)
+    (8, 12, 0)
+    >>> sorted(nt.name for nt in rd.note_types.values())
+    ['Cloze Card', 'Code Editor Card', 'Concept Card']
+    >>> rd.notes[0].tags
+    ['tasklog', 'files', 'asl::id::tsk-001', 'asl::std::v1', 'asl::type::code']
+    """
     path = Path(path).expanduser()
     rd = ReviewData(path)
     with _open(path) as con:

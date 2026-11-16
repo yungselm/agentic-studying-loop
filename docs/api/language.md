@@ -1,33 +1,10 @@
-# Language
+# Language interface
 
-Optional: `pip install agentic-studying-loop[lang]`, Japanese with `[lang-ja]`.
-
-```{eval-rst}
-.. automodule:: studyloop.language
-```
+What a language module (like `language_ja`) implements. Needs the `lang` install.
 
 ```{eval-rst}
-.. automodule:: studyloop.language.media
-```
-
-```{eval-rst}
-.. automodule:: studyloop.language.vocabulary
-```
-
-```{eval-rst}
-.. automodule:: studyloop.language.grammar
-```
-
-```{eval-rst}
-.. automodule:: studyloop.language.cards
-```
-
-```{eval-rst}
-.. automodule:: studyloop.language.base
+.. autoclass:: studyloop.language.base.Language
    :members:
-```
-
-```{eval-rst}
-.. automodule:: studyloop.language_ja
+   :member-order: bysource
 ```
 

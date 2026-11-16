@@ -1,25 +1,27 @@
 # API
 
-**Using `asl`:** [Commands](cli.md) lists every command and option; [Card format](../card-format.md)
-is what goes in `deck.yaml` and the card files.
+## Using `asl`
 
-**Working on the code:** for collaborators. `studyloop` is a small core and modules that plug into it. Each module's
-`__init__.py` is its entry point: what it is for, which command enters where (`asl x -> file.py`)
-and one line per file. The pages below show those entry points; open the file in the repo and go
-from there.
+- [Commands](cli.md): every command and option, with examples.
+- [Card format](../card-format.md): what goes in `deck.yaml` and the card files.
 
-Rule: modules import core, core never imports a module (checked by `lint-imports`).
+## Writing a module
+
+- [Registry](registry.md): the extension points (deck kinds, card types, lint rules, commands).
+- [Decks, cards and review data](decks.md): what modules read.
+- [Language interface](language.md) and [Analysis interface](analysis.md): the two
+  extension points modules define for others.
+- [Code map](map/index.md): each module's entry point, file by file.
 
 ```{toctree}
-:maxdepth: 1
+:hidden:
+:maxdepth: 2
 
 cli
 ../card-format
-core
 registry
-notes
-sources
-projects
+decks
 language
 analysis
+map/index
 ```

@@ -52,6 +52,22 @@ class CardFileError(ValueError):
 
 
 def load_file(path: str | Path) -> list[dict]:
+    """Read a card file: a YAML list of cards, each prepared by its card type.
+
+    Every card gets ``type`` (default ``code``), ``_file`` and ``_index``; an id written as a
+    ``# tsk-001`` comment above the card counts as its ``id``.
+
+    Raises
+    ------
+    CardFileError
+        Invalid YAML (with the line) or not a list.
+
+    Examples
+    --------
+    >>> cards = load_file("example-vault/Studying/Anki cards/tasklog/tasklog.yaml")
+    >>> len(cards), {k: cards[0][k] for k in ("id", "type", "_index")}
+    (4, {'id': 'tsk-001', 'type': 'code', '_index': 0})
+    """
     path = Path(path)
     text = path.read_text(encoding="utf-8-sig")
     try:
