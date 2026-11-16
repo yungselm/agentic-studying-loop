@@ -100,8 +100,8 @@ loaded on demand). Check that this holds, then put numbers on it.
 ### 5. Documentation on Read the Docs
 A hosted site where the author explains the thinking in detail (why the standards are what they
 are, the evidence, the loop); the README stays the short entry point.
-- [ ] First test site, hosted: Sphinx + MyST, Furo theme, `.readthedocs.yaml`, built in CI so
-  broken links fail. Two sections to start:
+- [x] First test site, hosted: Sphinx + MyST, Furo theme, `.readthedocs.yaml`, built in CI so
+  broken links fail (`make html` in `docs/` locally). Two sections to start:
   - **Install**: uv, the extras, the card home, first deck (from the README's Install part).
   - **API**: one page per module from its entry-point `__init__` docstring (autodoc), then the
     registry (how to write a module), for collaborators.

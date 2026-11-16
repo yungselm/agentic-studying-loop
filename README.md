@@ -9,6 +9,8 @@
 
 # agentic-studying-loop
 
+[![Docs](https://readthedocs.org/projects/agentic-studying-loop/badge/?version=latest)](https://agentic-studying-loop.readthedocs.io/en/latest/)
+
 Counter brainrot, by forcing LLMs to maximizing your studying. Learn the code you write, while you work on a real project with an AI coding agent (Claude Code).
 What you learn becomes **study notes** in your notes vault and **Anki cards** that look like your
 repo. Then the card rules get **tuned on your own review data**.
@@ -373,6 +375,7 @@ root, where Claude Code expects a plugin. See [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ## Docs
 
+[Read the Docs](https://agentic-studying-loop.readthedocs.io/en/latest/) (install, API; more moving over) ·
 [Card format](docs/card-format.md) · [Language cards](docs/language-cards.md) · [Writing a pack](docs/writing-a-pack.md) (also possible
 without cloning) · [Migrating from rust-lang-kata](docs/migrating-from-rust-lang-kata.md) ·
 [Roadmap](docs/roadmap.md) · [Architecture](docs/architecture.md)
