@@ -1,13 +1,13 @@
 ---
 name: language-cards
-description: Make one-new-word sentence cards (audio + screenshot, target word glossed) and grammar cards from a show, a mined deck or a grammar book, with the known words tracked in the user's vault. Use when the user studies a language (Japanese, Italian, ...) and asks for language cards, or adds an episode or a deck. Only for language decks (deck.yaml has `lang:`); never write-cards or study-source there.
+description: Make one-new-word sentence cards (audio + screenshot, target word glossed) and grammar cards from a show, a mined deck or a grammar book, with the known words tracked in the user's vault. Use when the user studies a language (Japanese, Italian, ...) and asks for language cards, or adds an episode or a deck. Only for language decks (deck.yaml `kind: language`); never write-cards or study-source there.
 ---
 # Language cards
 
-Branch **language**: cards are `sentence` and `grammar` only; commands are `asl lang …`, then
+Deck kind **language**: cards are `sentence` and `grammar` only; commands are `asl lang …`, then
 `asl lint` and `asl build` (no `asl fix`/`asl check`: ids come from `asl lang draft`).
 Design and rules: `docs/language-cards.md` in the agentic-studying-loop repo. Needs `asl` with
-the `lang` extra and, once per language, `asl lang setup <code>` (word lists, dictionary).
+the language's extra (`lang-ja`) and, once per language, `asl lang setup <code>` (word lists, dictionary).
 
 1. **New language?** Ask one question at a time: the goal, the gloss language, the current level
    (JLPT/CEFR), which Anki exports show what they know, grammar sources (book PDF, URL, deck),

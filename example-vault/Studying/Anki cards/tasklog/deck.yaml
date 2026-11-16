@@ -1,6 +1,7 @@
 # Deck settings for Tasklog (agentic-studying-loop).
+kind: project
 deck: "Study Loop::Tasklog"     # Anki deck this folder builds into
-pack: python                   # language: checker, syntax highlighting, standards addendum
+pack: python                   # programming language: checker, syntax highlighting, standards addendum
 prefix: tsk               # card ids: tsk-001, tsk-002, ...
 subdecks: false                  # both files study together in one deck
 files:

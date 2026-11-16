@@ -1,0 +1,12 @@
+# Language deck for {{name}} (agentic-studying-loop; skill `language-cards`).
+# Commands: asl lang add / plan / draft / grammar / tts / sync, then asl lint / build.
+kind: language                   # decides the skills, commands and card types
+deck: "Study Loop::{{name}}"     # Anki: ::Vocabulary::<source>, ::Grammar
+lang: {{lang}}                   # language config: tokenizer, word levels, dictionary
+prefix: {{prefix}}               # sentence cards: {{prefix}}-001, ... (plan order; never reused)
+media_dir: {{media}}   # clips + screenshots, outside the vault
+subdecks: true
+retired_ids: []
+presets:
+  default: {new_per_day: 20, order: sequential, gather: position}   # vocabulary: plan order across sources
+  grammar: {new_per_day: 5, order: sequential}

@@ -65,16 +65,16 @@ re-derived from 6.5k of my personal reviews (*typed characters, not lines, predi
 
 ## How it fits together
 
-**Three branches.** What a deck is for decides the skills, the `asl` commands and the card types,
-so you can check what an agent does. Its `deck.yaml` says which branch it is.
+**Three deck kinds.** What a deck is for decides the skills, the `asl` commands and the card
+types, so you can check what an agent does. Its `deck.yaml` says which (`kind:`).
 
-| Branch | You study | Start with | Skills | `asl` commands | Card types |
+| Kind | You study | Start with | Skills | `asl` commands | Card types |
 |---|---|---|---|---|---|
-| **project** (`repo:`) | code you write | `asl init` | the [mode](#modes), `write-cards`, `study-note` | `fix`, `lint`, `check`, `build` | code, concept, timeline |
-| **topic** (neither) | lectures, books, links | `asl topic` | `study-source` → `study-note` → `write-cards` | `sources`, `fix`, `lint`, `check`, `build` | cloze, concept, timeline; code as the brief's `cards:` says |
-| **language** (`lang:`) | a language from shows | `asl topic --lang` | `language-cards` | `lang add / plan / draft / grammar / tts / sync`, `lint`, `build` | sentence, grammar |
+| **project** | code you write | `asl init` | the [mode](#modes), `write-cards`, `study-note` | `fix`, `lint`, `check`, `build` | code, concept, timeline |
+| **topic** | lectures, books, links | `asl topic` | `study-source` → `study-note` → `write-cards` | `sources`, `fix`, `lint`, `check`, `build` | cloze, concept, timeline; code as the brief's `cards:` says |
+| **language** | a language from shows | `asl topic --lang` | `language-cards` | `lang add / plan / draft / grammar / tts / sync`, `lint`, `build` | sentence, grammar |
 
-`asl lint` flags a card type from another branch, and a topic deck whose share of code cards is far
+`asl lint` flags a card type from another kind, and a topic deck whose share of code cards is far
 from its brief. Choices for one topic live in its `Overview.md` brief; `standards/preferences.md`
 holds only rules for all your cards.
 
@@ -117,12 +117,13 @@ You don't clone this repo to use it. There are three places, and you set each up
 curl -LsSf https://astral.sh/uv/install.sh | sh                                    # macOS / Linux / WSL
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"  # Windows
 
-# 2. asl
-uv tool install "agentic-studying-loop @ https://github.com/yungselm/agentic-studying-loop/archive/refs/heads/master.zip"
+# 2. asl, with the extras you need: python (checks Python cards), analysis (asl stats),
+#    lang-ja (Japanese decks); none of them for cards in other languages only
+uv tool install "agentic-studying-loop[python,analysis] @ https://github.com/yungselm/agentic-studying-loop/archive/refs/heads/master.zip"
 asl packs                     # lists cpp, python, rust; if `asl` isn't found: uv tool update-shell
 
-# update later
-uv tool install --force "agentic-studying-loop @ https://github.com/yungselm/agentic-studying-loop/archive/refs/heads/master.zip"
+# update later (same extras)
+uv tool install --force "agentic-studying-loop[python,analysis] @ https://github.com/yungselm/agentic-studying-loop/archive/refs/heads/master.zip"
 ```
 
 Rust cards also need [Rust](https://rustup.rs/) with `rustup component add clippy`. C++ cards need
@@ -162,7 +163,7 @@ deck with an in-card code editor (on flip, lines that differ from the solution t
    ```
 
    The two spaces of indentation matter. More card types and fields: [card format](docs/card-format.md);
-   the rules for cards that stick: [standards](studyloop/standards/core.md).
+   the rules for cards that stick: [standards](studyloop/core/standards/core.md).
 
 3. **Check and build** (in the terminal, in the folder that contains `my-cards`):
 
@@ -240,12 +241,15 @@ anything outside the project and the chosen notes folder.
    [Install](#install) table for the user's OS, then use the full path or a new shell). For Rust
    projects check `cargo clippy --version`. Check that Anki is installed; if not, give the user the
    link and wait.
-2. **Install:** `uv tool install "agentic-studying-loop @ https://github.com/yungselm/agentic-studying-loop/archive/refs/heads/master.zip"`, then `asl packs`.
-3. **Ask the user** (one question at a time): where the notes vault is (an Obsidian vault or any
-   folder; suggest one inside their documents), and which mode: `teacher` (user writes all code),
+2. **Install:** `uv tool install "agentic-studying-loop[python,analysis] @ https://github.com/yungselm/agentic-studying-loop/archive/refs/heads/master.zip"` (`python`: checks Python cards; `analysis`: `asl stats`; add `lang-ja` for Japanese), then `asl packs`.
+3. **Ask the user** (one question at a time): whether they keep notes in a folder of markdown
+   (an Obsidian vault or any folder; suggest one inside their documents) or want cards only, and
+   which mode: `teacher` (user writes all code),
    `mentor`, `coworker`, `on-demand` (see Modes). Use a 2–4 letter id prefix derived from the project
    name; the pack follows the project's language (`rust`, `python` or `cpp`).
-4. **Connect:** a code project → `asl init <project> --home "<vault>/Anki cards" --notes
+4. **Card home:** `asl init-home "<vault>/Anki cards" --vault "<vault>"`; cards only →
+   `asl init-home "<folder>" --no-vault`. Asked once: the answer stays in `studyloop.yaml`.
+   **Connect:** a code project → `asl init <project> --home "<vault>/Anki cards" --notes
    "<vault>/<project>" --pack <pack> --prefix <prefix> --mode <mode>`. Lectures, books or links
    (no code) → `asl topic "<name>" --home "<vault>/Anki cards" --sources "<folder|file|url>"
    --notes "<vault>/<topic>"` (or `--no-notes`); first ask for the goal, what the user already
@@ -310,7 +314,7 @@ place.
 
 ## Languages
 
-For learning a language from native media (opt-in: `uv tool install "agentic-studying-loop[lang] @ …"`,
+For learning a language from native media (opt-in, per language: `uv tool install "agentic-studying-loop[lang-ja] @ …"`,
 then `asl lang setup ja` once for word lists, dictionary and grammar lists). Cards: a native
 line with audio and a screenshot, **one new word** glossed on the back; grammar cards in the
 Game Gengo layout. Your vault keeps the ground truth: `Vocabulary.md` (every word, level,
@@ -324,8 +328,9 @@ asl lang sync "<deck>" export.apkg           # after studying: statuses from you
 ```
 
 Say *"make cards from this episode"* in Claude Code (skill `language-cards`). Design, evidence
-and all commands: [language cards](docs/language-cards.md). Japanese is configured
-(`studyloop/lang/ja.yaml`); other languages need their own config.
+and all commands: [language cards](docs/language-cards.md). Japanese is a module
+(`studyloop/language_ja/`: tokenizer, levels, dictionary, `ja.yaml`); another language is one more
+module like it, on the same pipeline.
 
 ## Modes
 
@@ -340,10 +345,12 @@ and all commands: [language cards](docs/language-cards.md). Japanese is configur
 
 Whenever you like: in Anki, File → Export → *Anki Deck Package* with *Include
 scheduling information*, then ask the agent to *refresh my standards*, or run
-`asl stats export.apkg --home "<card home>"`. The report says whether a refresh is due (default:
+`asl stats export.apkg --home "<card home>"` (with the `analysis` extra: `uv tool install
+"agentic-studying-loop[analysis] @ …"`). The report says whether a refresh is due (default:
 half the deck mature, then every further 25%), and shows fail rates by card size, leeches, hard
-decks, and whether the last rule change helped. The agent proposes edits to your standards; you
-approve them.
+decks, and whether the last rule change helped; the agent reads a short summary of it. The
+agent proposes edits to your standards; you approve them. Each section is an analysis
+(`studyloop/analysis/analyses/`); a new one is one class.
 
 ## Examples
 
@@ -357,7 +364,7 @@ Clone the repo and install it editable:
 
 ```bash
 git clone https://github.com/yungselm/agentic-studying-loop && cd agentic-studying-loop
-uv venv && uv pip install -e ".[dev]"
+uv venv && uv pip install -e ".[dev,python,analysis,lang-ja]"
 ```
 
 Everything the tool ships lives in `studyloop/`: `packs/` (one folder per language), `standards/`,
@@ -368,7 +375,7 @@ root, where Claude Code expects a plugin. See [CONTRIBUTING.md](CONTRIBUTING.md)
 
 [Card format](docs/card-format.md) · [Language cards](docs/language-cards.md) · [Writing a pack](docs/writing-a-pack.md) (also possible
 without cloning) · [Migrating from rust-lang-kata](docs/migrating-from-rust-lang-kata.md) ·
-[Roadmap](docs/roadmap.md)
+[Roadmap](docs/roadmap.md) · [Architecture](docs/architecture.md)
 
 v0.1. The starter standards rest on one learner's data. Packs, card types and anonymised
 `asl stats` tables are welcome. MIT license; vendors CodeMirror 5 (MIT).

@@ -1,0 +1,60 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  # core and the built-in modules (notes, projects, sources), with no optional install: proves
+  # core works on its own; the import contracts keep it that way (docs/architecture.md)
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -e ".[dev,python]"
+      - run: ruff check studyloop tests
+      - run: lint-imports
+      - run: pytest -q tests/core tests/notes tests/sources
+      - name: lint, check and build the example decks
+        run: |
+          rustup component add clippy
+          asl notes example-vault/Studying
+          asl lint -q examples/python-core examples/rust-core examples/cpp-core "example-vault/Studying/Anki cards/tasklog"
+          asl check examples/python-core examples/rust-core examples/cpp-core "example-vault/Studying/Anki cards/tasklog"
+          asl build examples/python-core examples/rust-core examples/cpp-core "example-vault/Studying/Anki cards/tasklog" -o asl-output/examples.apkg
+
+  # one job per optional install, each with only its own tests
+  module:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - { extra: lang-ja, tests: tests/language }
+          - { extra: analysis, tests: tests/analysis }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -e ".[dev,${{ matrix.extra }}]"
+      - run: pytest -q ${{ matrix.tests }}
+
+  # the way users install it: no clone, no editable install
+  install-as-user:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix: { os: [ubuntu-latest, windows-latest] }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: install from a built wheel, then use it outside the repo
+        shell: bash
+        run: |
+          pip install build && python -m build --wheel
+          pip install dist/*.whl
+          cd "$RUNNER_TEMP" && mkdir -p myproject
+          asl packs
+          asl init myproject --home "vault/Anki cards" --pack python --prefix myp
+          asl install-skills skills
+          test -f skills/write-cards/SKILL.md
+          test ! -e skills/language-cards            # its module's install is missing
+          asl lint -q "vault/Anki cards/myproject"
+          { asl stats nothing.apkg 2>&1 || true; } | grep -q 'agentic-studying-loop\[analysis\]'

@@ -4,7 +4,7 @@ description: Write a study note in the user's notes vault (Obsidian-style markdo
 ---
 # Study note
 
-Branches **project** and **topic** (language decks keep their ground truth in `Vocabulary.md`
+Deck kinds **project** and **topic** (language decks keep their ground truth in `Vocabulary.md`
 and `Grammar/`, written by `asl lang`). The notes folder is in the CLAUDE.md study-loop block. Notes get skimmed: one idea per note,
 the first screen carries it, links build the web. `preferences.md` (*Notes*) wins.
 

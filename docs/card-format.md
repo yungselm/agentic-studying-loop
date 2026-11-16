@@ -6,10 +6,11 @@ Files starting with `_` are examples: checked and linted, but only built when pa
 ## deck.yaml
 
 ```yaml
+kind: project                 # project | topic | language: decides skills, commands, card types
 deck: "Study Loop::Tasklog"   # Anki deck for this folder
-pack: python                  # default language (checker, highlighting, standards addendum)
+pack: python                  # default programming language (checker, highlighting, standards addendum)
 prefix: tsk                   # ids: tsk-001, tsk-002, ...
-repo: "../../code/tasklog"    # project source (makes it a project deck, see below)
+repo: "../../code/tasklog"    # project source: header and excerpt checks against it
 subdecks: true                # true: <file stem> becomes a subdeck (a__b.yaml nests A::B)
 check: true                   # default for all files
 files:                        # per-file overrides
@@ -29,7 +30,7 @@ guid_namespace: asl-id        # GUID = hash(namespace, id): renaming decks/folde
 ## Card types
 
 Common fields: `id` (stable, drives the Anki GUID), `std` (standards version it was written
-under), `source`, `tags`, `lang` (override the deck's pack), `check: false`, `guid` (frozen GUID
+under), `source`, `tags`, `pack` (override the deck's pack), `check: false`, `guid` (frozen GUID
 from a migration), `lint_allow: ["literal"]`.
 
 **code** (default): type the gap into an editor; on flip, lines that differ from the solution turn red.

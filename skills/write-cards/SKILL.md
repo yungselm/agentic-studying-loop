@@ -1,15 +1,15 @@
 ---
 name: write-cards
-description: Write or update Anki cards (YAML) for a code project or a topic (lectures, books, links), following the card home's standards. Use when the study-loop block in CLAUDE.md says cards are due, or the user asks to card something. Not for language decks (deck.yaml has `lang:`): use language-cards.
+description: Write or update Anki cards (YAML) for a code project or a topic (lectures, books, links), following the card home's standards. Use when the study-loop block in CLAUDE.md says cards are due, or the user asks to card something. Not for language decks (deck.yaml `kind: language`): use language-cards.
 ---
 # Write cards
 
-Branches **project** and **topic** (deck.yaml: `repo:` → project, no `repo:`/`lang:` → topic).
+Deck kinds **project** and **topic** (deck.yaml `kind:`).
 Paths (card home, deck folder) are in the CLAUDE.md study-loop or topics block.
 
 1. **Read** `<card home>/standards/core.md`, `<pack>.md`, `preferences.md` (wins), and the deck's
    `profile.md`. Skim `Overview.md` and grep the deck for the pattern: no duplicates.
-2. **Decide by branch.**
+2. **Decide by kind.**
    - *Project:* only recurring patterns, only confirmed working code. Big pattern → ladder;
      async/concurrency → timeline first. Code vs concept as `preferences.md` says.
    - *Topic:* the brief (Overview.md) decides: `goal`, `builds_on`, and **`cards:`, the share

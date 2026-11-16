@@ -1,4 +1,5 @@
 # Example base deck: modern C++ for someone who knows Rust.
+kind: topic
 deck: "Study Loop Examples::C++"
 pack: cpp
 prefix: cpp
