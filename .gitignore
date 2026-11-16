@@ -8,3 +8,4 @@ asl-output/
 *.colpkg
 *.apkg
 build/
+docs/_build/

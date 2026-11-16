@@ -21,6 +21,16 @@ jobs:
           asl check examples/python-core examples/rust-core examples/cpp-core "example-vault/Studying/Anki cards/tasklog"
           asl build examples/python-core examples/rust-core examples/cpp-core "example-vault/Studying/Anki cards/tasklog" -o asl-output/examples.apkg
 
+  # the docs site, as Read the Docs builds it; warnings (broken links, bad refs) fail
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install ".[docs]"
+      - run: sphinx-build -W --keep-going docs docs/_build
+
   # one job per optional install, each with only its own tests
   module:
     runs-on: ubuntu-latest
