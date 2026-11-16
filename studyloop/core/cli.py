@@ -23,15 +23,19 @@ def main(argv=None) -> int:
         return 1
 
 
-def _main(argv=None) -> int:
-    """Every command comes from a registered module (core's first)."""
-    from studyloop.core.registry import registry
-    reg = registry()
+def build_parser(reg) -> argparse.ArgumentParser:
+    """Every command comes from a registered module (core's first). Also used by the docs."""
     ap = argparse.ArgumentParser(prog="asl", description=__doc__)
     sub = ap.add_subparsers(dest="cmd", required=True)
     for _module, cmd in reg.commands.values():
         cmd.arguments(sub.add_parser(cmd.name, help=cmd.help))
-    a = ap.parse_args(argv)
+    return ap
+
+
+def _main(argv=None) -> int:
+    from studyloop.core.registry import registry
+    reg = registry()
+    a = build_parser(reg).parse_args(argv)
     module, cmd = reg.commands[a.cmd]
     missing = reg.missing(module)
     if missing:

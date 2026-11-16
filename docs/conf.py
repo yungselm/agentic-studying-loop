@@ -13,10 +13,9 @@ html_title = project
 default_role = "literal"            # `x` in docstrings is code, as on GitHub
 myst_heading_anchors = 3
 
-# Not on the site yet: the existing docs move over one by one (docs/roadmap.md, section 5).
-exclude_patterns = ["_build", "architecture.md", "card-format.md", "evidence-*.md",
-                    "language-cards.md", "migrating-from-rust-lang-kata.md", "roadmap.md",
-                    "writing-a-pack.md"]
+# Development notes stay in the repo, not on the site; the site is install + reference.
+exclude_patterns = ["_build", "architecture.md", "evidence-*.md", "language-cards.md",
+                    "migrating-from-rust-lang-kata.md", "roadmap.md", "writing-a-pack.md"]
 
 # Optional installs: the API pages document their modules without installing them.
 autodoc_mock_imports = ["pandas", "matplotlib", "fugashi", "unidic_lite", "wordfreq",
@@ -44,5 +43,13 @@ def _literal_maps(app, what, name, obj, options, lines):
     lines[:] = out + [""]
 
 
+def _write_cli(app):
+    """api/cli.md from the real parser (docs/_cli.py)."""
+    from _cli import write
+    write(Path(app.srcdir) / "api" / "cli.md", autodoc_mock_imports)
+
+
 def setup(app):
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    app.connect("builder-inited", _write_cli)
     app.connect("autodoc-process-docstring", _literal_maps)

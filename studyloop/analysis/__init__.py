@@ -20,7 +20,7 @@ from studyloop.core.registry import Command, Module, Registry
 
 
 def _stats_args(p):
-    p.add_argument("export")
+    p.add_argument("export", help="a manual Anki export (.apkg or .colpkg) with scheduling data")
     p.add_argument("--deck", help="only this deck and its subdecks")
     p.add_argument("--home", type=Path, help="card home (default: search upwards from cwd)")
     p.add_argument("--only", help="comma-separated analyses to run, e.g. code-size,leeches")

@@ -8,12 +8,12 @@ from studyloop.core.registry import Command
 
 
 def _inputs(p):
-    p.add_argument("inputs", nargs="*")
+    p.add_argument("inputs", nargs="*", help="deck folders or single card files (default: the current folder)")
 
 
 def _build_args(p):
     _inputs(p)
-    p.add_argument("-o", "--out", default="asl-output/cards.apkg")
+    p.add_argument("-o", "--out", default="asl-output/cards.apkg", help="the .apkg to write")
 
 
 def _build(a):
@@ -54,8 +54,8 @@ def _ids(a):
 
 
 def _init_home_args(p):
-    p.add_argument("home", type=Path)
-    p.add_argument("--pack", action="append", default=[])
+    p.add_argument("home", type=Path, help="the new card home folder (holds studyloop.yaml and the decks)")
+    p.add_argument("--pack", action="append", default=[], help="a pack whose standards addendum to copy in; repeat for more (`asl packs` lists them)")
     v = p.add_mutually_exclusive_group()
     v.add_argument("--vault", type=Path, help="your notes folder (Obsidian or any markdown); "
                    "cards link into it")
@@ -69,7 +69,8 @@ def _init_home(a):
 
 
 def _install_skills_args(p):
-    p.add_argument("target", type=Path, nargs="?", default=Path.home() / ".claude" / "skills")
+    p.add_argument("target", type=Path, nargs="?", default=Path.home() / ".claude" / "skills",
+                   help="skills folder (default: ~/.claude/skills)")
 
 
 def _install_skills(a):

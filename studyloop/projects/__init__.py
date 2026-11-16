@@ -12,6 +12,8 @@ from pathlib import Path
 
 from studyloop.core.registry import Command, DeckKind, Module, Registry
 
+MODES = sorted(p.stem for p in (Path(__file__).resolve().parent / "modes").glob("*.md"))
+
 PROJECT = DeckKind(
     "project", what="code in a repo",
     skills="the mode in the project's CLAUDE.md, write-cards, study-note",
@@ -21,11 +23,11 @@ PROJECT = DeckKind(
 
 
 def _init_args(p):
-    p.add_argument("project", type=Path)
-    p.add_argument("--home", type=Path, required=True)
-    p.add_argument("--pack", required=True)
+    p.add_argument("project", type=Path, help="the code project folder")
+    p.add_argument("--home", type=Path, required=True, help="the card home (`asl init-home`)")
+    p.add_argument("--pack", required=True, help="the project's language: checker and standards (`asl packs`)")
     p.add_argument("--prefix", required=True, help="card id prefix, e.g. omk")
-    p.add_argument("--mode", default="mentor")
+    p.add_argument("--mode", default="mentor", choices=MODES, help="how much the agent leaves to you")
     p.add_argument("--notes", help="vault folder with this project's study notes")
     p.add_argument("--name", help="deck name (default: project folder name)")
 
@@ -37,8 +39,9 @@ def _init(a):
 
 
 def _mode_args(p):
-    p.add_argument("mode")
-    p.add_argument("project", type=Path, nargs="?", default=Path("."))
+    p.add_argument("mode", choices=MODES, help="how much the agent leaves to you")
+    p.add_argument("project", type=Path, nargs="?", default=Path("."),
+                   help="the project folder (default: the current one)")
 
 
 def _mode(a):

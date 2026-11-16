@@ -86,7 +86,7 @@ visible. `{{answer::hint}}` adds a hint, `{{c2::a}} … {{c2::b}}` asks two gaps
 **sentence** (language decks, `asl lang draft` writes them): listen to a native line (audio +
 screenshot, no text), flip to the line with readings and **one** target word glossed.
 `text` keeps furigana as `漢字[かんじ]` and marks the target with `**…**`; `audio`/`image` are
-file names in the deck's `media_dir`. See [language cards](language-cards.md).
+file names in the deck's `media_dir`. See [language cards](https://github.com/yungselm/agentic-studying-loop/blob/master/docs/language-cards.md).
 
 ```yaml
 - id: ja-003

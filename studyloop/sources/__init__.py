@@ -49,7 +49,7 @@ TOPIC = DeckKind(
 
 
 def _sources_args(p):
-    p.add_argument("inputs", nargs="*")
+    p.add_argument("inputs", nargs="*", help="topic deck folders (default: the current folder)")
     p.add_argument("--read", metavar="PART", help="print the text of one part, e.g. tour.3")
 
 
