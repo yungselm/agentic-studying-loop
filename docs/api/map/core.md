@@ -1,5 +1,7 @@
 # Core
 
+Commands of this module, with options and examples: [Commands › Core](../cli.md#core).
+
 ```{eval-rst}
 .. automodule:: studyloop.core
 ```

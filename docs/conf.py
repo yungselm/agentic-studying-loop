@@ -12,9 +12,10 @@ html_theme = "furo"
 html_title = project
 default_role = "literal"            # `x` in docstrings is code, as on GitHub
 myst_heading_anchors = 3
+html_extra_path = ["_redirects"]             # old URLs (api/core.html -> api/map/core.html)
 
 # Development notes stay in the repo, not on the site; the site is install + reference.
-exclude_patterns = ["_build", "architecture.md", "evidence-*.md", "language-cards.md",
+exclude_patterns = ["_build", "_redirects", "architecture.md", "evidence-*.md", "language-cards.md",
                     "migrating-from-rust-lang-kata.md", "roadmap.md", "writing-a-pack.md"]
 
 # Optional installs: the API pages document their modules without installing them.

@@ -1,5 +1,7 @@
 # Language
 
+Commands of this module, with options and examples: [Commands › Language](../cli.md#language).
+
 Optional: `pip install agentic-studying-loop[lang]`, Japanese with `[lang-ja]`.
 
 ```{eval-rst}
