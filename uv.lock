@@ -52,6 +52,10 @@ analysis = [
     { name = "pandas", version = "2.3.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "pandas", version = "3.1.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
 ]
+bench = [
+    { name = "matplotlib", version = "3.10.9", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "matplotlib", version = "3.11.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+]
 dev = [
     { name = "build" },
     { name = "import-linter", version = "2.15", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -96,6 +100,7 @@ requires-dist = [
     { name = "imageio-ffmpeg", marker = "extra == 'lang'", specifier = ">=0.5" },
     { name = "import-linter", marker = "extra == 'dev'", specifier = ">=2" },
     { name = "matplotlib", marker = "extra == 'analysis'", specifier = ">=3.7" },
+    { name = "matplotlib", marker = "extra == 'bench'", specifier = ">=3.8" },
     { name = "myst-parser", marker = "extra == 'docs'", specifier = ">=3" },
     { name = "pandas", marker = "extra == 'analysis'", specifier = ">=2.0" },
     { name = "pillow", specifier = ">=10" },
@@ -110,7 +115,7 @@ requires-dist = [
     { name = "wordfreq", marker = "extra == 'lang'", specifier = ">=3.1" },
     { name = "zstandard", specifier = ">=0.21" },
 ]
-provides-extras = ["dev", "python", "lang", "lang-ja", "analysis", "docs"]
+provides-extras = ["dev", "python", "lang", "lang-ja", "analysis", "bench", "docs"]
 
 [[package]]
 name = "aiohappyeyeballs"

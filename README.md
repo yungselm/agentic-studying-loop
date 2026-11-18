@@ -310,7 +310,12 @@ reads one part per batch (`asl sources <deck> --read lecture03`). Once ten or mo
 the map estimates cards per part from your cards per 1k words, so you see how many days of new
 cards a lecture adds before you start it.
 
-After each part the agent checks the cards (`asl check` compiles and runs code cards) and builds
+With cards straight from the sources, the agent works from one prompt: `asl prompt <deck>
+--part lecture03` holds the brief, how many cards of which kind, the rules, the part's text and
+its figures. It works in any agent or chat, and low effort (`claude --effort low`) is enough
+([benchmark](#benchmark)).
+
+After each part `asl finish` checks the cards (it compiles and runs code cards) and builds
 `<deck>.apkg` in the card home; import it again after every batch and Anki updates the cards in
 place.
 
@@ -359,6 +364,29 @@ agent proposes edits to your standards; you approve them. Each section is an ana
 This repo contains a complete worked example to browse: `examples/tasklog/` (a small project and
 its `CLAUDE.md`) and `example-vault/` (its notes, card home and deck). With a clone you can build
 it: `asl build examples/python-core "example-vault/Studying/Anki cards/tasklog"`.
+
+## Benchmark
+
+<!-- benchmark:begin -->
+Four book chapters (Rust, coronary imaging), five model setups, three ways to make cards; 60 runs, 200 cards rated blind (1-5) by the author. Per chapter, as a mean over the four; tokens include cache reads. [Full report](docs/benchmarks.md).
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/_static/benchmarks/cost-dark.svg"><img alt="Cost and cards per chapter by model and arm" src="docs/_static/benchmarks/cost-light.svg"></picture>
+
+| model, effort | asl prompt: tokens · $ · cards | plain prompt: tokens · $ · cards | rating (1-5) |
+|---|---|---|---|
+| Haiku, medium | 359k · $0.03 · 32 | 265k · $0.02 · 46 | 3.27 ± 0.29 |
+| Sonnet, medium | 107k · $0.24 · 29 | 191k · $0.22 · 64 | 3.33 ± 0.34 |
+| Opus, low | 144k · $0.43 · 32 | 104k · $0.26 · 50 | 3.58 ± 0.30 |
+| Opus, medium | 186k · $0.56 · 32 | 181k · $0.51 · 66 | 3.45 ± 0.33 |
+| Opus, high | 232k · $0.77 · 33 | 344k · $0.77 · 80 | 3.67 ± 0.25 |
+
+**A plain prompt works too**: asked for Anki cards, a strong model writes decent ones, and card for card they were rated the same. What it doesn't give you is control. `asl` does:
+
+- **How many cards.** The count follows the chapter's length and your brief: 46–53 cards for Rust ch. 10 on every model, where a plain prompt gave anywhere from 59 to 121. Fewer cards of the same quality are fewer reviews for years.
+- **Cards that follow your standards.** Size limits, one idea per card, cloze gaps you can't guess, your own rules from `preferences.md`: `asl finish` checks every card (20 of 20 runs passed all checks); a plain prompt gives you whatever it writes.
+- **The right kind of card.** Typed code cards that compile and pass their tests, cloze and concept cards, the book's figures on the cards, and stable ids, so a re-import updates cards instead of duplicating them.
+- **About the same tokens as a plain prompt** on most models, and a quarter to a half of what the agent spends finding its own way with the skills. Low effort is enough (`claude --effort low`): more effort only adds turns, not better cards.
+<!-- benchmark:end -->
 
 ## Contributing
 

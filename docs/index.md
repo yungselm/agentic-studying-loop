@@ -10,5 +10,6 @@ These docs are new and still small. The full overview is the
 :maxdepth: 2
 
 install
+benchmarks
 api/index
 ```

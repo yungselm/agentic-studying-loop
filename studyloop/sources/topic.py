@@ -84,8 +84,9 @@ def write_topics_block(home: Path) -> None:
         "## Study loop: topics ([agentic-studying-loop](https://github.com/yungselm/agentic-studying-loop))",
         "Each deck has a **kind** (`kind:` in its deck.yaml); the kind decides the skills, the "
         "`asl` commands and the card types. Follow only the named kind.",
-        "- **topic** (lectures, books, links): `study-source` (one part per batch) → `study-note` → "
-        "`write-cards`; `asl sources`, then `asl finish` (fix, lint, check, build); card mix from the brief's `cards:`.",
+        "- **topic** (lectures, books, links): `study-source`, one part per batch: `asl prompt` "
+        "(cards straight from the source), or `study-note` → `write-cards` (notes first); "
+        "`asl sources / prompt / finish`; card mix from the brief's `cards:`. Low effort is enough.",
         "- **language**: `language-cards`; `asl lang add / plan / draft / grammar / tts / sync`, "
         "then `asl lint / build`; sentence and grammar cards only.",
         "- Choices for one topic go into its `Overview.md` brief; `preferences.md` only takes rules "
