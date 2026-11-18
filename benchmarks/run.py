@@ -110,6 +110,12 @@ def run_env(config_dir: Path, arm: str, auth: str) -> dict:
     env = {k: v for k, v in os.environ.items()
            if not k.startswith(("CLAUDE", "ANTHROPIC")) or k == "ANTHROPIC_API_KEY"}
     env["CLAUDE_CONFIG_DIR"] = str(config_dir)
+    # no project venv (an activated .venv puts the repo's asl on PATH): plain stays plain
+    venvs = {str(REPO / ".venv" / "bin")} | ({str(Path(env["VIRTUAL_ENV"]) / "bin")}
+                                             if env.get("VIRTUAL_ENV") else set())
+    env.pop("VIRTUAL_ENV", None)
+    env["PATH"] = os.pathsep.join(p for p in env.get("PATH", "").split(os.pathsep)
+                                  if p.rstrip("/") not in venvs)
     if auth == "plan":
         env.pop("ANTHROPIC_API_KEY", None)           # never bill the API by accident
         env["CLAUDE_CODE_OAUTH_TOKEN"] = plan_token()

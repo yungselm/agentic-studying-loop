@@ -1,4 +1,4 @@
-"""Core's `asl` commands: build, check, lint, ids, fix, init-home, install-skills, packs."""
+"""Core's `asl` commands: build, check, lint, ids, fix, finish, init-home, install-skills, packs."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -79,6 +79,38 @@ def _ids(a):
     return ids(config.resolve_inputs(a.inputs), a.cmd == "fix" or getattr(a, "fix", False))
 
 
+def _finish_args(p):
+    _inputs(p)
+    p.add_argument("-o", "--out", help="the .apkg to write (default: <card home>/<deck>.apkg)")
+    p.add_argument("--fast", action="store_true", help="check without the linter (clippy / ruff)")
+    examples(p, """
+        asl finish "Anki cards/rust_book"         # fix, lint, check, then Anki cards/rust_book.apkg
+    """)
+
+
+def _finish(a):
+    """The end of every batch in one call: fix, lint -q, check; build only when all pass."""
+    from studyloop.core.cards.ids import ids
+    from studyloop.core.engine.build import build
+    from studyloop.core.engine.check import check
+    from studyloop.core.engine.lint import lint
+    groups = config.resolve_inputs(a.inputs)
+    ids(groups, True)
+    groups = config.resolve_inputs(a.inputs)          # ids and std are in the files now
+    print("== lint")
+    if lint(groups, True, frozenset()):
+        print("finish: fix the problems (!) above, then run `asl finish` again; nothing built.")
+        return 1
+    print("== check")
+    if check(groups, {"fast": a.fast}):
+        print("finish: `asl check` failed (above); fix the cards, then run `asl finish` again; "
+              "nothing built.")
+        return 1
+    out = Path(a.out) if a.out else groups[0][0].path.parent / f"{groups[0][0].path.name}.apkg"
+    print("== build")
+    return build(groups, out)
+
+
 def _init_home_args(p):
     p.add_argument("home", type=Path, help="the new card home folder (holds studyloop.yaml and the decks)")
     p.add_argument("--pack", action="append", default=[], help="a pack whose standards addendum to copy in; repeat for more (`asl packs` lists them)")
@@ -126,6 +158,8 @@ COMMANDS = (
     Command("ids", "next free id and cards without one (read-only)", _ids_args, _ids),
     Command("fix", "write missing kind, ids, std versions, Overview.md rows and sources map",
             _fix_args, _ids),
+    Command("finish", "end of a batch: fix, lint, check, then build the deck's .apkg",
+            _finish_args, _finish),
     Command("init-home", "create a card home (in your vault, if you keep one)", _init_home_args,
             _init_home),
     Command("install-skills", "copy skills to a .claude/skills folder", _install_skills_args,

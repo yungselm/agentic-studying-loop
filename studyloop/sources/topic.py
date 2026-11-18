@@ -85,7 +85,7 @@ def write_topics_block(home: Path) -> None:
         "Each deck has a **kind** (`kind:` in its deck.yaml); the kind decides the skills, the "
         "`asl` commands and the card types. Follow only the named kind.",
         "- **topic** (lectures, books, links): `study-source` (one part per batch) → `study-note` → "
-        "`write-cards`; `asl sources / fix / lint / check / build`; card mix from the brief's `cards:`.",
+        "`write-cards`; `asl sources`, then `asl finish` (fix, lint, check, build); card mix from the brief's `cards:`.",
         "- **language**: `language-cards`; `asl lang add / plan / draft / grammar / tts / sync`, "
         "then `asl lint / build`; sentence and grammar cards only.",
         "- Choices for one topic go into its `Overview.md` brief; `preferences.md` only takes rules "

@@ -38,6 +38,8 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "genanki" },
+    { name = "pillow", version = "12.3.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "pillow", version = "13.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "pypdf" },
     { name = "pyyaml" },
     { name = "zstandard" },
@@ -96,6 +98,7 @@ requires-dist = [
     { name = "matplotlib", marker = "extra == 'analysis'", specifier = ">=3.7" },
     { name = "myst-parser", marker = "extra == 'docs'", specifier = ">=3" },
     { name = "pandas", marker = "extra == 'analysis'", specifier = ">=2.0" },
+    { name = "pillow", specifier = ">=10" },
     { name = "pypdf", specifier = ">=4" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7" },
     { name = "pytest", marker = "extra == 'python'", specifier = ">=7" },

@@ -1,5 +1,6 @@
 """Sources map: PDF bookmarks -> parts, split by batch size, status from cards and notes."""
 import json
+import re
 import textwrap
 from pathlib import Path
 
@@ -250,3 +251,65 @@ def test_markdown_source_by_heading_link(tmp_path):
     text = ov.read_text()
     row = next(ln for ln in text.splitlines() if "| Ownership |" in ln)
     assert row.endswith("| cards 2 |"), row
+
+
+def test_read_several_parts_in_one_call(tmp_path, capsys):
+    d = topic(tmp_path)
+    assert main(["sources", str(d), "--read", "tour.1,tour.2"]) == 0
+    out = capsys.readouterr().out
+    assert "1 The Basics (pages 3–10)" in out and "2 Classes (pages 11–17)" in out
+
+
+def scanned_topic(tmp: Path) -> Path:
+    """A topic whose one source is a scanned page: a single photo, no text, no bookmarks."""
+    import random
+
+    from PIL import Image
+    v = tmp / "v"
+    (v / ".obsidian").mkdir(parents=True)
+    (v / "Books").mkdir()
+    rng = random.Random(0)
+    img = Image.new("RGB", (400, 300))
+    img.putdata([(rng.randrange(256), rng.randrange(256), rng.randrange(256))
+                 for _ in range(400 * 300)])          # noise: a JPEG well over the icon size
+    img.save(v / "Books" / "Scan.pdf")
+    home = v / "Anki cards"
+    assert main(["topic", "Scan", "--home", str(home), "--sources", str(v / "Books" / "Scan.pdf"),
+                 "--no-notes"]) == 0
+    return home / "scan"
+
+
+def test_read_saves_the_parts_figures(tmp_path, capsys):
+    d = scanned_topic(tmp_path)
+    capsys.readouterr()
+    part = re.search(r"^\| (\S+) \| \(no bookmarks", (d / "Overview.md").read_text(), re.M)[1]
+    assert main(["sources", str(d), "--read", part]) == 0
+    out = capsys.readouterr().out
+    name = re.search(r"!\[\[figures/(\S+)\]\] 400×300", out)[1]
+    assert (d / "figures" / name).stat().st_size > 4000
+    assert main(["sources", str(d), "--read", part]) == 0             # second read: same file
+    assert sorted(p.name for p in (d / "figures").iterdir()) == [name]
+
+
+def test_finish_builds_only_a_clean_deck(tmp_path, capsys):
+    d = scanned_topic(tmp_path)
+    part = re.search(r"^\| (\S+) \| \(no bookmarks", (d / "Overview.md").read_text(), re.M)[1]
+    main(["sources", str(d), "--read", part])
+    fig = next((d / "figures").iterdir()).name
+    apkg = d.parent / "scan.apkg"
+    good = textwrap.dedent(f"""\
+        - type: concept
+          question: |
+            What does this scan show?
+            ![[figures/{fig}]]
+          answer: "**Noise.**"
+          source: "[[Scan.pdf#page=1]]"
+        """)
+    too_long = f'- type: concept\n  question: q?\n  answer: "**{"x" * 400}**"\n'
+    (d / "a.yaml").write_text(good + too_long)
+    assert main(["finish", str(d)]) == 1 and not apkg.exists()           # answer over the max
+    (d / "a.yaml").write_text(good)
+    assert main(["finish", str(d)]) == 0
+    import zipfile
+    media = json.loads(zipfile.ZipFile(apkg).read("media"))
+    assert fig in media.values()                                        # the figure is packed

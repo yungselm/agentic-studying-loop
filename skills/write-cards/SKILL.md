@@ -17,7 +17,7 @@ Paths (card home, deck folder) are in the CLAUDE.md study-loop or topics block.
      notes a deck far from it. From a vault note: facts → `cloze`, *why* → `concept`; its
      `[!question]` callouts are ready-made. From a book or link (`study-source`):
      `source: "[[Book.pdf#page=N]]"`, `[[Book#Heading]]` (Markdown) or the URL, so the
-     sources map counts it.
+     sources map counts it; a card about a figure embeds it (`![[figures/<file>]]`).
 3. **Write** into `<slug>.yaml` (stdlib + stubs, checked) or `<slug>_ext.yaml` (third-party,
    verbatim). Leave out `id`/`std`, `asl fix` adds them:
    ```yaml
@@ -42,8 +42,8 @@ Paths (card home, deck folder) are in the CLAUDE.md study-loop or topics block.
      hook: "optional mnemonic / scene, ![[scene.png]]"
      source: "[[Atomic file writes#How it works]]"
    ```
-4. **Finish:** `asl fix <deck>`, then `asl lint -q <deck>` and `asl check <deck>`; fix every
-   problem. Report the new ids in one line.
+4. **Finish:** `asl finish <deck>` (fix, lint, check, then build `<card home>/<deck>.apkg`); it
+   stops at the first problem: fix it, run it again. Report the new ids in one line.
 5. **Corrections** from the user: fix the card, then put the rule where it belongs. A choice
    for **this topic** (card mix, what to skip) → its brief in `Overview.md` (`cards:`, `focus:`,
    `skip:`). A rule for **all cards** (how a good card looks) → a dated one-line rule with the

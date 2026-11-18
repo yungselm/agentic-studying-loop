@@ -1,7 +1,7 @@
 """A topic's sources (books, links) as a map of parts, so an agent reads one part at a time.
 
     asl sources <deck>               # write the map into the deck's Overview.md
-    asl sources <deck> --read tour.3 # print the text of one part (PDF), nothing else
+    asl sources <deck> --read tour.3 # print the text of one part (and save its figures)
 
 The brief lives in the frontmatter of the deck's Overview.md:
 
@@ -333,6 +333,58 @@ def text_of(path: Path, first: int, last: int) -> str:
     return "\n".join(out)
 
 
+FIGURES = "figures"                 # in the deck folder; cards embed ![[figures/<file>]]
+CAPTION = re.compile(r"^\s*(Fig(?:ure|\.)\s*\d+(?:[.\-]\d+)*\.?\s+[A-Z(].*(?:\n.*){0,2})", re.M)
+MIN_SIDE, MIN_BYTES = 120, 4000     # smaller: logos, icons, rules
+
+
+def figures(deck: Deck, src: Source, first: int, last: int) -> list[str]:
+    """Save the raster images on a PDF's pages `first`-`last` to `<deck>/figures/` (once) and
+    return lines listing them with each page's figure captions. Drawings (vector graphics) have
+    a caption but no image file; they are listed as such."""
+    try:
+        from PIL import Image  # noqa: F401  (pypdf decodes images with Pillow)
+    except ImportError:
+        return ["(figures: install Pillow to extract them)"]
+    import io
+    reader = _reader(src.path)
+    folder = deck.path / FIGURES
+    out = []
+    for i in range(first - 1, min(last, len(reader.pages))):
+        page = reader.pages[i]
+        caps = [re.sub(r"(\w) ?- (\w)", r"\1\2", " ".join(c.split()))[:200]
+                for c in CAPTION.findall(page.extract_text() or "")]
+        files = []
+        try:
+            images = list(page.images)
+        except Exception:                           # an image pypdf can't decode
+            images = []
+        for n, im in enumerate(images, 1):
+            try:
+                pic = im.image
+                w, h = pic.size
+                if min(w, h) < MIN_SIDE or len(im.data) < MIN_BYTES:
+                    continue
+                jpeg = Path(im.name).suffix.lower() in (".jpg", ".jpeg")
+                name = f"{src.key}-p{i + 1}-{n}.{'jpg' if jpeg else 'png'}"
+                f = folder / name
+                if not f.exists():
+                    folder.mkdir(exist_ok=True)
+                    if jpeg:
+                        f.write_bytes(im.data)
+                    else:                           # tif, jp2, raw pixels: PNG shows in Anki
+                        buf = io.BytesIO()
+                        pic.convert("RGBA" if pic.mode in ("RGBA", "LA", "P") else "RGB").save(buf, "PNG")
+                        f.write_bytes(buf.getvalue())
+            except Exception:
+                continue
+            files.append(f"![[{FIGURES}/{name}]] {w}×{h}")
+        if files or caps:
+            out.append(f"page {i + 1}: " + ("; ".join(files) if files else "no image file (a drawing)"))
+            out += [f"  {c}" for c in caps]
+    return out
+
+
 # ---- status from cards and notes -----------------------------------------
 
 def _refs(s: str) -> list[tuple[str, int | None]]:
@@ -525,19 +577,32 @@ def sources(groups, read: str | None = None) -> int:
                 if s.path is not None and not s.problem:
                     words = scan_md(s) if s.unit == "lines" else scan(s, cache)
                     attach_words(s, words, int(meta.get("batch") or DEFAULT_BATCH))
-            hit = find_part(srcs, read)
-            if hit is None:
-                print(f"! no part `{read}` in {deck.path.name}; run `asl sources` and pick an id "
-                      "from the map.")
-                return 1
-            s, p = hit
-            if s.url:
-                print(f"{p.id}: {p.url}\n(a link: fetch only this part)")
-                return 0
-            where = "" if p.title.startswith(s.unit) else f" ({s.unit} {p.first}–{p.last})"
-            print(f"# {s.label} — {p.title}{where}\n")
-            print(text_of(s.path, p.first, p.last))
+            for pid in [x.strip() for x in read.split(",") if x.strip()]:
+                if read_part(deck, srcs, pid):
+                    return 1
             return 0
         if build_map(deck) is None:
             print(f"{deck.path.name}: no `sources:` in Overview.md's frontmatter; nothing to map.")
+    return 0
+
+
+def read_part(deck: Deck, srcs: list[Source], pid: str) -> int:
+    hit = find_part(srcs, pid)
+    if hit is None:
+        print(f"! no part `{pid}` in {deck.path.name}; run `asl sources` and pick an id "
+              "from the map.")
+        return 1
+    s, p = hit
+    if s.url:
+        print(f"{p.id}: {p.url}\n(a link: fetch only this part)")
+        return 0
+    where = "" if p.title.startswith(s.unit) else f" ({s.unit} {p.first}–{p.last})"
+    print(f"# {s.label} — {p.title}{where}\n")
+    print(text_of(s.path, p.first, p.last))
+    if s.unit == "pages":
+        figs = figures(deck, s, p.first, p.last)
+        if figs:
+            print(f"\n## Figures (saved in {deck.path.name}/{FIGURES}/; Read a file to see it)\n")
+            print("\n".join(figs))
+    print()
     return 0

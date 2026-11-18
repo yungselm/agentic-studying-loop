@@ -51,10 +51,13 @@ TOPIC = DeckKind(
 
 def _sources_args(p):
     p.add_argument("inputs", nargs="*", help="topic deck folders (default: the current folder)")
-    p.add_argument("--read", metavar="PART", help="print the text of one part, e.g. tour.3")
+    p.add_argument("--read", metavar="PART[,PART]",
+                   help="print the text of one or more parts, e.g. tour.3 or tour.3,tour.4; "
+                        "PDF parts also save their figures to the deck's figures/ folder")
     examples(p, """
         asl sources "Anki cards/C++"              # the map: parts, tokens, status
-        asl sources "Anki cards/C++" --read tour.3   # one part's text, for the agent
+        asl sources "Anki cards/C++" --read tour.3   # one part's text (and figures), for the agent
+        asl sources "Anki cards/C++" --read tour.3,tour.4   # two parts in one call
     """)
 
 

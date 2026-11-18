@@ -70,6 +70,10 @@ for APIs you never used don't stick. Concept cards fail when they ask two things
 - Ask the transferable concept, not the episode; the project case goes in the detail as
   `Project example: …`.
 - Code the question is about goes *in the question* (indented 4 spaces); `code:` is back-only.
+- **Stands alone:** no "this chapter", "Table 20.1" or "Fig. 3": among thousands of cards that
+  names nothing. Values from a table only with the rows needed on the card.
+- **A figure the card is about goes on the card** (`![[figures/…]]`, saved by
+  `asl sources --read`): image findings, curves, anatomy. Ask what it shows (findings → name).
 
 ## 4. Cloze cards (from notes)
 
@@ -77,7 +81,10 @@ for APIs you never used don't stick. Concept cards fail when they ask two things
 - **Recall ≤ 20 chars per card (max 80)** *(lint)*: short gaps, not sentences; `$math$` counts
   as rendered (`\leftarrow` is one symbol).
 - **2–5 gaps per note** *(lint hint at 1)*, all about one idea: Anki shows the other gaps while
-  asking one, so they give context.
+  asking one, so they give context. Not a list of separate facts in one sentence.
+- **No gap the card gives away:** if the sentence or the other gaps make it obvious (*"flow is
+  mainly {{diastolic}}"* next to *"the systolic share is small"*), cut that gap.
+- Stands alone, figures on the card: as concept cards (§3).
 - **Both ways:** gap the name as well as its facts. Its card then shows the facts and asks the name.
 - `hook:` (optional): a mnemonic, scene, room or acronym (`![[scene.png]]` embeds). Not the
   answer, and no measured effect yet: `asl stats` compares cards with and without one.
@@ -106,4 +113,4 @@ Before adding a card, search the deck (and any base deck) for the same pattern.
 
 ## 8. Done means
 
-`asl fix`, `asl lint -q` and `asl check` all pass, and one line in chat names the card ids.
+`asl finish` passes (fix, lint, check, build), and one line in chat names the card ids.
