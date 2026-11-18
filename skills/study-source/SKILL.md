@@ -28,7 +28,8 @@ Read only the frontmatter and that section: the card table below it isn't needed
    `builds_on`: prefer contrast cards ("Rust `Box<T>` → C++?") and say where the analogy breaks.
 5. **Write:** `notes:` folder → `study-note` per idea with `source: "[[Book.pdf#page=N]]"` in
    its frontmatter, then `write-cards` from the notes. `notes: false` → `write-cards` with
-   `source: "[[Book.pdf#page=N]]"` (or the URL with its anchor) on every card.
+   `source: "[[Book.pdf#page=N]]"` (a Markdown file: `[[Book#Heading]]`; a URL: with its anchor)
+   on every card.
 6. **Finish:** `asl fix <deck>` (the part's status updates), `asl lint -q <deck>`, and
    `asl check <deck>`: it compiles and runs the code cards (C++, Rust, Python); fix every problem.
    No compiler found (e.g. Windows without `g++`): say so, and offer to run the check in WSL.

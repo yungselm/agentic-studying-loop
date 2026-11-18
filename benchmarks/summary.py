@@ -1,0 +1,89 @@
+"""Tokens, cost and cards per setup and arm, from a batch's runs.jsonl (medians over runs), and
+the 1-5 ratings from rate.py once there are some.
+
+    python benchmarks/summary.py pilot
+"""
+from __future__ import annotations
+
+import json
+import sys
+from collections import defaultdict
+from pathlib import Path
+from statistics import median
+
+BENCH = Path(__file__).resolve().parent
+ORDER = ["haiku-medium", "sonnet-medium", "opus-low", "opus-medium", "opus-high"]
+
+
+def _k(n: float) -> str:
+    return f"{n / 1e6:.2f}M" if n >= 1e6 else f"{n / 1e3:.0f}k"
+
+
+def table(runs: list[dict]) -> str:
+    cells = defaultdict(list)
+    for r in runs:
+        if r["status"] == "ok":
+            cells[(r["setup"], r["arm"])].append(r)
+    rows = ["| setup | arm | runs | cache read | cache write | input | output | total | cost | "
+            "cards | cards w/o lint problem | $ per card | min |",
+            "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    keys = sorted(cells, key=lambda k: (ORDER.index(k[0]) if k[0] in ORDER else 99, k[1]))
+    for setup, arm in keys:
+        rs = cells[(setup, arm)]
+        def med(f, rs=rs):
+            return median(f(r) for r in rs)
+        cards = med(lambda r: r["cards"])
+        ok = (f"{med(lambda r: r['cards'] - r['cards_flagged']):.0f}" if arm == "workflow" else "–")
+        cost = med(lambda r: r["cost_usd"])
+        rows.append(
+            f"| {setup} | {arm} | {len(rs)} | {_k(med(lambda r: r['tokens'].get('cache_read', 0)))} | "
+            f"{_k(med(lambda r: r['tokens'].get('cache_write', 0)))} | "
+            f"{_k(med(lambda r: r['tokens'].get('input', 0)))} | "
+            f"{_k(med(lambda r: r['tokens'].get('output', 0)))} | {_k(med(lambda r: r['tokens_total']))} | "
+            f"${cost:.2f} | {cards:.0f} | {ok} | {'–' if not cards else f'${cost / cards:.3f}'} | "
+            f"{med(lambda r: r['wall_s']) / 60:.0f} |")
+    return "\n".join(rows)
+
+
+def rating_table(rows: list[dict]) -> str:
+    """Your 1-5 scores per setup and arm: count, median, mean, share rated 4 or 5, per kind."""
+    cells = defaultdict(list)
+    for r in rows:
+        cells[(r["setup"], r["arm"])].append(r)
+    kinds = sorted({r["kind"] for r in rows})
+    out = ["| setup | arm | rated | median | mean | 4-5 | " + " | ".join(f"{k} mean" for k in kinds) + " |",
+           "|---|---|---|---|---|---|" + "---|" * len(kinds)]
+    for setup, arm in sorted(cells, key=lambda k: (ORDER.index(k[0]) if k[0] in ORDER else 99, k[1])):
+        sc = [r["score"] for r in cells[(setup, arm)]]
+        per_kind = []
+        for k in kinds:
+            ks = [r["score"] for r in cells[(setup, arm)] if r["kind"] == k]
+            per_kind.append(f"{sum(ks) / len(ks):.1f} ({len(ks)})" if ks else "–")
+        out.append(f"| {setup} | {arm} | {len(sc)} | {median(sc):g} | {sum(sc) / len(sc):.2f} | "
+                   f"{sum(s >= 4 for s in sc) / len(sc):.0%} | " + " | ".join(per_kind) + " |")
+    return "\n".join(out)
+
+
+def main() -> int:
+    batch = sys.argv[1] if len(sys.argv) > 1 else "pilot"
+    f = BENCH / "results" / batch / "runs.jsonl"
+    runs = [json.loads(ln) for ln in f.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    bad = [r for r in runs if r["status"] != "ok"]
+    print(table(runs))
+    ok = [r for r in runs if r["status"] == "ok"]
+    print(f"\n{len(ok)} ok run(s), total ${sum(r['cost_usd'] for r in ok):.2f} "
+          f"(API list price; on a plan this is what the runs would have cost), "
+          f"{sum(r['tokens_total'] for r in ok):,} tokens.")
+    for r in bad:
+        print(f"  {r['status']}: {r['run_id']} {r['error'][:200]}")
+    rf = f.with_name("ratings.jsonl")
+    if rf.exists():
+        rated = [json.loads(ln) for ln in rf.read_text(encoding="utf-8").splitlines() if ln.strip()]
+        if rated:
+            print("\nYour ratings (1-5):\n")
+            print(rating_table(rated))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

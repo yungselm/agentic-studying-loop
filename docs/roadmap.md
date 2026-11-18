@@ -79,23 +79,43 @@ loaded on demand). Check that this holds, then put numbers on it.
   first when it fetches the docs from the web. Not needed inside a repo, where skills and
   `CLAUDE.md` do that job.
 - [ ] Benchmark: the same tasks with the workflow (skills + `asl`) and without (a plain "write
-  Anki cards for this" prompt), each on Opus 5.5, Sonnet 5.5 and Haiku 5.5 at medium effort. One
-  generation, three sizes: shows how strong the model must be once the setup does its part.
-  Tasks: one project commit, one lecture PDF part, one subtitled episode. Run headless
-  (`claude -p --output-format json` reports tokens and cost per run), 3+ runs per cell since runs
-  vary.
-  - Measure: input (fresh / cache read / cache write) and output tokens, cost, time, cards made,
-    cards passing `asl lint`.
-  - Rate: the author rates 15 random cards per model and arm (90 in all) from 1 to 5 in a small
-    local GUI that shows the cards as Anki would, shuffled, with model and arm hidden until the
-    end. Cards drawn evenly across runs and tasks (cards from one run are alike).
+  Anki cards for this" prompt). Shows how strong the model must be once the setup does its part.
+  - Cells (arm × model × effort, 10 in all): Haiku 5.5, Sonnet 5.5, Opus 5.5 at medium effort,
+    plus Opus at low and high, each with and without the workflow.
+  - Tasks: one source per card kind, each one the author knows well enough to judge a card on
+    sight (rater expertise matters more than topic breadth): code from *The Rust Programming
+    Language* (public web book, so anyone can rerun it), topic cards from a coronary imaging and
+    physiology textbook (PDF, stays local), language from a subtitled Japanese episode. Two parts
+    of each source, so no single chapter sets the result. Each task is a frozen fixture (copied
+    sources, pinned commits); the task list with local paths is gitignored, the results name only
+    task id and kind.
+  - Runs: every cell × task, 2+ runs each, in shuffled order (a warm prompt cache would favour
+    whatever runs next). A pilot task first, to price a run before the full grid.
+  - Token tracking: `claude -p --model … --effort … --output-format stream-json --verbose` in a
+    fresh copy of the fixture, on the author's subscription (`claude setup-token`). A clean
+    `CLAUDE_CONFIG_DIR` and `--setting-sources project` keep the author's memory, CLAUDE.md, hooks
+    and plugins out; the workflow arm gets its skills and `CLAUDE.md` block in the fixture. Token
+    counts are exact either way; the reported cost is the API-price equivalent. Runs go in batches
+    so the plan's usage limits are not used up in one go.
+    The final result line gives tokens per model (fresh input, cache read, cache write, output),
+    cost, turns and time; the per-message usage in the stream doubles as the read audit above.
+    `--max-budget-usd` caps a runaway run. Each run records the Claude Code version and the repo
+    and skills commit.
+  - Measure: tokens, cost, time, cards made, cards passing `asl lint`.
+  - Rate (author): 15 random cards per cell (150 in all): 5 code, 5 topic, 5 language, drawn
+    evenly across tasks and runs (cards from one run are alike). Rated 1 to 5 in a small local
+    page (`python benchmarks/rate.py`): the card as Anki shows it, front then back, keys 1–5,
+    shuffled, cell hidden until the end, saved after every card so it can be done in sittings.
   - The scale is ordinal: a 1-point step is the difference that matters, and 15 vs 15 finds it
     (80% power, α 0.05, rating SD ~1). Compare with Mann-Whitney (or ordinal regression for
-    model × arm), report medians and the share of 4–5 ratings, not just means.
-  - Report per model and arm: total tokens and cost, mean rating, rated cards per 100k tokens
-    and per dollar. Later, the same cards' review fail rates from `asl stats` as the real
-    quality measure.
-  - A script in the repo (`benchmarks/`), so it can be rerun when skills or models change.
+    model × arm × effort), report medians and the share of 4–5 ratings, not just means.
+  - Report per cell: total tokens and cost, median rating, good cards (4–5) per 100k tokens and
+    per dollar. Later, the same cards' review fail rates from `asl stats` as the real measure.
+  - Stored in the repo: `benchmarks/` holds the runner, rating page and report; only
+    numbers go in git (`benchmarks/results/<date>/`: per-run tokens and cost, per-card scores by
+    id and cell, the plots). Card text, transcripts and fixtures stay local (gitignored), so no
+    vault content is published. The report writes the summary table and plots into the README
+    between markers, so a rerun updates it when skills or models change.
 
 ### 5. Documentation on Read the Docs
 A hosted site where the author explains the thinking in detail (why the standards are what they

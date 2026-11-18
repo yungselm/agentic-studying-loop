@@ -230,3 +230,23 @@ def test_markdown_source_by_headings_and_rule_ids(tmp_path, capsys):
     capsys.readouterr()
     assert main(["sources", str(d), "--read", "cg.R.raii"]) == 0
     assert "R.1: Manage resources" in capsys.readouterr().out
+
+
+def test_markdown_source_by_heading_link(tmp_path):
+    """A plain Markdown book (headings, no anchors): `[[Book#Heading]]` counts for its part."""
+    d = topic(tmp_path)
+    (tmp_path / "v" / "Books" / "Rust.md").write_text(
+        "# Ownership\n\nwords\n\n## What Is Ownership?\n\n### The `String` Type\n\ntext\n\n"
+        "## Slices\n\nmore\n")
+    ov = d / "Overview.md"
+    ov.write_text(ov.read_text().replace("  - Missing.pdf\n", "  - Rust.md\n"))
+    with open(d / "a.yaml", "a") as f:
+        f.write('- type: concept\n  question: q7?\n  answer: "**a.**"\n'
+                '  source: "[[Rust.md#The `String` Type]]"\n'
+                '- type: concept\n  question: q8?\n  answer: "**a.**"\n'
+                '  source: "[[Rust#slices]]"\n')
+    main(["fix", str(d)])
+    main(["sources", str(d)])
+    text = ov.read_text()
+    row = next(ln for ln in text.splitlines() if "| Ownership |" in ln)
+    assert row.endswith("| cards 2 |"), row

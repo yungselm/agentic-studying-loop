@@ -259,6 +259,12 @@ MD_ANCHOR = re.compile(r'<a\s+name="([^"]+)"\s*>\s*</a>|\{#([\w-]+)\}')
 RULE_ID = re.compile(r"\b([A-Z][A-Za-z]{0,4}\.\d+)\b")
 
 
+def _heading_key(text: str) -> str:
+    r"""A heading as a link names it, case and punctuation aside: `[[Book#The \`String\` Type]]`,
+    `#the-string-type` and the heading `The \`String\` Type` give the same key."""
+    return "h:" + re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+
+
 def scan_md(src: Source) -> list[int]:
     """A long Markdown document (e.g. the C++ Core Guidelines): `#` headings are parts, `##`
     their sections; anchors and rule ids (`R.1:` at a heading) index lines for the status."""
@@ -278,6 +284,7 @@ def scan_md(src: Source) -> list[int]:
         if not h:
             continue
         title = MD_ANCHOR.sub("", h.group(2)).strip()
+        src.index.setdefault(_heading_key(title), i)      # [[Book.md#Some heading]]
         r = re.match(r"([A-Z][A-Za-z]{0,4}\.\d+)\s*:", title)
         if r:
             src.index.setdefault(r.group(1).lower(), i)
@@ -399,6 +406,8 @@ def _md_lines(src: Source, s: str) -> set[int]:
     if not any(n and n in low for n in names):
         return set()
     hits = {src.index.get(a.lower()) for a in re.findall(r"#([\w.-]+)", s)}
+    heads = re.findall(r"\[\[[^\]|#]*#([^\]|]+)", s) + re.findall(r"#([\w.-]+)", s)
+    hits |= {src.index.get(_heading_key(a)) for a in heads}
     hits |= {src.index.get(r.lower()) for r in RULE_ID.findall(s)}
     return {h for h in hits if h}
 

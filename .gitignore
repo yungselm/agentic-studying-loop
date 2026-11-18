@@ -10,3 +10,6 @@ asl-output/
 build/
 docs/_build/
 docs/api/cli.md
+# benchmark: sources, task paths and run folders stay local; results/ is committed
+benchmarks/fixtures/
+benchmarks/tasks.local.yaml

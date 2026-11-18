@@ -16,7 +16,8 @@ Paths (card home, deck folder) are in the CLAUDE.md study-loop or topics block.
      of code cards** (`{code: 0.3}` for a book about code, `{code: 0}` otherwise); `asl lint`
      notes a deck far from it. From a vault note: facts → `cloze`, *why* → `concept`; its
      `[!question]` callouts are ready-made. From a book or link (`study-source`):
-     `source: "[[Book.pdf#page=N]]"` or the URL, so the sources map counts it.
+     `source: "[[Book.pdf#page=N]]"`, `[[Book#Heading]]` (Markdown) or the URL, so the
+     sources map counts it.
 3. **Write** into `<slug>.yaml` (stdlib + stubs, checked) or `<slug>_ext.yaml` (third-party,
    verbatim). Leave out `id`/`std`, `asl fix` adds them:
    ```yaml
