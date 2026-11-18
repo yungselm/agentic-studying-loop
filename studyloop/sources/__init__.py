@@ -99,12 +99,30 @@ def _topic(a):
     return 0
 
 
+def _prompt_args(p):
+    p.add_argument("inputs", nargs="*", help="topic deck folders (default: the current folder)")
+    p.add_argument("--part", metavar="PART[,PART]", help="parts to card (default: every part still todo)")
+    p.add_argument("-o", "--out", type=Path, help="write the prompt to this file instead of printing it")
+    examples(p, """
+        asl prompt "Anki cards/rust_book"         # one prompt for every part still todo
+        asl prompt "Anki cards/rust_book" --part ch04.s1 -o prompt.md
+    """)
+
+
+def _prompt(a):
+    from studyloop.core.config import resolve_inputs
+    from studyloop.sources.prompt import prompt
+    return prompt(resolve_inputs(a.inputs), a.part, a.out)
+
+
 def register(reg: Registry) -> None:
     reg.add_deck_kind(TOPIC)
     reg.add_lint_rule(LintRule("mix", kinds=("topic",),
                                deck=lambda deck, s: mix_flags(deck, s.types)))
     reg.add_command(Command("sources", "map a topic's books/links into parts (Overview.md)",
                             _sources_args, _sources))
+    reg.add_command(Command("prompt", "one self-contained prompt to card a topic's parts (any agent)",
+                            _prompt_args, _prompt))
     reg.add_command(Command("topic", "start a topic from lectures, books or links (no code repo)",
                             _topic_args, _topic))
 

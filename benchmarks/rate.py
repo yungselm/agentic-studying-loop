@@ -1,14 +1,15 @@
 """Rate benchmark cards blind, 1-5, in a local page that shows them as Anki would.
 
     uv run python benchmarks/rate.py pilot            # then open http://127.0.0.1:8765
+    uv run python benchmarks/rate.py pilot v2         # two batches: arms compared across them
 
 Picks `--per` random cards (default 5) per setup x arm x kind (code / topic / language) from the
-batch's finished runs, in random order, without saying which model or arm made them. Workflow
+batch's finished runs (with several batches, each batch's arm is its own group), in random order, without saying which model or arm made them. Workflow
 cards render through the real card templates (CodeMirror for code cards); plain-prompt cards get
 the same look as a concept card. A cloze note is rated as one of its Anki cards (one gap hidden).
 
 Keys: space or enter flips, 1-5 rates (after flipping), u undoes the last rating.
-Ratings go to results/<batch>/ratings.jsonl: card ids and scores only, no card text.
+Ratings go to results/<batch>/ratings.jsonl of the card's batch: card ids and scores only.
 New runs join the pool the next time the page starts.
 """
 from __future__ import annotations
@@ -77,10 +78,11 @@ def render(tpl: str, fields: dict[str, str], side: str, ord_: int = 1, front: st
 # ---- the pool: every card of the batch's finished runs ---------------------------------------
 
 class Card:
-    __slots__ = ("key", "run", "front", "back", "media", "root")
+    __slots__ = ("key", "rkey", "batch", "run", "front", "back", "media", "root")
 
-    def __init__(self, key, run, front, back, media, root):
-        self.key, self.run, self.front, self.back = key, run, front, back
+    def __init__(self, batch, rkey, run, front, back, media, root):
+        self.batch, self.rkey, self.key = batch, rkey, f"{batch}:{rkey}"   # run ids repeat across batches
+        self.run, self.front, self.back = run, front, back
         self.media, self.root = media, root         # name -> file; folder for relative names
 
 
@@ -151,20 +153,22 @@ def plain_cards(run: dict, run_dir: Path) -> list[tuple[str, str, str, dict]]:
     return out
 
 
-def load_pool(batch: str, work: Path) -> tuple[dict[tuple, list[Card]], dict[str, Card]]:
-    runs = [json.loads(ln) for ln in (BENCH / "results" / batch / "runs.jsonl")
-            .read_text(encoding="utf-8").splitlines() if ln.strip()]
+def load_pool(batches: list[str], work: Path) -> tuple[dict[tuple, list[Card]], dict[str, Card]]:
     groups: dict[tuple, list[Card]] = {}
     by_key: dict[str, Card] = {}
-    for run in runs:
-        run_dir = work / batch / run["run_id"]
-        if run["status"] != "ok" or not run_dir.is_dir():
-            continue
-        made = (workflow_cards if run["arm"] == "workflow" else plain_cards)(run, run_dir)
-        for key, front, back, media in made:
-            card = Card(key, run, front, back, media, run_dir)
-            groups.setdefault((run["setup"], run["arm"], run["kind"]), []).append(card)
-            by_key[key] = card
+    for batch in batches:
+        runs = [json.loads(ln) for ln in (BENCH / "results" / batch / "runs.jsonl")
+                .read_text(encoding="utf-8").splitlines() if ln.strip()]
+        for run in runs:
+            run_dir = work / batch / run["run_id"]
+            if run["status"] != "ok" or not run_dir.is_dir():
+                continue
+            arm = run["arm"] if len(batches) == 1 else f"{run['arm']}@{batch}"
+            made = (plain_cards if run["arm"] == "plain" else workflow_cards)(run, run_dir)
+            for rkey, front, back, media in made:
+                card = Card(batch, rkey, run, front, back, media, run_dir)
+                groups.setdefault((run["setup"], arm, run["kind"]), []).append(card)
+                by_key[card.key] = card
     return groups, by_key
 
 
@@ -176,16 +180,16 @@ class Ratings:
         self.rows = ([json.loads(ln) for ln in path.read_text(encoding="utf-8").splitlines()
                       if ln.strip()] if path.exists() else [])
 
-    def keys(self) -> set[str]:
+    def rated(self) -> set[str]:
         return {r["key"] for r in self.rows}
 
     def add(self, card: Card, score: int) -> None:
         run = card.run
-        row = {"key": card.key, "run_id": run["run_id"], "task": run["task"], "kind": run["kind"],
+        row = {"key": card.rkey, "run_id": run["run_id"], "task": run["task"], "kind": run["kind"],
                "setup": run["setup"], "arm": run["arm"], "score": score,
                "at": time.strftime("%Y-%m-%dT%H:%M:%S")}
         with self.lock:
-            self.rows = [r for r in self.rows if r["key"] != card.key] + [row]
+            self.rows = [r for r in self.rows if r["key"] != card.rkey] + [row]
             self._save()
 
     def undo(self) -> str | None:
@@ -199,6 +203,26 @@ class Ratings:
     def _save(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.write_text("".join(json.dumps(r) + "\n" for r in self.rows), encoding="utf-8")
+
+
+class AllRatings:
+    """One ratings file per batch; keys are `<batch>:<key>` like Card.key."""
+
+    def __init__(self, batches: list[str]):
+        self.by = {b: Ratings(BENCH / "results" / b / "ratings.jsonl") for b in batches}
+
+    def rated(self) -> set[str]:
+        return {f"{b}:{k}" for b, r in self.by.items() for k in r.rated()}
+
+    def add(self, card: Card, score: int) -> None:
+        self.by[card.batch].add(card, score)
+
+    def undo(self) -> str | None:
+        last = [(r.rows[-1]["at"], b) for b, r in self.by.items() if r.rows]
+        if not last:
+            return None
+        b = max(last)[1]
+        return f"{b}:{self.by[b].undo()}"
 
 
 def pick(groups: dict[tuple, list[Card]], done: set[str], per: int, rng: random.Random):
@@ -240,8 +264,8 @@ button:disabled { opacity:.35; cursor:default; }
 </style></head><body>
 <header><span id="progress"></span><span id="msg"></span></header>
 <iframe id="frame"></iframe>
-<div id="done">All cards rated. The scores are in <code>results/__BATCH__/ratings.jsonl</code>;
-<code>python benchmarks/summary.py __BATCH__</code> shows them per setup.</div>
+<div id="done">All cards rated. The scores are in each batch's <code>ratings.jsonl</code>;
+<code>python benchmarks/summary.py __BATCHES__</code> shows them per setup.</div>
 <div id="bar">
   <button id="flip">Show answer (space)</button>
   <button class="r" data-s="1" disabled>1</button><button class="r" data-s="2" disabled>2</button>
@@ -292,11 +316,12 @@ next();
 def serve(args) -> int:
     from studyloop.core.engine.build import STATIC_MEDIA, TPL, bundle_modes
     groups, by_key = load_pool(args.batch, args.work)
+    label = " + ".join(args.batch)
     if not groups:
-        raise SystemExit(f"no finished runs with cards in {args.work / args.batch}")
+        raise SystemExit(f"no finished runs with cards in {args.work} for {label}")
     for (setup, arm, kind), cards in sorted(groups.items()):
         print(f"  {kind:8} {setup:14} {arm:8} {len(cards):4} cards")
-    ratings = Ratings(BENCH / "results" / args.batch / "ratings.jsonl")
+    ratings = AllRatings(args.batch)
     rng = random.Random()
     assets = {k: v.read_bytes() for k, v in STATIC_MEDIA.items()}
     assets["_modes.js"] = bundle_modes().encode()
@@ -306,7 +331,7 @@ def serve(args) -> int:
     assets["style.css"] = css.encode()
     index = {i: c for i, c in enumerate(by_key.values())}
     idx_of = {c.key: i for i, c in index.items()}
-    page = PAGE.replace("__BATCH__", html.escape(args.batch)).encode()
+    page = PAGE.replace("__BATCHES__", html.escape(" ".join(args.batch))).encode()
 
     def payload(card: Card | None, progress, msg="") -> dict:
         if card is None:
@@ -341,7 +366,7 @@ def serve(args) -> int:
             if p == "/":
                 return self.send(page, "text/html; charset=utf-8")
             if p == "/api/next":
-                return self.json(payload(*pick(groups, ratings.keys(), args.per, rng)))
+                return self.json(payload(*pick(groups, ratings.rated(), args.per, rng)))
             m = re.fullmatch(r"/card/(\d+)/([qa])", p)
             if m and int(m[1]) in index:
                 return self.send(card_page(int(m[1]), m[2]), "text/html; charset=utf-8")
@@ -368,19 +393,19 @@ def serve(args) -> int:
                 card = by_key.get(body.get("key"))
                 if card and body.get("score") in (1, 2, 3, 4, 5):
                     ratings.add(card, body["score"])
-                return self.json(payload(*pick(groups, ratings.keys(), args.per, rng)))
+                return self.json(payload(*pick(groups, ratings.rated(), args.per, rng)))
             if self.path == "/api/undo":
                 key = ratings.undo()
                 card = by_key.get(key) if key else None
-                _, progress = pick(groups, ratings.keys(), args.per, rng)
+                _, progress = pick(groups, ratings.rated(), args.per, rng)
                 if card is None:
-                    return self.json(payload(*pick(groups, ratings.keys(), args.per, rng),
+                    return self.json(payload(*pick(groups, ratings.rated(), args.per, rng),
                                              msg="nothing to undo"))
                 return self.json(payload(card, progress, "undone: rate it again"))
             self.send(b"not found", "text/plain", 404)
 
     srv = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
-    print(f"rating {args.batch}: http://127.0.0.1:{args.port}  (Ctrl+C to stop; ratings are saved "
+    print(f"rating {label}: http://127.0.0.1:{args.port}  (Ctrl+C to stop; ratings are saved "
           "after each card)")
     try:
         srv.serve_forever()
@@ -391,7 +416,7 @@ def serve(args) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("batch", nargs="?", default="pilot")
+    ap.add_argument("batch", nargs="*", default=["pilot"], help="one or more batches (default: pilot)")
     ap.add_argument("--per", type=int, default=5, help="cards per setup x arm x kind (default 5)")
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--work", type=Path, default=DEFAULT_WORK, help="where run.py left the runs")

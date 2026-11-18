@@ -87,10 +87,12 @@ def prepare(run_dir: Path, config_dir: Path, task: dict, arm: str) -> str:
         return PROMPT_PLAIN.format(**task)
     home = "Anki cards"
     pack = ["--pack", task["pack"]] if task.get("pack") else []
-    for args in (["init-home", home, "--vault", ".", *pack],
-                 ["topic", task["topic"], "--home", home, "--sources", task["file"], "--no-notes",
-                  *pack, "--goal", task["goal"], "--builds-on", task["builds_on"]],
-                 ["install-skills", str(config_dir / "skills")]):
+    steps = [["init-home", home, "--vault", ".", *pack],
+             ["topic", task["topic"], "--home", home, "--sources", task["file"], "--no-notes",
+              *pack, "--goal", task["goal"], "--builds-on", task["builds_on"]]]
+    if arm == "workflow":                            # the prompt arm gets no skills
+        steps.append(["install-skills", str(config_dir / "skills")])
+    for args in steps:
         r = _asl(*args, cwd=run_dir)
         if r.returncode:
             raise SystemExit(f"asl {' '.join(args)} failed:\n{r.stdout}{r.stderr}")
@@ -99,6 +101,12 @@ def prepare(run_dir: Path, config_dir: Path, task: dict, arm: str) -> str:
         text = re.sub(r"^cards: \{code: [0-9.]+\}", f"cards: {{code: {task['code_share']}}}",
                       ov.read_text(encoding="utf-8"), count=1, flags=re.M)
         ov.write_text(text, encoding="utf-8")
+    if arm == "prompt":                              # one composed prompt: `asl prompt <deck>`
+        deck = deck_dir(run_dir).relative_to(run_dir)
+        r = _asl("prompt", str(deck), cwd=run_dir)
+        if r.returncode:
+            raise SystemExit(f"asl prompt failed:\n{r.stdout}{r.stderr}")
+        return r.stdout + "\nDon't ask me questions: decide yourself.\n"
     return PROMPT_WORKFLOW.format(**task)
 
 
@@ -121,7 +129,7 @@ def run_env(config_dir: Path, arm: str, auth: str) -> dict:
         env["CLAUDE_CODE_OAUTH_TOKEN"] = plan_token()
     elif not env.get("ANTHROPIC_API_KEY"):
         raise SystemExit("--auth api needs ANTHROPIC_API_KEY")
-    if arm == "workflow":
+    if arm != "plain":                               # workflow and prompt run `asl`
         env["PATH"] = f"{AGENT_BIN}{os.pathsep}{env.get('PATH', '')}"
     return env
 
@@ -190,7 +198,7 @@ def run_one(spec: dict, args, meta: dict) -> dict:
         "started": started, "status": status, "error": error,
         "wall_s": round(time.monotonic() - t0),
         **usage(result),
-        **(cards_workflow(run_dir) if spec["arm"] == "workflow" else cards_plain(run_dir)),
+        **(cards_plain(run_dir) if spec["arm"] == "plain" else cards_workflow(run_dir)),
         **meta,
     }
     shutil.rmtree(config_dir, ignore_errors=True)    # holds nothing worth keeping
@@ -328,7 +336,7 @@ def main() -> int:
     ap.add_argument("--task", action="append",
                     help="task id, repeatable (default: all in tasks.yaml + tasks.local.yaml)")
     ap.add_argument("--setup", action="append", help="setup id, repeatable (default: all)")
-    ap.add_argument("--arm", action="append", choices=["workflow", "plain"])
+    ap.add_argument("--arm", action="append", choices=["workflow", "plain", "prompt"])
     ap.add_argument("--repeat", type=int, default=1, help="runs per cell")
     ap.add_argument("--batch", default="pilot", help="results/<batch>/ (default: pilot)")
     ap.add_argument("--parallel", type=int, default=1)

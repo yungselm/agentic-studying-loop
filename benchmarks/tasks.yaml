@@ -9,7 +9,8 @@ setups:                      # model and effort; ids appear in the results
   opus-medium:   {model: claude-opus-5-5,   effort: medium}
   opus-high:     {model: claude-opus-5-5,   effort: high}
 
-arms: [workflow, plain]      # workflow: skills + asl + card home; plain: a plain prompt
+arms: [workflow, plain, prompt]   # workflow: skills + asl + card home; plain: a plain prompt;
+                                 # prompt: card home + asl, one prompt from `asl prompt`, no skills
 
 tasks:
   rust-ch04:

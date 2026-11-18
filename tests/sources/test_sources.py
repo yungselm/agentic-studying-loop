@@ -5,6 +5,7 @@ import textwrap
 from pathlib import Path
 
 import pypdf
+import pytest
 
 from studyloop.core import config
 from studyloop.core.cli import main
@@ -313,3 +314,21 @@ def test_finish_builds_only_a_clean_deck(tmp_path, capsys):
     import zipfile
     media = json.loads(zipfile.ZipFile(apkg).read("media"))
     assert fig in media.values()                                        # the figure is packed
+
+
+def test_prompt_is_self_contained(tmp_path, capsys):
+    d = scanned_topic(tmp_path)
+    prefs = d.parent / "standards" / "preferences.md"
+    prefs.write_text(prefs.read_text() + "- 2026-11-18: Never card a dose (`sca-001`).\n")
+    capsys.readouterr()
+    assert main(["prompt", str(d)]) == 0
+    out = capsys.readouterr().out
+    assert "## Brief" in out and "About 5 cards" in out                # floor for a tiny part
+    assert "### Cloze cards" in out and "### Hard topics" in out
+    assert "### Code cards" not in out                                  # brief: no code cards
+    assert "*(lint" not in out and "§" not in out                       # standards-only pointers cut
+    assert "Never card a dose" in out                                   # the user's own rules
+    assert "![[figures/" in out and "[[Scan.pdf#page=N]]" in out
+    assert f'asl finish "{d}"' in out
+    with pytest.raises(SystemExit):
+        main(["prompt", str(d), "--part", "nope"])

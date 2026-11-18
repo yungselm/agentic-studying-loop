@@ -2,6 +2,7 @@
 the 1-5 ratings from rate.py once there are some.
 
     python benchmarks/summary.py pilot
+    python benchmarks/summary.py pilot v2      # several batches: each arm labelled arm@batch
 """
 from __future__ import annotations
 
@@ -33,7 +34,8 @@ def table(runs: list[dict]) -> str:
         def med(f, rs=rs):
             return median(f(r) for r in rs)
         cards = med(lambda r: r["cards"])
-        ok = (f"{med(lambda r: r['cards'] - r['cards_flagged']):.0f}" if arm == "workflow" else "–")
+        ok = (f"{med(lambda r: r['cards'] - r['cards_flagged']):.0f}" if not arm.startswith("plain")
+              else "–")
         cost = med(lambda r: r["cost_usd"])
         rows.append(
             f"| {setup} | {arm} | {len(rs)} | {_k(med(lambda r: r['tokens'].get('cache_read', 0)))} | "
@@ -42,6 +44,25 @@ def table(runs: list[dict]) -> str:
             f"{_k(med(lambda r: r['tokens'].get('output', 0)))} | {_k(med(lambda r: r['tokens_total']))} | "
             f"${cost:.2f} | {cards:.0f} | {ok} | {'–' if not cards else f'${cost / cards:.3f}'} | "
             f"{med(lambda r: r['wall_s']) / 60:.0f} |")
+    return "\n".join(rows)
+
+
+def by_task(runs: list[dict]) -> str:
+    """Cost and cards per task x setup, one column per arm: like-for-like comparisons."""
+    ok = [r for r in runs if r["status"] == "ok"]
+    arms = sorted({r["arm"] for r in ok})
+    cell = defaultdict(list)
+    for r in ok:
+        cell[(r["task"], r["setup"], r["arm"])].append(r)
+    rows = ["| task | setup | " + " | ".join(arms) + " |", "|---|---|" + "---|" * len(arms)]
+    for task in sorted({r["task"] for r in ok}):
+        for setup in [s for s in ORDER if any(r["setup"] == s and r["task"] == task for r in ok)]:
+            vals = []
+            for a in arms:
+                rs = cell.get((task, setup, a))
+                vals.append(f"${median(r['cost_usd'] for r in rs):.2f} · {median(r['cards'] for r in rs):.0f} c · "
+                            f"{median(r.get('turns') or 0 for r in rs):.0f} t" if rs else "–")
+            rows.append(f"| {task} | {setup} | " + " | ".join(vals) + " |")
     return "\n".join(rows)
 
 
@@ -64,10 +85,27 @@ def rating_table(rows: list[dict]) -> str:
     return "\n".join(out)
 
 
+def load(batches: list[str], name: str) -> list[dict]:
+    """Rows of results/<batch>/<name> for every batch; with several, arm becomes arm@batch."""
+    out = []
+    for b in batches:
+        f = BENCH / "results" / b / name
+        if not f.exists():
+            continue
+        for ln in f.read_text(encoding="utf-8").splitlines():
+            if ln.strip():
+                r = json.loads(ln)
+                if len(batches) > 1:
+                    r["arm"] = f"{r['arm']}@{b}"
+                out.append(r)
+    return out
+
+
 def main() -> int:
-    batch = sys.argv[1] if len(sys.argv) > 1 else "pilot"
-    f = BENCH / "results" / batch / "runs.jsonl"
-    runs = [json.loads(ln) for ln in f.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    batches = sys.argv[1:] or ["pilot"]
+    runs = load(batches, "runs.jsonl")
+    if not runs:
+        raise SystemExit(f"no runs.jsonl in results/ for {' '.join(batches)}")
     bad = [r for r in runs if r["status"] != "ok"]
     print(table(runs))
     ok = [r for r in runs if r["status"] == "ok"]
@@ -76,12 +114,12 @@ def main() -> int:
           f"{sum(r['tokens_total'] for r in ok):,} tokens.")
     for r in bad:
         print(f"  {r['status']}: {r['run_id']} {r['error'][:200]}")
-    rf = f.with_name("ratings.jsonl")
-    if rf.exists():
-        rated = [json.loads(ln) for ln in rf.read_text(encoding="utf-8").splitlines() if ln.strip()]
-        if rated:
-            print("\nYour ratings (1-5):\n")
-            print(rating_table(rated))
+    print("\nPer task (median cost · cards · turns):\n")
+    print(by_task(runs))
+    rated = load(batches, "ratings.jsonl")
+    if rated:
+        print("\nYour ratings (1-5):\n")
+        print(rating_table(rated))
     return 0
 
 
