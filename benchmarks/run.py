@@ -214,6 +214,9 @@ def last_result(stream: Path) -> dict:
             except json.JSONDecodeError:
                 continue
             if ev.get("type") == "result":
+                # a background task can wake the agent after it finished: another result event.
+                # Cost and tokens in the last one are session totals; turns are per event.
+                ev["num_turns"] = (ev.get("num_turns") or 0) + (res.get("num_turns") or 0)
                 res = ev
     return res
 
