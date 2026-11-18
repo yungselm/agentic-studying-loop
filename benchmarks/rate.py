@@ -8,6 +8,9 @@ batch's finished runs (with several batches, each batch's arm is its own group),
 cards render through the real card templates (CodeMirror for code cards); plain-prompt cards get
 the same look as a concept card. A cloze note is rated as one of its Anki cards (one gap hidden).
 
+`--recheck 20` shows 20 cards you already rated (evenly from each batch), blind again, and saves
+the new scores to recheck.jsonl: `summary.py` then shows how far your scale moved between sessions.
+
 Keys: space or enter flips, 1-5 rates (after flipping), u undoes the last rating.
 Ratings go to results/<batch>/ratings.jsonl of the card's batch: card ids and scores only.
 New runs join the pool the next time the page starts.
@@ -208,8 +211,8 @@ class Ratings:
 class AllRatings:
     """One ratings file per batch; keys are `<batch>:<key>` like Card.key."""
 
-    def __init__(self, batches: list[str]):
-        self.by = {b: Ratings(BENCH / "results" / b / "ratings.jsonl") for b in batches}
+    def __init__(self, batches: list[str], name: str = "ratings.jsonl"):
+        self.by = {b: Ratings(BENCH / "results" / b / name) for b in batches}
 
     def rated(self) -> set[str]:
         return {f"{b}:{k}" for b, r in self.by.items() for k in r.rated()}
@@ -316,12 +319,22 @@ next();
 def serve(args) -> int:
     from studyloop.core.engine.build import STATIC_MEDIA, TPL, bundle_modes
     groups, by_key = load_pool(args.batch, args.work)
+    if args.recheck:                   # re-rate cards you rated before: did your scale move?
+        rated = AllRatings(args.batch).rated()
+        rng0 = random.Random(1)
+        chosen = []
+        for b in args.batch:
+            mine = sorted(k for k in rated if k.startswith(f"{b}:") and k in by_key)
+            chosen += rng0.sample(mine, min(len(mine), args.recheck // len(args.batch)))
+        groups = {("recheck", "", ""): [by_key[k] for k in chosen]}
     label = " + ".join(args.batch)
     if not groups:
         raise SystemExit(f"no finished runs with cards in {args.work} for {label}")
     for (setup, arm, kind), cards in sorted(groups.items()):
         print(f"  {kind:8} {setup:14} {arm:8} {len(cards):4} cards")
-    ratings = AllRatings(args.batch)
+    ratings = AllRatings(args.batch, "recheck.jsonl" if args.recheck else "ratings.jsonl")
+    if args.recheck:
+        args.per = len(groups[("recheck", "", "")])
     rng = random.Random()
     assets = {k: v.read_bytes() for k, v in STATIC_MEDIA.items()}
     assets["_modes.js"] = bundle_modes().encode()
@@ -418,6 +431,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("batch", nargs="*", default=["pilot"], help="one or more batches (default: pilot)")
     ap.add_argument("--per", type=int, default=5, help="cards per setup x arm x kind (default 5)")
+    ap.add_argument("--recheck", type=int, metavar="N",
+                    help="re-rate N cards you already rated, split over the batches (to recheck.jsonl)")
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--work", type=Path, default=DEFAULT_WORK, help="where run.py left the runs")
     return serve(ap.parse_args())

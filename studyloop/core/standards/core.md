@@ -74,6 +74,12 @@ for APIs you never used don't stick. Concept cards fail when they ask two things
   names nothing. Values from a table only with the rows needed on the card.
 - **A figure the card is about goes on the card** (`![[figures/…]]`, saved by
   `asl sources --read`): image findings, curves, anatomy. Ask what it shows (findings → name).
+  A card that describes how something looks (a finding on imaging) shows the figure with it,
+  on the back if the front asks for the finding in words. Every example figure gets its card.
+- **The figure shows what the card asks.** No figure next to a question it doesn't answer
+  (a plain stenosis image on a formula question): then no figure.
+- **Skip what needs no learning:** answers that follow from the question or common sense, and
+  what the brief's `builds_on` already covers.
 
 ## 4. Cloze cards (from notes)
 

@@ -158,7 +158,7 @@ def build_prompt(deck: Deck, part_ids: list[str] | None = None) -> str:
     figs = [ln for s, p in chosen if s.unit == "pages" for ln in sm.figures(deck, s, p.first, p.last)]
     n_figs = sum(ln.count("![[") for ln in figs)
     per_1k = float(meta.get("per_1k_words") or PER_1K_WORDS)
-    n = max(5, round(words / 1000 * per_1k + n_figs / 2))      # figures carry content too
+    n = max(5, round(words / 1000 * per_1k + n_figs))          # every example figure: a card
     share = float((meta.get("cards") or {}).get("code", 0) or 0)
     n_code = round(n * share)
     code = n_code > 0

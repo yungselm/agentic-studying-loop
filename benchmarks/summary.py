@@ -106,7 +106,8 @@ def main() -> int:
     runs = load(batches, "runs.jsonl")
     if not runs:
         raise SystemExit(f"no runs.jsonl in results/ for {' '.join(batches)}")
-    bad = [r for r in runs if r["status"] != "ok"]
+    done = {(r["run_id"], r["arm"]) for r in runs if r["status"] == "ok"}
+    bad = [r for r in runs if r["status"] != "ok" and (r["run_id"], r["arm"]) not in done]  # retried: gone
     print(table(runs))
     ok = [r for r in runs if r["status"] == "ok"]
     print(f"\n{len(ok)} ok run(s), total ${sum(r['cost_usd'] for r in ok):.2f} "
@@ -120,6 +121,18 @@ def main() -> int:
     if rated:
         print("\nYour ratings (1-5):\n")
         print(rating_table(rated))
+    again = load(batches, "recheck.jsonl")
+    if again:
+        first = {(r["run_id"], r["key"]): r["score"] for r in rated}
+        print("\nRe-rated cards (your scale between sessions):\n")
+        for b in sorted({r["arm"].split("@")[-1] for r in again}):
+            pairs = [(first[(r["run_id"], r["key"])], r["score"]) for r in again
+                     if r["arm"].endswith(b) and (r["run_id"], r["key"]) in first]
+            if pairs:
+                a0, a1 = (sum(x) / len(pairs) for x in zip(*pairs))
+                same = sum(x == y for x, y in pairs)
+                print(f"- {b}: {len(pairs)} cards, first {a0:.2f} → now {a1:.2f} "
+                      f"({a1 - a0:+.2f}); same score {same}/{len(pairs)}")
     return 0
 
 
