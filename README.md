@@ -217,7 +217,9 @@ The commands the agent runs (you can run them too):
 |---|---|
 | `asl fix <deck>` | add missing ids, standards version, `Overview.md` rows (and refresh the sources map) |
 | `asl topic <name> ...` | start a topic from lectures, books or links (see [Lectures and books](#lectures-and-books)) |
-| `asl sources <deck>` | map the topic's sources into parts; `--read <part>` prints one |
+| `asl sources <deck>` | map the topic's sources into parts; `--read <part>` prints one (and saves its figures) |
+| `asl prompt <deck>` | one prompt to card a topic's parts: brief, card counts, rules, format, text, figures |
+| `asl finish <deck>` | end of a batch: fix, lint, check, then build `<card home>/<deck>.apkg` |
 | `asl lint -q <deck>` | sizes, self-containment, context frame, headers, verbatim excerpts, drift |
 | `asl check <deck>` | compile / lint / run every card's tests (clippy + cargo test, ruff + pytest) |
 | `asl notes [folder]` | study notes: TL;DR, a diagram, length, links, map (default: the notes folder in `CLAUDE.md`) |

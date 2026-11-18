@@ -71,7 +71,9 @@ id), labels them A–E and makes the order the answer.
 **cloze**: facts from a vault note. Every `{{gap}}` becomes its own card; the other gaps stay
 visible. `{{answer::hint}}` adds a hint, `{{c2::a}} … {{c2::b}}` asks two gaps on one card.
 `$math$` renders (MathJax), `[[Note#Section]]` shows as `Note › Section`, `![[image.png]]` embeds
-(found next to the card file or anywhere in the vault).
+(found next to the card file or anywhere in the vault; a book's figures: `asl sources --read` and
+`asl prompt` save a PDF part's images to the deck's `figures/` folder, embedded as
+`![[figures/<file>]]`).
 
 ```yaml
 - id: tsk-006

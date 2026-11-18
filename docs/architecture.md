@@ -22,7 +22,7 @@ studyloop/
                 build, check, reviews (+ join), card types, packs/{python,rust,cpp}
   notes/        built in        study notes: `asl notes`               → study-note
   projects/     built in        code repos: init, modes, CLAUDE.md     → (modes)
-  sources/      built in        topics from books/links: `asl topic`, `asl sources`
+  sources/      built in        topics from books/links: `asl topic`, `asl sources`, `asl prompt`
                                                                        → study-source
   language/     [lang]          the shared language pipeline: `asl lang`,
                                 sentence + grammar cards              → language-cards
@@ -32,10 +32,10 @@ studyloop/
 
 | Module | Install | Skills | Owns |
 |---|---|---|---|
-| core | always | check-cards, write-cards | card format, deck/home config, lint, build, check, ids, card types `code` `concept` `cloze` `timeline`, packs, Anki export reader, token budget |
+| core | always | check-cards, write-cards | card format, deck/home config, lint, build, check, ids, `asl finish`, card types `code` `concept` `cloze` `timeline`, packs, Anki export reader, token budget |
 | notes | built in | study-note | note checks (TL;DR, diagram, budget, links) |
 | projects | built in | — | deck kind `project`, `asl init`, `asl mode`, `modes/*.md`, the CLAUDE.md block |
-| sources | built in | study-source | deck kind `topic`, `asl topic`, `asl sources`, PDF / markdown / URL readers |
+| sources | built in | study-source | deck kind `topic`, `asl topic`, `asl sources` (PDF figures to `figures/`), `asl prompt`, PDF / markdown / URL readers |
 | language | `[lang]` | language-cards | deck kind `language`, card types `sentence` `grammar`, their templates and lint rules, lines, plan, draft, sync, tts, clean |
 | language_ja | `[lang-ja]` | — | the `Language` for Japanese: fugashi + unidic, furigana, JLPT lists, JMdict, VOICEVOX |
 | analysis | `[analysis]` | refresh-standards | the `Analysis` interface, the bundled analyses, the report writer; pandas, matplotlib |
@@ -130,7 +130,7 @@ context, and when?*
 |---|---|
 | Skill list | Only installed modules install their skills; an uninstalled module costs nothing in any session. |
 | Skills | One workflow per skill, steps only. Details the agent needs only sometimes go in files next to `SKILL.md` and are read on demand (see below). Inline anything under ~30 lines that is almost always needed: each extra file is one more read. |
-| CLI | The agent runs commands and never reads the code. Output is compact and actionable (`!` must fix, `~` may fix, `-q`). Commands do the summarizing: `asl sources --read <part>`, `asl lang draft` prints only the line and the dictionary senses. |
+| CLI | The agent runs commands and never reads the code. Output is compact and actionable (`!` must fix, `~` may fix, `-q`). Commands do the summarizing: `asl sources --read <part>`, `asl prompt` (everything for one batch in one prompt), `asl lang draft` prints only the line and the dictionary senses. |
 | Rules | A rule that lint can check does not also need prose in the standards. Moving rules into lint keeps `core.md` and the pack standards short, and those are read before every batch. |
 | Big inputs | Never read whole. Books, episodes and review data go through `core/engine/budget.py`: estimate tokens, split into parts that fit a batch, track each part's status. |
 | Big files | `Overview.md`, `Vocabulary.md` and the like: read only the frontmatter or one section, ideally through a command (`--show brief`). |
