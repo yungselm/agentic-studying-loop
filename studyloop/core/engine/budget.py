@@ -5,7 +5,7 @@ that fit a batch, and the agent reads one part at a time. Used by sources (book 
 """
 from __future__ import annotations
 
-TOKENS_PER_WORD = 1.35       # English prose; a rough estimate, good enough to size batches
+TOKENS_PER_WORD = 1.35       # English prose (German runs ~20–30% higher); good enough to size batches
 DEFAULT_BATCH = 12000        # tokens per batch (a topic's brief overrides it: `batch:`)
 
 

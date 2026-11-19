@@ -324,7 +324,7 @@ def test_prompt_is_self_contained(tmp_path, capsys):
     assert main(["prompt", str(d)]) == 0
     out = capsys.readouterr().out
     assert "## Brief" in out and "About 5 cards" in out                # floor for a tiny part
-    assert "### Cloze cards" in out and "### Hard topics" in out
+    assert "### Cloze cards" in out and "### Hard or never-used topics" in out
     assert "### Code cards" not in out                                  # brief: no code cards
     assert "*(lint" not in out and "§" not in out                       # standards-only pointers cut
     assert "Never card a dose" in out                                   # the user's own rules
@@ -332,3 +332,98 @@ def test_prompt_is_self_contained(tmp_path, capsys):
     assert f'asl finish "{d}"' in out
     with pytest.raises(SystemExit):
         main(["prompt", str(d), "--part", "nope"])
+
+
+def test_prompt_finds_rules_by_title_not_number(tmp_path, capsys):
+    """A card home's own core.md, numbered differently and without cloze rules."""
+    d = scanned_topic(tmp_path)
+    (d.parent / "standards" / "core.md").write_text(
+        "# Mine\n\n## 1. Data\n\nxdatax\n\n## 3. Concept cards\n\n- My concept rule.\n\n"
+        "## 4. Hard topics\n\n- My hard rule.\n\n## 5. Project cards\n\n- Repo only.\n")
+    capsys.readouterr()
+    assert main(["prompt", str(d)]) == 0
+    out = capsys.readouterr().out
+    rules = out.split("## Rules")[1].split("## Format")[0]
+    assert "### Concept cards\n- My concept rule." in rules
+    assert "### Hard topics\n- My hard rule." in rules
+    assert "### Cloze cards" in rules and "2–5 gaps" in rules           # asl's own cloze rules
+    assert "Repo only" not in rules and "xdatax" not in rules
+
+
+# ---- German sources ---------------------------------------------------------------------------
+
+def _text_page(lines: list[str]):
+    """A PDF page with real text (Helvetica, WinAnsi: umlauts as in German books)."""
+    from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
+    w = pypdf.PdfWriter()
+    page = w.add_blank_page(612, 792)
+    n = NameObject
+    font = DictionaryObject({n("/Type"): n("/Font"), n("/Subtype"): n("/Type1"),
+                             n("/BaseFont"): n("/Helvetica"), n("/Encoding"): n("/WinAnsiEncoding")})
+    page[n("/Resources")] = DictionaryObject(
+        {n("/Font"): DictionaryObject({n("/F1"): w._add_object(font)})})
+
+    def esc(s):
+        return s.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+    ops = "BT /F1 11 Tf 72 740 Td 14 TL " + " ".join(f"({esc(ln)}) '" for ln in lines) + " ET"
+    stream = DecodedStreamObject()
+    stream.set_data(ops.encode("cp1252"))
+    page[n("/Contents")] = w._add_object(stream)
+    return page
+
+
+def _german_book(path: Path) -> None:
+    """Inhaltsverzeichnis, Vorwort, a chapter with umlauts, a figure with an `Abb.` caption, Register."""
+    import io
+    import random
+
+    from PIL import Image
+    rng = random.Random(0)
+    img = Image.new("RGB", (400, 300))
+    img.putdata([tuple(rng.randrange(256) for _ in range(3)) for _ in range(400 * 300)])
+    buf = io.BytesIO()
+    img.save(buf, "PDF")
+    w = pypdf.PdfWriter()
+    w.add_page(_text_page(["Inhaltsverzeichnis", "1 Grundlagen . . . 3"]))
+    w.add_page(_text_page(["Vorwort", "Dieses Buch richtet sich an Ärztinnen und Ärzte."]))
+    w.add_page(_text_page(["1 Grundlagen der Koronarphysiologie",
+                           "Der koronare Blutfluss hängt vom Druckgradienten ab.",
+                           "Größere Stenosen führen zu höheren Druckverlusten."]))
+    fig = w.add_page(pypdf.PdfReader(buf).pages[0])
+    fig.merge_page(_text_page(["Abb. 1.1 Übersicht über die Druckmessung mit dem Führungsdraht",
+                               "in der Koronararterie"]))
+    w.add_page(_text_page(["Register", "FFR 3"]))
+    for title, page in (("Inhaltsverzeichnis", 0), ("Vorwort", 1),
+                        ("1 Grundlagen der Koronarphysiologie", 2), ("Register", 4)):
+        w.add_outline_item(title, page)
+    with open(path, "wb") as f:
+        w.write(f)
+
+
+def test_german_book(tmp_path, capsys):
+    """German front matter is skipped, umlauts survive, `Abb.` captions are found; cards are in
+    English unless the brief's `language:` says otherwise."""
+    v = tmp_path / "v"
+    (v / ".obsidian").mkdir(parents=True)
+    (v / "Bücher").mkdir()
+    _german_book(v / "Bücher" / "Koronar.pdf")
+    home = v / "Anki-Karten"
+    assert main(["topic", "Koronar", "--home", str(home), "--sources", str(v / "Bücher" / "Koronar.pdf"),
+                 "--no-notes"]) == 0
+    d = home / "koronar"
+    text = (d / "Overview.md").read_text()
+    assert "1 Grundlagen der Koronarphysiologie" in text
+    for skipped in ("Inhaltsverzeichnis", "Vorwort", "Register"):
+        assert f"| {skipped} |" not in text
+    part = re.search(r"^\| (\S+) \| 1 Grundlagen", text, re.M)[1]
+    capsys.readouterr()
+    assert main(["sources", str(d), "--read", part]) == 0
+    out = capsys.readouterr().out
+    assert "Größere Stenosen" in out
+    assert "Abb. 1.1 Übersicht über die Druckmessung" in out and "![[figures/" in out
+    assert main(["prompt", str(d)]) == 0
+    assert "Write the cards in English." in capsys.readouterr().out
+    ov = d / "Overview.md"
+    ov.write_text(ov.read_text().replace("---\n", "---\nlanguage: German\n", 1))
+    assert main(["prompt", str(d)]) == 0
+    assert "Write the cards in German." in capsys.readouterr().out

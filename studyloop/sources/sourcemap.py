@@ -6,6 +6,7 @@
 The brief lives in the frontmatter of the deck's Overview.md:
 
     goal: "Modern C++ for regulated medical software"
+    language: German                 # the cards' language (default: English)
     builds_on: [rust]                # contrast cards against what the user knows
     notes: "Studying/C++"            # vault folder for study notes; false = cards straight from the source
     batch: 12000                     # tokens an agent reads per batch (default 12000)
@@ -46,7 +47,11 @@ BEGIN, END = "<!-- asl:sources -->", "<!-- asl:sources:end -->"
 CACHE = ".asl-sources.json"
 SKIP = re.compile(r"^(cover|half title|title page|copyright( page)?|(table of )?contents|index|"
                   r"dedication|acknowledg(e)?ments|from the publisher|about the authors?|colophon|"
-                  r"other books.*|praise for.*)$", re.I)
+                  r"other books.*|praise for.*|"
+                  # German books
+                  r"titelei|impressum|inhalt(sverzeichnis|sübersicht)?|vorwort|geleitwort|"
+                  r"danksagung|widmung|register|(sach|stichwort)verzeichnis|über (die|den) autor(en|in)?|"
+                  r"abkürzungsverzeichnis|verzeichnis der autoren)$", re.I)
 PAGE_REF = re.compile(r"#(?:page=|p\.?)(\d+)", re.I)
 
 
@@ -334,7 +339,7 @@ def text_of(path: Path, first: int, last: int) -> str:
 
 
 FIGURES = "figures"                 # in the deck folder; cards embed ![[figures/<file>]]
-CAPTION = re.compile(r"^\s*(Fig(?:ure|\.)\s*\d+(?:[.\-]\d+)*\.?\s+[A-Z(].*(?:\n.*){0,2})", re.M)
+CAPTION = re.compile(r"^\s*((?:Fig(?:ure|\.)|Abb(?:ildung|\.))\s*\d+(?:[.\-]\d+)*\.?\s+[A-ZÄÖÜ(].*(?:\n.*){0,2})", re.M)
 MIN_SIDE, MIN_BYTES = 120, 4000     # smaller: logos, icons, rules
 
 

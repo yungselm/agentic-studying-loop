@@ -18,22 +18,29 @@ from studyloop.core.engine.budget import DEFAULT_BATCH
 from studyloop.sources import sourcemap as sm
 
 PER_1K_WORDS = 4            # default cards per 1,000 words of source; the brief's `per_1k_words`
-CORE_SECTIONS = {"code": "2", "concept": "3", "cloze": "4", "hard": "5"}
+# which `## N. Title` sections of core.md a prompt needs, found by title (card homes keep their
+# own numbering); a kind missing from the card home's core.md comes from asl's own
+KINDS = (("code", r"code cards"), ("concept", r"concept cards"), ("cloze", r"cloze"),
+         ("hard", r"hard|never-used"))
 
 
-def _sections(text: str) -> dict[str, str]:
-    """`## N. Title` sections of a standards file, by number."""
-    out, cur = {}, None
-    for ln in text.splitlines():
-        m = re.match(r"## (\d+)\.", ln)
-        if m:
-            cur = m[1]
-            out[cur] = []
-        elif ln.startswith("## "):
-            cur = None
+def _sections(text: str) -> dict[str, tuple[str, str]]:
+    """kind -> (its title, its text) for the sections of a standards file a prompt needs."""
+    out, cur, title, buf = {}, None, "", []
+
+    def close():
+        if cur and cur not in out:
+            out[cur] = (title, "\n".join(buf).strip())
+    for ln in text.splitlines() + ["## end"]:
+        if ln.startswith("## "):
+            close()
+            title = re.sub(r"^## (\d+\.)?\s*", "", ln).strip()
+            cur = next((k for k, rx in KINDS if re.search(rx, title, re.I)
+                        and not re.search(r"project", title, re.I)), None)
+            buf = []
         elif cur:
-            out[cur].append(ln)
-    return {k: "\n".join(v).strip() for k, v in out.items()}
+            buf.append(ln)
+    return out
 
 
 def _drop_bullet(text: str, lead: str) -> str:
@@ -57,13 +64,18 @@ def preferences(text: str) -> str:
 def rules(deck: Deck, code: bool) -> str:
     std = find_home(deck.path).path / "standards"
     core = std / "core.md"
-    secs = _sections(core.read_text(encoding="utf-8")) if core.is_file() else {}
+    from studyloop.core.config import PKG
+    secs = _sections((PKG / "standards" / "core.md").read_text(encoding="utf-8"))
+    if core.is_file():
+        secs.update(_sections(core.read_text(encoding="utf-8")))     # the card home's own win
     parts = []
-    if code and secs.get("2"):
-        parts.append("### Code cards\n" + _drop_bullet(secs["2"], "**Project cards"))
-    for key, title in (("3", "Concept cards"), ("4", "Cloze cards"), ("5", "Hard topics")):
-        if secs.get(key):
-            parts.append(f"### {title}\n{secs[key]}")
+    for kind, _rx in KINDS:
+        if kind not in secs or (kind == "code" and not code):
+            continue
+        title, body = secs[kind]
+        if kind == "code":
+            body = _drop_bullet(body, "**Project cards")
+        parts.append(f"### {title}\n{body}")
     if code and deck.pack and (std / f"{deck.pack}.md").is_file():
         pack = (std / f"{deck.pack}.md").read_text(encoding="utf-8").split("\n", 1)[1].strip()
         parts.append(f"### {deck.pack} code\n{pack}")
@@ -184,8 +196,9 @@ def build_prompt(deck: Deck, part_ids: list[str] | None = None) -> str:
            *([f"- I already know: {known}. Don't card what that covers; where it helps, "
               "contrast with it and say where the analogy breaks."] if known else []),
            *[f"- {x}" for x in lists],
+           f"- Write the cards in {meta.get('language') or 'English'}.",
            f"- About {n} cards (±25%) for these {words:,} words"
-           + (f" and {n_figs} figures" if n_figs else "") + f": {mix}. Facts, names and "
+           + (f" and {n_figs} figure{'s' * (n_figs != 1)}" if n_figs else "") + f": {mix}. Facts, names and "
            "numbers → cloze; why, when, X vs Y → concept; a process → timeline. Fewer good "
            "cards beat many: card what serves the goal, skip the rest.",
            "", "## Rules", "", rules(deck, code), "",
