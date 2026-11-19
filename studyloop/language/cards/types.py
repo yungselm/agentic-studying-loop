@@ -69,9 +69,11 @@ def lang_context(deck: Deck) -> dict | None:
     try:
         lang = get_language(deck.cfg["lang"])
         cap, length = lang.config.get("length_cap"), lang.text_length
+        reading = bool(lang.config.get("reading_aid"))
     except SystemExit:                    # not installed: lint the rest, skip the length cap
-        cap, length = None, Language().text_length
+        cap, length, reading = None, Language().text_length, True
     return {"cap": int(cap or 10**6), "length": length, "media": media_index(deck),
+            "reading": reading,                    # the language shows readings (furigana)
             "has_media_dir": bool(deck.cfg.get("media_dir"))}
 
 
@@ -90,7 +92,7 @@ def lang_flags(card: dict, ctx: dict | None) -> list[Flag]:
     for k in need:
         if not str(card.get(k) or "").strip():
             out.append(Flag("!", "lang", f"no `{k}:`"))
-    if t == "sentence" and not str(card.get("reading") or "").strip():
+    if t == "sentence" and ctx.get("reading", True) and not str(card.get("reading") or "").strip():
         out.append(Flag("~", "lang", "no `reading:` for the target word"))
     n = ctx["length"](textv)
     if n > ctx["cap"]:

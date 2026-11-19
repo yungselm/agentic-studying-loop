@@ -45,7 +45,10 @@ Opt-in: `[lang-ja]` extra (shared `[lang]` + Japanese) + separate skill.
   (VOICEVOX / edge-tts); `asl lang clean` for unused media.
 - [ ] Whisper: check clips against their subtitle (cut short, extra talkers), word-exact
   speaker splits, subtitles for media without them.
-- [ ] Italian as the second language: a `language_it` module like `language_ja` (tokenizer, CEFR
+- [x] German (`language_de`, `[lang-de]`, requested by the author's coworkers): spaCy tokens
+  with separable verbs as one word, CEFR levels estimated from word frequency, edge-tts voice; no
+  bundled dictionary yet (Wiktionary via kaikki.org would add glosses and noun gender).
+- [ ] Italian as the third language: a `language_it` module like `language_ja` (tokenizer, CEFR
   word levels, dictionary, `it.yaml`) and an episode with Italian subtitles; the grammar book (*Praxis-Grammatik
   Italienisch*) later, once found. Postponed by the author.
 - [ ] Card preferences and quality checks the user decides (which source or card kind wins a

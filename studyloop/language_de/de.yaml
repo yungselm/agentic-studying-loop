@@ -1,0 +1,15 @@
+# German (Standard German): how `asl lang` reads, levels and orders it.
+name: German
+tokenizer: spacy             # spaCy + de_core_news_sm (pip extra: agentic-studying-loop[lang-de])
+frequency: wordfreq          # general word frequency (wordfreq's German list)
+clip_padding: [0.25, 0.4]    # s before/after a line when cutting from video
+screenshot_width: 960        # px, at most (screenshots from video)
+length_cap: 12               # words; one line, one new word
+subtitle_keep: '[A-Za-zÄÖÜäöüß]'       # cues without letters are not lines (♪, timestamps)
+speaker_labels: '\[[^\]]*\]|\([^)]*\)' # [Anna] / (lacht): labels and sounds, not the line
+levels:                      # CEFR estimated from frequency rank (no free official word list):
+  order: [A1, A2, B1, B2, C1]          # a word's level is the first band its rank falls in
+  bands: {A1: 1000, A2: 2000, B1: 4000, B2: 8000, C1: 16000}
+tts:                         # fallback audio (`asl lang tts`), engines tried in order
+  engines: [edge]
+  edge_voice: de-DE-KatjaNeural

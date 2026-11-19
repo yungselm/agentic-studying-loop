@@ -28,6 +28,7 @@ The extras in brackets are optional; pick what you need:
 | `analysis` | `asl stats`: review data, reports, figures (pandas, matplotlib) |
 | `lang` | language decks, `asl lang` (word frequencies, ffmpeg, text-to-speech) |
 | `lang-ja` | `lang` + Japanese (UniDic tokenizer) |
+| `lang-de` | `lang` + German (spaCy and its small German model) |
 
 Rust cards also need [Rust](https://rustup.rs/) with `rustup component add clippy`. C++ cards need
 `g++` or `clang++`; `clang-tidy` adds the Core Guidelines checks.

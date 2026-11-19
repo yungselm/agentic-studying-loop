@@ -16,6 +16,8 @@ dev = ["build", "pytest>=7", "ruff>=0.4", "import-linter>=2"]
 python = ["pytest>=7", "ruff>=0.4"]   # asl check for Python cards (the python pack's checker)
 lang = ["wordfreq>=3.1", "imageio-ffmpeg>=0.5", "edge-tts>=6.1"]   # language decks (asl lang)
 lang-ja = ["agentic-studying-loop[lang]", "fugashi>=1.3", "unidic-lite>=1.0.8"]   # + Japanese
+lang-de = ["agentic-studying-loop[lang]", "spacy>=3.7,<4",                        # + German
+           "de_core_news_sm @ https://github.com/explosion/spacy-models/releases/download/de_core_news_sm-3.8.0/de_core_news_sm-3.8.0-py3-none-any.whl"]
 analysis = ["pandas>=2.0", "matplotlib>=3.7"]   # asl stats: review data, reports, figures
 bench = ["matplotlib>=3.8"]                       # benchmarks/report.py: charts
 docs = ["sphinx>=7", "myst-parser>=3", "furo"]   # the docs site: sphinx-build -W docs docs/_build
@@ -27,6 +29,7 @@ asl = "studyloop.core.cli:main"
 [project.entry-points."studyloop.modules"]
 analysis = "studyloop.analysis:MODULE"
 language = "studyloop.language:MODULE"
+language_de = "studyloop.language_de:MODULE"
 language_ja = "studyloop.language_ja:MODULE"
 notes = "studyloop.notes:MODULE"
 projects = "studyloop.projects:MODULE"
@@ -47,6 +50,7 @@ packages = [
     "studyloop.language.grammar",
     "studyloop.language.media",
     "studyloop.language.vocabulary",
+    "studyloop.language_de",
     "studyloop.language_ja",
     "studyloop.notes",
     "studyloop.projects",
@@ -63,6 +67,7 @@ studyloop_skills = "skills"          # the plugin's skills/ folder, shipped with
 "studyloop.sources" = ["templates/*"]
 "studyloop.language" = ["templates/*"]
 "studyloop.language.cards" = ["anki/*"]
+"studyloop.language_de" = ["*.yaml"]
 "studyloop.language_ja" = ["*.yaml"]
 "studyloop.core" = ["packs/*/*", "standards/*", "templates/*/*"]
 "studyloop.core.anki" = ["templates/*", "vendor/*"]
@@ -85,40 +90,46 @@ root_package = "studyloop"
 name = "core never imports a module"
 type = "forbidden"
 source_modules = ["studyloop.core"]
-forbidden_modules = ["studyloop.analysis", "studyloop.language", "studyloop.language_ja", "studyloop.notes", "studyloop.projects", "studyloop.sources"]
+forbidden_modules = ["studyloop.analysis", "studyloop.language", "studyloop.language_de", "studyloop.language_ja", "studyloop.notes", "studyloop.projects", "studyloop.sources"]
 
 [[tool.importlinter.contracts]]
 name = "analysis imports only core"
 type = "forbidden"
 source_modules = ["studyloop.analysis"]
-forbidden_modules = ["studyloop.language", "studyloop.language_ja", "studyloop.notes", "studyloop.projects", "studyloop.sources"]
+forbidden_modules = ["studyloop.language", "studyloop.language_de", "studyloop.language_ja", "studyloop.notes", "studyloop.projects", "studyloop.sources"]
 
 [[tool.importlinter.contracts]]
 name = "language imports only core, sources"
 type = "forbidden"
 source_modules = ["studyloop.language"]
-forbidden_modules = ["studyloop.analysis", "studyloop.language_ja", "studyloop.notes", "studyloop.projects"]
+forbidden_modules = ["studyloop.analysis", "studyloop.language_de", "studyloop.language_ja", "studyloop.notes", "studyloop.projects"]
 
 [[tool.importlinter.contracts]]
 name = "language_ja imports only core, language"
 type = "forbidden"
 source_modules = ["studyloop.language_ja"]
-forbidden_modules = ["studyloop.analysis", "studyloop.notes", "studyloop.projects", "studyloop.sources"]
+forbidden_modules = ["studyloop.analysis", "studyloop.language_de", "studyloop.notes", "studyloop.projects", "studyloop.sources"]
+
+[[tool.importlinter.contracts]]
+name = "language_de imports only core, language"
+type = "forbidden"
+source_modules = ["studyloop.language_de"]
+forbidden_modules = ["studyloop.analysis", "studyloop.language_ja", "studyloop.notes", "studyloop.projects", "studyloop.sources"]
 
 [[tool.importlinter.contracts]]
 name = "notes imports only core"
 type = "forbidden"
 source_modules = ["studyloop.notes"]
-forbidden_modules = ["studyloop.analysis", "studyloop.language", "studyloop.language_ja", "studyloop.projects", "studyloop.sources"]
+forbidden_modules = ["studyloop.analysis", "studyloop.language", "studyloop.language_de", "studyloop.language_ja", "studyloop.projects", "studyloop.sources"]
 
 [[tool.importlinter.contracts]]
 name = "projects imports only core"
 type = "forbidden"
 source_modules = ["studyloop.projects"]
-forbidden_modules = ["studyloop.analysis", "studyloop.language", "studyloop.language_ja", "studyloop.notes", "studyloop.sources"]
+forbidden_modules = ["studyloop.analysis", "studyloop.language", "studyloop.language_de", "studyloop.language_ja", "studyloop.notes", "studyloop.sources"]
 
 [[tool.importlinter.contracts]]
 name = "sources imports only core"
 type = "forbidden"
 source_modules = ["studyloop.sources"]
-forbidden_modules = ["studyloop.analysis", "studyloop.language", "studyloop.language_ja", "studyloop.notes", "studyloop.projects"]
+forbidden_modules = ["studyloop.analysis", "studyloop.language", "studyloop.language_de", "studyloop.language_ja", "studyloop.notes", "studyloop.projects"]

@@ -120,7 +120,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh                                 
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"  # Windows
 
 # 2. asl, with the extras you need: python (checks Python cards), analysis (asl stats),
-#    lang-ja (Japanese decks); none of them for cards in other languages only
+#    lang-ja / lang-de (Japanese / German decks); none of them for cards in other languages only
 uv tool install "agentic-studying-loop[python,analysis] @ https://github.com/yungselm/agentic-studying-loop/archive/refs/heads/master.zip"
 asl packs                     # lists cpp, python, rust; if `asl` isn't found: uv tool update-shell
 
@@ -245,7 +245,7 @@ anything outside the project and the chosen notes folder.
    [Install](#install) table for the user's OS, then use the full path or a new shell). For Rust
    projects check `cargo clippy --version`. Check that Anki is installed; if not, give the user the
    link and wait.
-2. **Install:** `uv tool install "agentic-studying-loop[python,analysis] @ https://github.com/yungselm/agentic-studying-loop/archive/refs/heads/master.zip"` (`python`: checks Python cards; `analysis`: `asl stats`; add `lang-ja` for Japanese), then `asl packs`.
+2. **Install:** `uv tool install "agentic-studying-loop[python,analysis] @ https://github.com/yungselm/agentic-studying-loop/archive/refs/heads/master.zip"` (`python`: checks Python cards; `analysis`: `asl stats`; add `lang-ja` for Japanese, `lang-de` for German), then `asl packs`.
 3. **Ask the user** (one question at a time): whether they keep notes in a folder of markdown
    (an Obsidian vault or any folder; suggest one inside their documents) or want cards only, and
    which mode: `teacher` (user writes all code),
@@ -324,7 +324,8 @@ place.
 ## Languages
 
 For learning a language from native media (opt-in, per language: `uv tool install "agentic-studying-loop[lang-ja] @ …"`,
-then `asl lang setup ja` once for word lists, dictionary and grammar lists). Cards: a native
+then `asl lang setup ja` once for word lists, dictionary and grammar lists; German: `[lang-de]`,
+`asl topic "German" --lang de`). Cards: a native
 line with audio and a screenshot, **one new word** glossed on the back; grammar cards in the
 Game Gengo layout. Your vault keeps the ground truth: `Vocabulary.md` (every word, level,
 meaning, status) and one note per grammar point with an overview against the JLPT lists.
@@ -337,9 +338,10 @@ asl lang sync "<deck>" export.apkg           # after studying: statuses from you
 ```
 
 Say *"make cards from this episode"* in Claude Code (skill `language-cards`). Design, evidence
-and all commands: [language cards](docs/language-cards.md). Japanese is a module
-(`studyloop/language_ja/`: tokenizer, levels, dictionary, `ja.yaml`); another language is one more
-module like it, on the same pipeline.
+and all commands: [language cards](docs/language-cards.md). Japanese and German are modules
+(`studyloop/language_ja/`, `studyloop/language_de/`: tokenizer, levels, `<code>.yaml`); German
+levels are CEFR estimates from word frequency, and there is no bundled dictionary (the agent writes
+the gloss). Another language is one more module like them, on the same pipeline.
 
 ## Modes
 
@@ -396,7 +398,7 @@ Clone the repo and install it editable:
 
 ```bash
 git clone https://github.com/yungselm/agentic-studying-loop && cd agentic-studying-loop
-uv venv && uv pip install -e ".[dev,python,analysis,lang-ja]"
+uv venv && uv pip install -e ".[dev,python,analysis,lang-ja,lang-de]"
 ```
 
 Everything the tool ships lives in `studyloop/`: `packs/` (one folder per language), `standards/`,

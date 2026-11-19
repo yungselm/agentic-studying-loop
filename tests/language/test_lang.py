@@ -582,3 +582,42 @@ def test_mix_flags_follow_the_brief(tmp_path):
     assert "the brief says 30%" in mix_flags(deck, Counter(code=8, concept=2))[0][2]
     ov.write_text("---\ngoal: x\n---\n", encoding="utf-8")
     assert "no `cards:` in the brief" in mix_flags(deck, Counter(code=6, concept=4))[0][2]
+
+
+# ---- German ---------------------------------------------------------------------------------
+
+def test_german_tokens_and_levels():
+    pytest.importorskip("de_core_news_sm")
+    from studyloop.language_de import DE
+    tok = DE.tokenizer()
+    by = {t.surface: t for t in tok("Äh, ich fange morgen mit der Arbeit an, sagt Anna in Bern.")}
+    assert by["fange"].key == "anfangen|" and by["an"].kind == "function"   # separable verb
+    assert by["Äh"].kind == "filler" and by["der"].kind == "function"
+    assert by["Arbeit"].kind == "word" and by["Bern"].kind == "name"
+    assert tok.key_for("anfangen") == "anfangen|"
+    assert DE.text_length("Ich fange morgen an.") == 4
+    lv = DE.levels()
+    if lv.rank:                                                       # wordfreq installed
+        assert lv.level(["Haus"], "") == "~A1" and lv.level(["Koronararterie"], "") == "—"
+
+
+def test_german_deck_lints_and_builds(tmp_path):
+    """A German deck: no readings needed, cards build with the shared templates."""
+    from studyloop.core import config
+    from studyloop.core.engine import lint
+    from studyloop.core.engine.build import build
+    media = tmp_path / "media" / "ep1"
+    media.mkdir(parents=True)
+    (media / "c1.mp3").write_bytes(b"ID3")
+    (media / "c1.jpg").write_bytes(b"\xff\xd8\xff")
+    d = tmp_path / "german"
+    d.mkdir()
+    (d / "deck.yaml").write_text(f'deck: "Deutsch"\nlang: de\nprefix: de\nmedia_dir: "{tmp_path / "media"}"\n',
+                                 encoding="utf-8")
+    (d / "vocabulary.yaml").write_text(
+        '- id: de-001\n  type: sentence\n  text: "Ich **fange** morgen mit der Arbeit an"\n'
+        '  word: "anfangen"\n  gloss: "to start"\n  audio: "c1.mp3"\n  image: "c1.jpg"\n',
+        encoding="utf-8")
+    groups = config.resolve_inputs([str(d)])
+    assert lint.lint(groups, quiet=True) == 0
+    assert build(groups, tmp_path / "de.apkg") == 0

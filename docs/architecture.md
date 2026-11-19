@@ -27,6 +27,7 @@ studyloop/
   language/     [lang]          the shared language pipeline: `asl lang`,
                                 sentence + grammar cards              → language-cards
   language_ja/  [lang-ja]       Japanese for `language`
+  language_de/  [lang-de]       German for `language`
   analysis/     [analysis]      analyses of review data, reports      → refresh-standards
 ```
 
@@ -38,6 +39,7 @@ studyloop/
 | sources | built in | study-source | deck kind `topic`, `asl topic`, `asl sources` (PDF figures to `figures/`), `asl prompt`, PDF / markdown / URL readers |
 | language | `[lang]` | language-cards | deck kind `language`, card types `sentence` `grammar`, their templates and lint rules, lines, plan, draft, sync, tts, clean |
 | language_ja | `[lang-ja]` | — | the `Language` for Japanese: fugashi + unidic, furigana, JLPT lists, JMdict, VOICEVOX |
+| language_de | `[lang-de]` | — | the `Language` for German: spaCy (separable verbs, fillers), CEFR levels estimated from word frequency, edge-tts voice |
 | analysis | `[analysis]` | refresh-standards | the `Analysis` interface, the bundled analyses, the report writer; pandas, matplotlib |
 
 **Built in** means the module ships with every install (no extra dependencies) but stays a
