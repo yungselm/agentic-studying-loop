@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """The JLPT grammar lists and images, from JLPT Sensei (`grammar_lists:` in ja.yaml)."""
 from __future__ import annotations
 

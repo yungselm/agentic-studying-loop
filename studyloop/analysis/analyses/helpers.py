@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Shared by the bundled analyses: pooled fail rates, size bins, the limit heuristic, the
 cards old enough to judge, table rows."""
 from __future__ import annotations

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """German text: spaCy tokens (de_core_news_sm). A separable verb is one word (fängt … an ->
 anfangen) on the verb; its particle counts as a function word, so a card marks one target.
 Fillers (äh, hm) stay out of the vocabulary."""

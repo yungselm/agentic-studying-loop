@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Japanese text: the UniDic tokenizer (fugashi), kana and furigana."""
 from __future__ import annotations
 

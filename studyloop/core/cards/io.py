@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Card files: a YAML list per file, one card per item, loaded into plain dicts.
 
     - id: tsk-001            # stable id (recommended; drives the Anki note GUID)

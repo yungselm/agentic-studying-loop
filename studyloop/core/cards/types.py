@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Core's card types: code, concept, timeline, cloze (docs/card-format.md).
 
 Each says how it is measured, linted and turned into an Anki note; the engines in lint.py,

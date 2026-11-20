@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Core's `asl` commands: build, check, lint, ids, fix, finish, init-home, install-skills, packs."""
 from __future__ import annotations
 

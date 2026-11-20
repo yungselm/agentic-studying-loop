@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Lint rule for project decks (`kind: project`: code from a repo, see profile.md).
 
   [header]   a code section doesn't start with `<comment> <path>  (<role>)` matching profile.md

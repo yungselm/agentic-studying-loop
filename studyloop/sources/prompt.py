@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """One self-contained prompt for a topic's parts: the brief, how many cards of which kind, the
 card home's rules, the exact card format, the text and its figures, and `asl finish` at the end.
 

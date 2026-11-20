@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Core: the engine every other module builds on. Start here.
 
 What a deck is, how cards are written down, and the three things done with them:

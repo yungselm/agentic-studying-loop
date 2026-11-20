@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Connect a code project (deck folder + the study-loop block in its CLAUDE.md), switch modes.
 
     asl init <project dir> --home <card home> --pack rust --prefix omk

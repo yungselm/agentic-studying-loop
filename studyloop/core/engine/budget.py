@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """The token budget: how much an agent reads at once (docs/architecture.md, "Token budget").
 
 Big inputs (a book, an episode, review data) are never read whole: they are split into parts

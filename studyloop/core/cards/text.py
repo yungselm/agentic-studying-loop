@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """What a card shows and asks, as text: typed characters of a code gap, the plain answer and
 its bold lead, cloze gaps (with $math$ counted as rendered), embedded images. The card types'
 measures and lint, and the build's rendering, use these."""

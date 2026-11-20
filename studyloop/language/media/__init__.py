@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """A source becomes lines: one row per subtitle cue or mined card, with its clip and screenshot.
 
     lines.py   `asl lang add`: mined .apkg or video + subtitles -> lines/<key>.tsv; cutting

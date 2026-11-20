@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Analyses of your own review data (`asl stats`, skill `refresh-standards`). Start here.
 
     asl stats -> report.py   reads the export, runs every analysis, writes the report (for you),

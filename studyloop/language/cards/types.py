@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """The language card types: sentence (one new word, listening front) and grammar
 (a grammar point; Listening + optional Reading card). Design: docs/language-cards.md."""
 from __future__ import annotations

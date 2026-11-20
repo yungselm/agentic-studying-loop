@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Grammar ground truth: one vault note per grammar point (`<notes>/Grammar/*.md`).
 
 Frontmatter: `type: grammar`, `grammar`, `level`, `meaning`, `status`, `link`, `image`, and how to

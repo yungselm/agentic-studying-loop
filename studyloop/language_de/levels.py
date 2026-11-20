@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """German word levels: CEFR estimated from general frequency (wordfreq), since no official
 German word list is free to use. A word's level is the first band its rank falls in
 (`levels: bands:` in de.yaml); every level reads as an estimate (`~A2`)."""

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Vault notes with YAML frontmatter (grammar notes): read, write, change fields. The body is
 kept exactly as written."""
 from __future__ import annotations

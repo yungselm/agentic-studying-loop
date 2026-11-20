@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Single cards worth a look: leeches, the hardest and the easiest (FSRS difficulty)."""
 from __future__ import annotations
 

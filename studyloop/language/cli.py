@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """`asl lang …`: the language commands (setup, add, seed, plan, draft, grammar, tts, sync,
 clean). `add_parser` defines them; `main` opens the deck and hands over to the pipeline."""
 from __future__ import annotations

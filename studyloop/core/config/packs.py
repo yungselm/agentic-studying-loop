@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Packs: one programming language each (checker, CodeMirror mode, standards addendum).
 Bundled in core/packs/; your own in the folders of the ASL_PACKS environment variable."""
 from __future__ import annotations

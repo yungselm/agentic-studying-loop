@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Save chapters of *The Rust Programming Language* as one Markdown file per chapter, from the
 docs of a pinned Rust release, so every benchmark run reads exactly the same text.
 

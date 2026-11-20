@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """The benchmark report: charts for the docs, a short README section and the results part of
 docs/benchmarks.md, from results/ (numbers only).
 

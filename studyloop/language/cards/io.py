@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Card files (YAML lists in the deck folder): write new card items, and change single fields of
 existing cards in place (the rest of the file, comments included, stays as written)."""
 from __future__ import annotations

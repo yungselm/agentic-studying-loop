@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Word levels: official/curated lists first, else an estimate from general frequency.
 
 Level strings: "N4" (on a list), "~N3" (estimated from frequency rank), "—" (neither)."""

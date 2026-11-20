@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """`asl stats`: analyse a manual Anki export and report what makes cards hard for *you*.
 
     asl stats export.apkg [--deck "Study Loop"] [--home <card home>] [--only a,b] [--mark-refreshed]

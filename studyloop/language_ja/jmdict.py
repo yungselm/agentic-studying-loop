@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """A dictionary in the language cache: JMdict for Japanese (EDRDG, CC BY-SA 4.0).
 
 `asl lang setup ja` downloads JMdict.gz once and indexes it into dict.sqlite (forms -> entries

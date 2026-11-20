@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Seed the grammar ground truth from a Game Gengo deck: one note per grammar point (grouped by
 its JLPT Sensei link, status from the deck's reviews), the JLPT Sensei image, a detection rule
 derived from the lesson's forms and highlighted span; with `--cards` the lessons as `grammar`

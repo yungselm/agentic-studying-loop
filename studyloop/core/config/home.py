@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """The card home: a folder (in your vault, if you keep one) with studyloop.yaml (limits,
 refresh settings, standards version, the vault), your standards and the evidence from your
 reviews. `Home`/`find_home` read it; `init_home` sets one up; `install_skills` copies skills.

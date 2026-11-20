@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Words: what you know (Vocabulary.md), what each line needs, and which lines become cards.
 
     tokens.py   Token, plain text, marking the **target** (each language brings its tokenizer)

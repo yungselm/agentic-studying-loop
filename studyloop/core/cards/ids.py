@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Fill in the bookkeeping so nobody has to do it by hand.
 
     asl ids path/to/deck          # next free id + cards without one (read-only)

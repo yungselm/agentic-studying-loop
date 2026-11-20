@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """The grammar overview: the language's official lists (`Language.grammar_lists`; JLPT for
 Japanese) as a checklist against the vault's grammar notes."""
 from __future__ import annotations

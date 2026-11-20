@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """`asl lang draft`: sentence-card stubs for the next planned lines, in plan order.
 
 Each stub has the text with furigana and the target in `**…**`, the word, its reading, audio,

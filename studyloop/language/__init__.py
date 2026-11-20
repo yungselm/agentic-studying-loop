@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Language decks: sentence and grammar cards from native media, with the known words and
 grammar points kept in the vault. Start here.
 

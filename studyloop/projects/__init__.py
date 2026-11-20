@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Code projects (deck kind `project`): cards from code you write in a repo. Start here.
 
     asl init -> connect.py   the deck folder, and the study-loop block in the project's CLAUDE.md

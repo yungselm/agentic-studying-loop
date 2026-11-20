@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Topics from lectures, books and links (deck kind `topic`, skill `study-source`). Start here.
 
     asl topic   -> topic.py       a new topic deck, and the topics block in the vault's CLAUDE.md

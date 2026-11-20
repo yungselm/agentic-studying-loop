@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Rust checker: one generated crate, every card in its own module.
 
 1. `cargo clippy -- -D warnings`  compile errors, warnings, idiom lints

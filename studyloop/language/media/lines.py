@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Media sources -> lines/<key>.tsv (one row per subtitle line) + media files in media_dir.
 
 Inputs: an existing sentence-mining deck (.apkg from subs2srs, movies2anki, ...). Video +

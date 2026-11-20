@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """What is done with cards: lint, build, check, plus the reading budget.
 
     lint.py     `asl lint`: checks every card needs (ids, duplicates, the deck's kind), then

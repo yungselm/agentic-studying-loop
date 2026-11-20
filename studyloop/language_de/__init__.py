@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """German (Standard German) for the language module. `German` (below) is the whole contract;
 config: de.yaml. Everything else (lines, plan, drafts, cards, sync) is the shared pipeline.
 

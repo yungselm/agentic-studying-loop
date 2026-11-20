@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """What an analysis of review data is (docs/architecture.md, "Review data and analysis").
 
 `asl stats <export>` reads the export (core/anki/reviews.py), joins every Anki card back to its card

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Find a language (deck.yaml `lang:`) among the installed language modules; its download cache;
 `asl lang setup <code>` (everything a language needs once: level lists, dictionary, ...)."""
 from __future__ import annotations

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Rate benchmark cards blind, 1-5, in a local page that shows them as Anki would.
 
     uv run python benchmarks/rate.py pilot            # then open http://127.0.0.1:8765

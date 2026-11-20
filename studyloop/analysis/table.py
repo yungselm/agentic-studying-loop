@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """The tables every analysis gets (pandas is imported only to build them; `load_cards` is plain
 Python): the export's cards (one row per Anki card, measured as
 studied) joined to the card files of the card home by GUID, and the review log."""

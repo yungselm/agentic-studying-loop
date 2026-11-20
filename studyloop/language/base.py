@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """What differs per language (docs/architecture.md, "Language modules").
 
 The language module holds the pipeline every language shares: lines from video + subtitles or

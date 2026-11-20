@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """A topic's sources (books, links) as a map of parts, so an agent reads one part at a time.
 
     asl sources <deck>               # write the map into the deck's Overview.md

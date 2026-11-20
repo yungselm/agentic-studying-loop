@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """VOICEVOX: a local text-to-speech engine for Japanese (http://127.0.0.1:50021), offline."""
 from __future__ import annotations
 

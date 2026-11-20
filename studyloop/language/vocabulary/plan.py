@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """`asl lang plan`: which lines become one-new-word cards, in which order, and why the rest wait.
 
 Writes the `status` column of every lines/*.tsv, fills `level` in Vocabulary.md, prints a report.

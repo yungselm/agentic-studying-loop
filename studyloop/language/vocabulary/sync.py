@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """`asl lang sync <export.apkg>`: the vault follows what the user studies in Anki.
 
 Sentence cards (tag `asl::id::<id>`) move their word to `learning` (reviewed) or `known` (mature,

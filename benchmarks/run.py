@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Run the card benchmark: each task in each setup (model × effort), with and without the workflow.
 
     python benchmarks/run.py --check                         # auth + isolation, costs ~nothing

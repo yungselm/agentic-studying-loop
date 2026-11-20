@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """`asl lang clean <deck>`: files in media_dir that no line or card uses (left over after a
 re-import or a removed source). Lists them; `--delete` removes them. Everything in media_dir can
 be cut again by `asl lang add`, so nothing there is the only copy."""

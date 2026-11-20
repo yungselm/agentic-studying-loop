@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """The vault: a folder of markdown notes (Obsidian or any other) that cards link into.
 
 Optional. With one, build and lint resolve `[[Note]]`, `![[image.png]]` and `source:` links

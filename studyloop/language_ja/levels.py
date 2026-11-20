@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Japanese word levels: readings in hiragana, okurigana variants (付き合う = 付合う), and
 kana-only words matched by their reading."""
 from __future__ import annotations

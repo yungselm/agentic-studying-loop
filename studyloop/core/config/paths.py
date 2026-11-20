@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+# Copyright (c) 2026 yungselm. Noncommercial use only; do not copy into other projects. See LICENSE.
 """Where the tool's own files live, paths from config files, and rewriting files as they were.
 
     PKG / ANKI          the shipped files (core's folder; Anki templates and vendored CodeMirror)
